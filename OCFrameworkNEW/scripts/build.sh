@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export DISABLE_CODEGEN=1
+# export DISABLE_CODEGEN=1
 
 # If there are any issues with running this script, uncomment lines below and enter path to react-native
 

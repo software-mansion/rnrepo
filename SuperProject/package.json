@@ -43,8 +43,7 @@
     "jsSrcsDir": "specs",
     "ios": {
       "componentProvider": {
-        "MyLocalTestView": "MyLocalTestView",
-        "MyFrameworkTestView": "MyFrameworkTestView"
+        "MyLocalTestView": "MyLocalTestView"
       }
     }
   }

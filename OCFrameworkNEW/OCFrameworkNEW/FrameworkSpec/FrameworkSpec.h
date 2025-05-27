@@ -15,9 +15,9 @@
 #error This file must be compiled as Obj-C++. If you are importing it, you must change your file extension to .mm.
 #endif
 
-// Avoid multiple includes of AppSpec symbols
-#ifndef AppSpec_H
-#define AppSpec_H
+// Avoid multiple includes of FrameworkSpec symbols
+#ifndef FrameworkSpec_H
+#define FrameworkSpec_H
 
 #import <Foundation/Foundation.h>
 #import <RCTRequired/RCTRequired.h>
@@ -35,4 +35,4 @@ NS_ASSUME_NONNULL_BEGIN
 
 
 NS_ASSUME_NONNULL_END
-#endif // AppSpec_H
+#endif // FrameworkSpec_H

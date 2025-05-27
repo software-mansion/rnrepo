@@ -7,14 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5C268706A2ED4CDA9FB963F0 /* libPods-OCFrameworkNEW.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8211303E01B7378FCEBDA227 /* libPods-OCFrameworkNEW.a */; };
+		10D0E76C8E3C59956A273203 /* libPods-OCFrameworkNEW.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A42F3ADB614001FB37712185 /* libPods-OCFrameworkNEW.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		1D07369BB8EF2F8524B94974 /* Pods-OCFrameworkNEW.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OCFrameworkNEW.debug.xcconfig"; path = "Target Support Files/Pods-OCFrameworkNEW/Pods-OCFrameworkNEW.debug.xcconfig"; sourceTree = "<group>"; };
+		0EB0FDFAA1F0D877BEE640F0 /* Pods-OCFrameworkNEW.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OCFrameworkNEW.release.xcconfig"; path = "Target Support Files/Pods-OCFrameworkNEW/Pods-OCFrameworkNEW.release.xcconfig"; sourceTree = "<group>"; };
+		19AEA0C55FA89AA7621A8D39 /* Pods-OCFrameworkNEW.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OCFrameworkNEW.debug.xcconfig"; path = "Target Support Files/Pods-OCFrameworkNEW/Pods-OCFrameworkNEW.debug.xcconfig"; sourceTree = "<group>"; };
 		218BD1C52DC8CBB700D50864 /* OCFrameworkNEW.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = OCFrameworkNEW.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		8211303E01B7378FCEBDA227 /* libPods-OCFrameworkNEW.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-OCFrameworkNEW.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		DF0DE8FB44147ABD4720BAB2 /* Pods-OCFrameworkNEW.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OCFrameworkNEW.release.xcconfig"; path = "Target Support Files/Pods-OCFrameworkNEW/Pods-OCFrameworkNEW.release.xcconfig"; sourceTree = "<group>"; };
+		A42F3ADB614001FB37712185 /* libPods-OCFrameworkNEW.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-OCFrameworkNEW.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -45,7 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5C268706A2ED4CDA9FB963F0 /* libPods-OCFrameworkNEW.a in Frameworks */,
+				10D0E76C8E3C59956A273203 /* libPods-OCFrameworkNEW.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -58,7 +58,7 @@
 				218BD1C72DC8CBB700D50864 /* OCFrameworkNEW */,
 				218BD1C62DC8CBB700D50864 /* Products */,
 				40EFFADEAAA868C6BBF77CF2 /* Pods */,
-				F87209B35C9A60A40B357450 /* Frameworks */,
+				343E33CBC0A289B6EAE56D57 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -70,21 +70,21 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		343E33CBC0A289B6EAE56D57 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A42F3ADB614001FB37712185 /* libPods-OCFrameworkNEW.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		40EFFADEAAA868C6BBF77CF2 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				1D07369BB8EF2F8524B94974 /* Pods-OCFrameworkNEW.debug.xcconfig */,
-				DF0DE8FB44147ABD4720BAB2 /* Pods-OCFrameworkNEW.release.xcconfig */,
+				19AEA0C55FA89AA7621A8D39 /* Pods-OCFrameworkNEW.debug.xcconfig */,
+				0EB0FDFAA1F0D877BEE640F0 /* Pods-OCFrameworkNEW.release.xcconfig */,
 			);
 			path = Pods;
-			sourceTree = "<group>";
-		};
-		F87209B35C9A60A40B357450 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				8211303E01B7378FCEBDA227 /* libPods-OCFrameworkNEW.a */,
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -104,12 +104,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 218BD1CB2DC8CBB700D50864 /* Build configuration list for PBXNativeTarget "OCFrameworkNEW" */;
 			buildPhases = (
-				BBDB64748B7BBC04F6F0B061 /* [CP] Check Pods Manifest.lock */,
+				5F4BAE088FD5E9FC504C3DF6 /* [CP] Check Pods Manifest.lock */,
 				218BD1C02DC8CBB700D50864 /* Headers */,
 				218BD1C12DC8CBB700D50864 /* Sources */,
 				218BD1C22DC8CBB700D50864 /* Frameworks */,
 				218BD1C32DC8CBB700D50864 /* Resources */,
-				7AB8D97922C08084AE42B9BE /* [CP] Copy Pods Resources */,
+				2CECCF60E0E93EB8D1AD2A95 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -167,7 +167,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		7AB8D97922C08084AE42B9BE /* [CP] Copy Pods Resources */ = {
+		2CECCF60E0E93EB8D1AD2A95 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -184,7 +184,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-OCFrameworkNEW/Pods-OCFrameworkNEW-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		BBDB64748B7BBC04F6F0B061 /* [CP] Check Pods Manifest.lock */ = {
+		5F4BAE088FD5E9FC504C3DF6 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -221,7 +221,7 @@
 /* Begin XCBuildConfiguration section */
 		218BD1CC2DC8CBB700D50864 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1D07369BB8EF2F8524B94974 /* Pods-OCFrameworkNEW.debug.xcconfig */;
+			baseConfigurationReference = 19AEA0C55FA89AA7621A8D39 /* Pods-OCFrameworkNEW.debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -255,7 +255,7 @@
 		};
 		218BD1CD2DC8CBB700D50864 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DF0DE8FB44147ABD4720BAB2 /* Pods-OCFrameworkNEW.release.xcconfig */;
+			baseConfigurationReference = 0EB0FDFAA1F0D877BEE640F0 /* Pods-OCFrameworkNEW.release.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

@@ -1,9 +1,9 @@
 #import "MyFrameworkTestView.h"
 
-#import <react/renderer/components/AppSpec/ComponentDescriptors.h>
-#import <react/renderer/components/AppSpec/EventEmitters.h>
-#import <react/renderer/components/AppSpec/Props.h>
-#import <react/renderer/components/AppSpec/RCTComponentViewHelpers.h>
+#import <react/renderer/components/FrameworkSpec/ComponentDescriptors.h>
+#import <react/renderer/components/FrameworkSpec/EventEmitters.h>
+#import <react/renderer/components/FrameworkSpec/Props.h>
+#import <react/renderer/components/FrameworkSpec/RCTComponentViewHelpers.h>
 
 
 // #import "RCTFabricComponentsPlugins.h"
@@ -25,6 +25,7 @@ using namespace facebook::react;
 
 - (instancetype)initWithFrame:(CGRect)frame
 {
+  NSLog(@"TETETE!");
   if (self = [super initWithFrame:frame]) {
     static const auto defaultProps = std::make_shared<const MyFrameworkTestViewProps>();
     _props = defaultProps;

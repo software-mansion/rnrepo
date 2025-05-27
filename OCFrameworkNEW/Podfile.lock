@@ -1726,8 +1726,8 @@ DEPENDENCIES:
   - React-runtimescheduler (from `node_modules/react-native/ReactCommon/react/renderer/runtimescheduler`)
   - React-timing (from `node_modules/react-native/ReactCommon/react/timing`)
   - React-utils (from `node_modules/react-native/ReactCommon/react/utils`)
-  - ReactAppDependencyProvider (from `OCFrameworkNEW`)
-  - ReactCodegen (from `OCFrameworkNEW`)
+  - ReactAppDependencyProvider (from `build/generated/ios`)
+  - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `node_modules/react-native/ReactCommon`)
   - Yoga (from `node_modules/react-native/ReactCommon/yoga`)
 
@@ -1870,9 +1870,9 @@ EXTERNAL SOURCES:
   React-utils:
     :path: node_modules/react-native/ReactCommon/react/utils
   ReactAppDependencyProvider:
-    :path: OCFrameworkNEW
+    :path: build/generated/ios
   ReactCodegen:
-    :path: OCFrameworkNEW
+    :path: build/generated/ios
   ReactCommon:
     :path: node_modules/react-native/ReactCommon
   Yoga:
@@ -1946,7 +1946,7 @@ SPEC CHECKSUMS:
   React-timing: a90f4654cbda9c628614f9bee68967f1768bd6a5
   React-utils: a612d50555b6f0f90c74b7d79954019ad47f5de6
   ReactAppDependencyProvider: 04d5eb15eb46be6720e17a4a7fa92940a776e584
-  ReactCodegen: e71e12e966ebe1a555345309a709551bdfaefa2b
+  ReactCodegen: 36214c65439c40449c66d23548107d4f6d25ac73
   ReactCommon: 76d2dc87136d0a667678668b86f0fca0c16fdeb0
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: c758bfb934100bb4bf9cbaccb52557cee35e8bdf

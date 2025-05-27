@@ -11,7 +11,7 @@
   "license": "ISC",
   "description": "",
   "codegenConfig": {
-    "name": "AppSpec",
+    "name": "FrameworkSpec",
     "type": "all",
     "jsSrcsDir": "specs",
     "ios": {

@@ -11,6 +11,6 @@
  * must have a single output. More files => more genrule()s => slower builds.
  */
 
-#import "AppSpec.h"
+#import "FrameworkSpec.h"
 
 

@@ -1,7 +1,8 @@
 import React, {useRef} from 'react';
-import {Button, Text, View, ViewComponent} from 'react-native';
+import {Button, Text, View} from 'react-native';
 import MyLocalTestViewNativeComponent from './specs/MyLocalTestViewNativeComponent';
-import TestComponent from './components/TestComponent';
+// import TestComponent from './components/TestComponent';
+import MyFrameworkTestViewNativeComponent from './specs/MyFrameworkTestViewNativeComponent';
 // import MyFrameworkTestViewNativeComponent from './specs/MyFrameworkTestViewNativeComponent';
 
 function App(): React.JSX.Element {
@@ -21,16 +22,12 @@ function App(): React.JSX.Element {
             color="red"
             ref={myRef}
           /> */}
-          {/* <MyFrameworkTestViewNativeComponent
+          <MyFrameworkTestViewNativeComponent />
+          {/* <TestComponent
             style={{width: 200, height: 200}}
             color="red"
             ref={myRef}
           /> */}
-          <TestComponent
-            style={{width: 200, height: 200}}
-            color="red"
-            ref={myRef}
-          />
         </View>
       </View>
     </>

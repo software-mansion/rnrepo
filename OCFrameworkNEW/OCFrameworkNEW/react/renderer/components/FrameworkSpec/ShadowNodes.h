@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include <react/renderer/components/AppSpec/EventEmitters.h>
-#include <react/renderer/components/AppSpec/Props.h>
-#include <react/renderer/components/AppSpec/States.h>
+#include <react/renderer/components/FrameworkSpec/EventEmitters.h>
+#include <react/renderer/components/FrameworkSpec/Props.h>
+#include <react/renderer/components/FrameworkSpec/States.h>
 #include <react/renderer/components/view/ConcreteViewShadowNode.h>
 #include <jsi/jsi.h>
 
