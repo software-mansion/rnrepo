@@ -1,0 +1,6 @@
+framework module OCFrameworkNEW {
+  umbrella header "OCFrameworkNEW.h"
+  export *
+
+  module * { export * }
+}
