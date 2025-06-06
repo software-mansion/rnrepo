@@ -83,7 +83,7 @@ echo "XCFramework created at $BUILD_DIR/$PROJECT_NAME.xcframework"
 # Signing the XCFramework
 echo "Signing the XCFramework..."
 
-APPLE_DEVELOPER_IDENTIFIER="ENTER-YOUR-DEVELOPER-IDENTIFIER-HERE"
+APPLE_DEVELOPER_IDENTIFIER="CE925F8ABB4C81365D4D355EC1353BF96B066328"
 
 codesign -s "$APPLE_DEVELOPER_IDENTIFIER" --force --deep --preserve-metadata=identifier,entitlements,flags "$BUILD_DIR/$PROJECT_NAME.xcframework"
     

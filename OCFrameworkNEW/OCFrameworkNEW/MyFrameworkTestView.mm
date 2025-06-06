@@ -49,6 +49,10 @@ using namespace facebook::react;
          auto green = [UIColor colorWithRed:50 / 255.0f green:168 / 255.0f blue:82 / 255.0f alpha:1.0f];
          [_view setBackgroundColor:green];
        }
+         if (newViewProps.color.compare("red")) {
+           auto green = [UIColor colorWithRed:1.0f green:0.0f blue:0.0f alpha:1.0f];
+           [_view setBackgroundColor:green];
+         }
      }
 
     [super updateProps:props oldProps:oldProps];

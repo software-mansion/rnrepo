@@ -1,4 +1,4 @@
-import React, {useRef} from 'react';
+import React, {useState} from 'react';
 import {Button, Text, View} from 'react-native';
 import MyLocalTestViewNativeComponent from './specs/MyLocalTestViewNativeComponent';
 // import TestComponent from './components/TestComponent';
@@ -6,32 +6,36 @@ import MyFrameworkTestViewNativeComponent from './specs/MyFrameworkTestViewNativ
 // import MyFrameworkTestViewNativeComponent from './specs/MyFrameworkTestViewNativeComponent';
 
 function App(): React.JSX.Element {
-  const myRef = useRef(null);
-  const handleLog = () => {
-    console.log(myRef.current._viewConfig);
-  };
+  const [shown, setShown] = useState(false);
 
   return (
     <>
-      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+      <View style={{flex: 1, justifyContent: 'flex-start', alignItems: 'center', paddingTop: 100}}>
         <Text>Welcome to React Native!</Text>
-        <Button title="Log Message" onPress={handleLog} />
-        <View style={{width: 100, height: 100, backgroundColor: 'navy'}}>
-          {/* <MyLocalTestViewNativeComponent
-            style={{width: 200, height: 200}}
-            color="red"
-            ref={myRef}
-          /> */}
-          <MyFrameworkTestViewNativeComponent />
-          {/* <TestComponent
-            style={{width: 200, height: 200}}
-            color="red"
-            ref={myRef}
-          /> */}
-        </View>
+        {shown && <Button onPress={() => setShown(false)} title={'Hide'}/>}
+        {!shown && <Button onPress={() => setShown(true)} title={'Show'}/>}
+        {shown && <Test />}
       </View>
     </>
   );
+}
+
+function Test(): React.JSX.Element {
+  return <><Text>Local:</Text>
+  <View style={{width: 100, height: 100, backgroundColor: 'navy'}}>
+    <MyLocalTestViewNativeComponent
+      style={{width: 100, height: 100}}
+      color="red"
+    />
+  </View>
+  <Text>Framework:</Text>
+  <View style={{width: 100, height: 100, backgroundColor: 'navy'}}>
+    <MyFrameworkTestViewNativeComponent
+      style={{width: 100, height: 100}}
+      color="red"
+    />
+  </View>
+  </>
 }
 
 export default App;
