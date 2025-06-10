@@ -1,4 +1,5 @@
 build
 node_modules
 Pods
+.xcode.env
 .xcode.env.local
