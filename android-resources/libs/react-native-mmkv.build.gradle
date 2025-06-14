@@ -1,0 +1,124 @@
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:7.2.1"
+  }
+}
+
+def isNewArchitectureEnabled() {
+  return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
+}
+
+apply plugin: "com.android.library"
+
+if (isNewArchitectureEnabled()) {
+  logger.warn("NEW ARCH ENABLED!")
+  apply plugin: "com.facebook.react"
+}
+
+def getExtOrDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["Mmkv_" + name]
+}
+
+def getExtOrIntegerDefault(name) {
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["Mmkv_" + name]).toInteger()
+}
+
+logger.warn("[react-native-mmkv] Thank you for using react-native-mmkv ❤️")
+logger.warn("[react-native-mmkv] If you enjoy using react-native-mmkv, please consider sponsoring this project: https://github.com/sponsors/mrousavy")
+
+
+
+android {
+  namespace "com.mrousavy.mmkv"
+
+  ndkVersion getExtOrDefault("ndkVersion")
+  compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
+
+  defaultConfig {
+    minSdkVersion getExtOrIntegerDefault("minSdkVersion")
+    targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+  }
+
+  buildFeatures {
+    buildConfig true
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+    }
+  }
+
+  lintOptions {
+    disable "GradleCompatible"
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+
+  sourceSets {
+    main {
+      if (isNewArchitectureEnabled()) {
+          java.srcDirs += [
+            // This is needed to build Kotlin project with NewArch enabled
+            "${project.buildDir}/generated/source/codegen/java"
+          ]
+      }
+    }
+  }
+
+  publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
+}
+
+repositories {
+  mavenCentral()
+  mavenLocal()
+  google()
+}
+
+
+dependencies {
+  // For < 0.71, this will be from the local maven repo
+  // For > 0.71, this will be replaced by `com.facebook.react:react-android:$version` by react gradle plugin
+  //noinspection GradleDynamicVersion
+  implementation "com.facebook.react:react-native:+"
+}
+
+if (isNewArchitectureEnabled()) {
+  react {
+    jsRootDir = file("../src/")
+    libraryName = "Mmkv"
+    codegenJavaPackageName = "com.mrousavy.mmkv"
+  }
+}
+
+
+apply plugin: "maven-publish"
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                groupId = 'com.mrousavy'
+                artifactId = 'mmkv'
+                version = '1.0.0'
+                from components.release
+            }
+        }
+        repositories {
+            mavenLocal()
+        }
+    }
+}

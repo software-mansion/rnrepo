@@ -1,34 +1,21 @@
-import React, {useRef} from 'react';
-import {Button, Text, View} from 'react-native';
-import MyLocalTestViewNativeComponent from './specs/MyLocalTestViewNativeComponent';
-// import TestComponent from './components/TestComponent';
-import MyFrameworkTestViewNativeComponent from './specs/MyFrameworkTestViewNativeComponent';
-// import MyFrameworkTestViewNativeComponent from './specs/MyFrameworkTestViewNativeComponent';
+import React from 'react';
+import {Button, Platform, Text, View} from 'react-native';
+import IOS from './components/IOS';
+import Android from './components/Android';
 
 function App(): React.JSX.Element {
-  const myRef = useRef(null);
-  const handleLog = () => {
-    console.log(myRef.current._viewConfig);
+  const handleButtonClick = () => {
+    console.log('Button Clicked!');
   };
 
   return (
     <>
       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
         <Text>Welcome to React Native!</Text>
-        <Button title="Log Message" onPress={handleLog} />
-        <View style={{width: 100, height: 100, backgroundColor: 'navy'}}>
-          {/* <MyLocalTestViewNativeComponent
-            style={{width: 200, height: 200}}
-            color="red"
-            ref={myRef}
-          /> */}
-          <MyFrameworkTestViewNativeComponent />
-          {/* <TestComponent
-            style={{width: 200, height: 200}}
-            color="red"
-            ref={myRef}
-          /> */}
-        </View>
+        <Button title="Test Button" onPress={handleButtonClick} />
+
+        {Platform.OS === 'ios' && <IOS />}
+        {Platform.OS === 'android' && <Android />}
       </View>
     </>
   );

@@ -4,12 +4,15 @@ buildscript {
         minSdkVersion = 24
         compileSdkVersion = 35
         targetSdkVersion = 35
-        ndkVersion = "27.1.12297006"
+        ndkVersion = "29.0.13113456"
         kotlinVersion = "2.0.21"
     }
     repositories {
         google()
         mavenCentral()
+
+        // added - to use custom plugin from maven local
+        mavenLocal()
     }
     dependencies {
         classpath("com.android.tools.build:gradle")

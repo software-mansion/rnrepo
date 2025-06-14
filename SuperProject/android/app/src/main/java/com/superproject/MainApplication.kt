@@ -12,6 +12,17 @@ import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
 
+import com.BV.LinearGradient.LinearGradientPackage
+import com.brentvatne.react.ReactVideoPackage
+import com.superproject.MyLocalTest.MyLocalTestPackage
+//import com.shopify.reactnative.flash_list.ReactNativeFlashListPackage
+//import com.swmansion.reanimated.ReanimatedPackage
+import com.horcrux.svg.SvgPackage
+import com.learnium.RNDeviceInfo.RNDeviceInfo
+import com.mrousavy.mmkv.MmkvPackage
+import com.swmansion.rnscreens.RNScreensPackage
+import org.pgsqlite.SQLitePluginPackage
+
 class MainApplication : Application(), ReactApplication {
 
   override val reactNativeHost: ReactNativeHost =
@@ -19,7 +30,16 @@ class MainApplication : Application(), ReactApplication {
         override fun getPackages(): List<ReactPackage> =
             PackageList(this).packages.apply {
               // Packages that cannot be autolinked yet can be added manually here, for example:
-              // add(MyReactNativePackage())
+              add(MyLocalTestPackage())
+              add(LinearGradientPackage())
+              add(ReactVideoPackage())
+              //add(ReactNativeFlashListPackage())
+              //add(ReanimatedPackage())
+              add(SvgPackage())
+              add(RNDeviceInfo())
+              add(MmkvPackage())
+              add(RNScreensPackage())
+              add(SQLitePluginPackage())
             }
 
         override fun getJSMainModuleName(): String = "index"

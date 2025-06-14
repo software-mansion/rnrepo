@@ -2,6 +2,10 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+// custom plugin
+// apply plugin: "com.example.preventrnlink"
+
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -116,4 +120,44 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+     // implementation(name: 'LinearGradient-1.0.0', ext: 'aar')
+    implementation("com.BV:LinearGradient:1.0.0")
+
+    // implementation(name: 'ReactNativeVideo-1.0.0', ext: 'aar')
+    implementation("com:ReactNativeVideo:1.0.0")
+
+    // implementation(name: 'FlashList-1.0.0', ext: 'aar')
+    // implementation("com:FlashList:1.0.0") 
+
+    // implementation(name: 'reanimated-1.0.0', ext: 'aar')
+    //implementation("com.swmansion:reanimated:1.0.0")
+
+    // implementation(name: 'ReactNativeSvg-1.0.0', ext: 'aar')
+    implementation("com.swmansion:ReactNativeSvg:1.0.0")
+
+    // implementation(name: 'ReactNativeDeviceInfo-1.0.0', ext: 'aar')
+    implementation("com:ReactNativeDeviceInfo:1.0.0")
+
+    // implementation(name: 'mmkv-1.0.0', ext: 'aar')
+    implementation("com.mrousavy:mmkv:1.0.0")
+
+    // implementation(name: 'ReactNativeScreens-1.0.0', ext: 'aar')
+    implementation("com.swmansion:ReactNativeScreens:1.0.0")
+
+    // implementation(name: 'ReactNativeScreens-1.0.0', ext: 'aar')
+    implementation("com:ReactNativeSqliteStorage:1.0.0")
+
 }
+
+
+repositories {
+    mavenLocal()
+
+    // use for local dir aars
+    
+    // flatDir {
+    //     dirs 'libs'
+    // }
+}
+
