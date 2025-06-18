@@ -18,7 +18,7 @@ import com.superproject.MyLocalTest.MyLocalTestPackage
 //import com.shopify.reactnative.flash_list.ReactNativeFlashListPackage
 //import com.swmansion.reanimated.ReanimatedPackage
 import com.horcrux.svg.SvgPackage
-import com.learnium.RNDeviceInfo.RNDeviceInfo
+//import com.learnium.RNDeviceInfo.RNDeviceInfo
 import com.mrousavy.mmkv.MmkvPackage
 import com.swmansion.rnscreens.RNScreensPackage
 import org.pgsqlite.SQLitePluginPackage
@@ -36,7 +36,7 @@ class MainApplication : Application(), ReactApplication {
               //add(ReactNativeFlashListPackage())
               //add(ReanimatedPackage())
               add(SvgPackage())
-              add(RNDeviceInfo())
+              //add(RNDeviceInfo())
               add(MmkvPackage())
               add(RNScreensPackage())
               add(SQLitePluginPackage())
