@@ -2,43 +2,35 @@ package com.example.mytestplugin
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-// import org.gradle.api.initialization.Settings
+import groovy.json.JsonSlurper
+import groovy.json.JsonBuilder
+import java.nio.file.Files
+import java.nio.file.Paths
 
 class PreventRNLinkPlugin implements Plugin<Project> {
-    // void apply(Settings settings) {
-    //     println "✅ PreventRNLinkPlugin is ok..."
-        
-    //     File settingsFile = settings.settingsDir.toPath().resolve("settings.gradle").toFile()
-    //     if (!settingsFile.exists()) {
-    //         println "⚠️ settings.gradle not found."
-    //         return
-    //     }
-
-    //     def content = settingsFile.text
-    //     List<String> librariesToExclude = ['react-native-svg']
-
-    //     librariesToExclude.each { lib ->
-    //         // Escape characters and match includeBuild calls
-    //         String pattern = /includeBuild\(['"]\.\.\/node_modules\/${lib}['"]\)/
-    //         content = content.replaceFirst(pattern, "// Excluded by plugin: ${lib}")
-    //     }
-
-    //     settingsFile.text = content
-    // }
     void apply(Project project) {
-        println "✅ PreventRNLinkPlugin is ok..."
-        // Logic to exclude the library
-        project.afterEvaluate {
-            println "🟡 Running..."
-            it.configurations.all { config ->
-                println "Config: " + config
-                config.exclude group: 'com.horcrux.svg', module: 'react-native-svg'
-            
-                println "🔍 Inspecting configuration: ${config.name}"
-                config.dependencies.forEach {
-                    println "  📦 Dependency: ${it.group}:${it.name}:${it.version}"
+        project.tasks.register("removeReanimatedDependency") {
+            doLast {
+                def path = Paths.get(project.rootDir.path, "build/generated/autolinking/autolinking.json")
+                def file = path.toFile()
+ 
+                if (file.exists()) {
+                    def jsonSlurper = new JsonSlurper()
+                    def originalJson = jsonSlurper.parse(file) 
+                    def json = originalJson.toMutableMap()
+                    def originalDependencies = json["dependencies"]
+                    originalDependencies?.let {
+                        def dependencies = it.toMutableMap()
+                        dependencies.remove("react-native-reanimated")
+                        json["dependencies"] = dependencies
+                        println("MODIFIED: " + json["dependencies"])
+                        def modifiedJsonString = new JsonBuilder(json).toPrettyString()
+                        Files.write(path, modifiedJsonString.bytes)
+                        println("Modified JSON saved.")
+                    }
+                } else {
+                    println("The specified JSON file does not exist: ${file.path}")
                 }
-            
             }
         }
     }
