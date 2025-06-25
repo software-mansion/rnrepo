@@ -1,5 +1,5 @@
 import React from 'react';
-import {View} from 'react-native';
+import {ScrollView, View} from 'react-native';
 import MMKVTest from './android/MMKVTest';
 import RNSQLiteTest from './android/RNSQLiteTest';
 import ReactNativeVideoTest from './android/ReactNativeVideoTest/ReactNativeVideoTest';
@@ -7,18 +7,27 @@ import LocalNativeViewTest from './android/LocalNativeViewTest';
 import ReactNativeSVGTest from './android/ReactNativeSVGTest';
 import ReactNativeDeviceInfoTest from './android/ReactNativeDeviceInfoTest';
 import ReactNativeScreensTest from './android/ReactNativeScreensTest';
+import ReactNativeLinearGradientTest from './android/ReactNativeLinearGradientTest';
 
 const Android = () => {
   return (
-    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+    <ScrollView
+      contentContainerStyle={{
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+      style={{
+        flex: 1,
+      }}>
       <LocalNativeViewTest />
       <ReactNativeVideoTest />
-      {/* <ReactNativeSVGTest /> */}
+      <ReactNativeSVGTest />
       <ReactNativeDeviceInfoTest />
       {/* <MMKVTest /> */}
+      <ReactNativeLinearGradientTest />
       <ReactNativeScreensTest />
       <RNSQLiteTest />
-    </View>
+    </ScrollView>
   );
 };
 

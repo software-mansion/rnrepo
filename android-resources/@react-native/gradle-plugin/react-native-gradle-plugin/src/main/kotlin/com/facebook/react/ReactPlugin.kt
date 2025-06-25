@@ -50,6 +50,7 @@ import groovy.json.JsonBuilder
 class ReactPlugin : Plugin<Project> {
   override fun apply(project: Project) {
     checkJvmVersion(project)
+    println("FIRST?")
     val extension = project.extensions.create("react", ReactExtension::class.java, project)
 
     // We register a private extension on the rootProject so that project wide configs
@@ -248,92 +249,70 @@ class ReactPlugin : Plugin<Project> {
     val rootGeneratedAutolinkingFile =
         project.rootProject.layout.buildDirectory.file("generated/autolinking/autolinking.json")
 
-    // We add a task called generateAutolinkingPackageList to do not clash with the existing task
-    // called generatePackageList. This can to be renamed once we unlink the rn <-> cli
-    // dependency.
 
     // --------------------------------------------------------------------------------------------------------------
-    println("Now will do it!")
-
+    //! Moved to settings plugin
 
     // val file = Paths.get(project.rootDir.path, "build/generated/autolinking/autolinking.json").toFile()
+    // if (file.exists()) {
+    //     val jsonSlurper = JsonSlurper()
+    //     val originalJson = jsonSlurper.parse(file) as Map<String, Any>
+    //     val json = originalJson.toMutableMap()
+    //     val dependencies = json["dependencies"] as? MutableMap<String, Any> ?: mutableMapOf()
 
-    //     if (file.exists()) {
-    //         val jsonSlurper = JsonSlurper()
-    //         val originalJson = jsonSlurper.parse(file) as Map<String, Any>
-    //         val json = originalJson.toMutableMap() // Ensure the map is mutable
 
-    //         val originalDependencies = json["dependencies"] as? Map<String, Any>
-    //         if (originalDependencies != null) {
-    //             val dependencies = originalDependencies.toMutableMap()
+    //     // Hardcoded Maven dependencies
+    //     val mavenDependencies = mapOf(
+    //         "react-native-device-info" to "com:ReactNativeDeviceInfo:1.0.0",
+    //         "react-native-video" to "com:ReactNativeVideo:1.0.0",
+    //         "react-native-svg" to "com.swmansion:ReactNativeSvg:1.0.0",
+    //         "react-native-screens" to "com.swmansion:ReactNativeScreens:1.0.0",
+    //         "react-native-linear-gradient" to "com.BV:LinearGradient:1.0.0",
+    //         "react-native-sqlite-storage" to "com:ReactNativeSqliteStorage:1.0.0"
 
-    //             // Remove 'react-native-reanimated' dependency
-    //             dependencies.remove("react-native-device-info")
+    //         // Add other dependencies as needed
+    //     )
 
-    //             // Update back to JSON root
-    //             json["dependencies"] = dependencies
+    //     dependencies.forEach { (key, value) ->
+    //         val dependencyMap = (value as Map<*, *>).toMutableMap()
+
+    //         // Set Maven dependency if present, else set to null
+    //         val mavenDependency = mavenDependencies[key]
+    //         dependencyMap["mavenDependency"] = mavenDependency
+
+    //         // Adjust platforms
+    //         if (mavenDependency != null) {
+    //             val platformsMap = (dependencyMap["platforms"] as Map<*, *>).toMutableMap()
+    //             val androidMap = (platformsMap["android"] as Map<*, *>).toMutableMap()
+    //             androidMap["sourceDir"] = ""
+    //             androidMap["componentDescriptors"] = arrayListOf<String>()
+    //             platformsMap["android"] = androidMap
+    //             dependencyMap["platforms"] = platformsMap
     //         }
 
-    //         print("MODIFIED: " + json["dependencies"])
-
-    //         // Write the JSON back to file
-    //         val modifiedJsonString = JsonBuilder(json).toPrettyString()
-    //         Files.write(file.toPath(), modifiedJsonString.toByteArray())  // Use .toByteArray() to convert String to ByteArray
-    //         println("Modified JSON saved.")
-    //     } else {
-    //         println("The specified JSON file does not exist: ${file.path}")
+    //         dependencies[key] = dependencyMap
     //     }
 
+        
 
+    //     json["dependencies"] = dependencies
+    //     println("Modified dependencies: " + json["dependencies"])
 
-
-
-
-
-
-
-    val file = Paths.get(project.rootDir.path, "build/generated/autolinking/autolinking.json").toFile()
-        if (file.exists()) {
-            val jsonSlurper = JsonSlurper()
-            val originalJson = jsonSlurper.parse(file) as Map<String, Any>
-            val json = originalJson.toMutableMap()
-            val dependencies = json["dependencies"] as? MutableMap<String, Any> ?: mutableMapOf()
-
-            dependencies.forEach { (key, value) ->
-                val dependencyMap = (value as Map<*, *>).toMutableMap()
-                if (key == "react-native-device-info") {
-                    dependencyMap["mavenDependency"] = true
-
-                    // Adjust platforms
-                    val platformsMap = (dependencyMap["platforms"] as Map<*, *>).toMutableMap()
-                    val androidMap = (platformsMap["android"] as Map<*, *>).toMutableMap()
-                    androidMap["sourceDir"] = ""
-
-                    platformsMap["android"] = androidMap
-                    dependencyMap["platforms"] = platformsMap
-                } else {
-                    dependencyMap["mavenDependency"] = false
-                }
-                
-                dependencies[key] = dependencyMap
-            }
-
-           
-
-            json["dependencies"] = dependencies
-            println("Modified dependencies: " + json["dependencies"])
-
-            // Write the modified JSON back to the file
-            val modifiedJsonString = JsonBuilder(json).toPrettyString()
-            Files.write(file.toPath(), modifiedJsonString.toByteArray())
-            println("Modified JSON saved.")
-        } else {
-            println("The specified JSON file does not exist: ${file.path}")
-        }
+    //     // Write the modified JSON back to the file
+    //     val modifiedJsonString = JsonBuilder(json).toPrettyString()
+    //     Files.write(file.toPath(), modifiedJsonString.toByteArray())
+    //     println("Modified JSON saved.")
+    // } else {
+    //     println("The specified JSON file does not exist: ${file.path}")
+    // }
     
 
 
     // --------------------------------------------------------------------------------------------------------------
+
+    // We add a task called generateAutolinkingPackageList to do not clash with the existing task
+    // called generatePackageList. This can to be renamed once we unlink the rn <-> cli
+    // dependency.
     val generatePackageListTask =
         project.tasks.register(
             "generateAutolinkingPackageList", GeneratePackageListTask::class.java) { task ->

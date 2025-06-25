@@ -178,13 +178,37 @@ abstract class ReactExtension @Inject constructor(val project: Project) {
     val dependenciesToApply = getGradleDependenciesToApply(inputFile)
     dependenciesToApply.forEach { (configuration, path) ->
       // ----------------------------------------------------------------
+      // this should apply those dependencies, but from mavenDependencyName if not null
       println("DEP: " + configuration + " | " + path )
-      if(path != ":react-native-device-info"){
+      // currently excluding only hardcoded libraries
+      if(path != ":react-native-device-info"  && path != ":react-native-video" && path != ":react-native-svg" && path != ":react-native-screens" && path != ":react-native-linear-gradient" && path != ":react-native-sqlite-storage"){
 
+        println("Adding: " + configuration)
         // ----------------------------------------------------------------
-        project.dependencies.add(configuration, project.dependencies.project(mapOf("path" to path)))
+        
+        // if it starts with MAVEN: add everything besides MAVEN: like: implementation(THE_REST)
+        if (path.startsWith("MAVEN:")) {
+            println("It starts with MAVEN: " + path)
+            // Remove "MAVEN:" and use the rest as dependency notation
+            val dependencyNotation = path.substringAfter("MAVEN:")
+            println("Dependency notation: " + dependencyNotation)
+            // Add as an implementation dependency
+            project.dependencies.add(configuration, dependencyNotation)
+        } else {
+            // Add as a project dependency
+            project.dependencies.add(configuration, project.dependencies.project(mapOf("path" to path)))
+        }
+      } else {
+        println("Skipping: " + project.dependencies.project(mapOf("path" to path)))
       }
     }
+
+    // ---------------------------
+
+    println("Project Dependencies:")
+    println(project.dependencies)
+
+    // ---------------------------
   }
 
   companion object {
@@ -199,6 +223,7 @@ abstract class ReactExtension @Inject constructor(val project: Project) {
      */
     internal fun getGradleDependenciesToApply(inputFile: File): MutableList<Pair<String, String>> {
       val model = JsonUtils.fromAutolinkingConfigJson(inputFile)
+      println("MODEL: " + model)
       val result = mutableListOf<Pair<String, String>>()
       model
           ?.dependencies
@@ -206,18 +231,52 @@ abstract class ReactExtension @Inject constructor(val project: Project) {
           ?.filter { it.platforms?.android !== null }
           ?.filterNot { it.platforms?.android?.isPureCxxDependency == true }
           ?.forEach { deps ->
+            println("Dependency is: " + deps)
             val nameCleansed = deps.nameCleansed
             val dependencyConfiguration = deps.platforms?.android?.dependencyConfiguration
             val buildTypes = deps.platforms?.android?.buildTypes ?: emptyList()
-            if (buildTypes.isEmpty()) {
-              result.add((dependencyConfiguration ?: "implementation") to ":$nameCleansed")
+           
+            // ------------------------------------
+            val mavenDependency = deps?.mavenDependency // to be moved to platforms -> android
+            println("MAVEN DEP: ")
+            if (mavenDependency != null) {
+                if (buildTypes.isEmpty()) {
+                    result.add((dependencyConfiguration ?: "implementation") to mavenDependency)
+                } else {
+                    buildTypes.forEach { buildType ->
+                        result.add("${buildType}Implementation" to mavenDependency)
+                    }
+                }
             } else {
-              buildTypes.forEach { buildType ->
-                result.add(
-                    (dependencyConfiguration ?: "${buildType}Implementation") to ":$nameCleansed")
-              }
+                if (buildTypes.isEmpty()) {
+                    result.add((dependencyConfiguration ?: "implementation") to ":$nameCleansed")
+                } else {
+                    buildTypes.forEach { buildType ->
+                        result.add("${buildType}Implementation" to ":$nameCleansed")
+                    }
+                }
             }
+            // ------------------------------------
+           
+           
+            // if (buildTypes.isEmpty()) {
+            //   result.add((dependencyConfiguration ?: "implementation") to ":$nameCleansed")
+            // } else {
+            //   buildTypes.forEach { buildType ->
+            //     result.add(
+            //         (dependencyConfiguration ?: "${buildType}Implementation") to ":$nameCleansed")
+            //   }
+            // }
           }
+
+
+          // ------------------------------------------------------------------
+          println("Final result of dependencies to apply:")
+          result.forEach {
+            println("Configuration: ${it.first}, Dependency: ${it.second}")
+          }
+
+          // ------------------------------------------------------------------
       return result
     }
   }

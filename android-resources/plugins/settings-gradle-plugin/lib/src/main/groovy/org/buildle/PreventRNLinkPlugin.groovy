@@ -5,6 +5,10 @@ package org.buildle
 
 import org.gradle.api.Plugin
 import org.gradle.api.initialization.Settings
+import groovy.json.JsonSlurper
+import groovy.json.JsonBuilder
+import java.nio.file.Files
+import java.nio.file.Paths
 
 class PreventRNLinkPlugin implements Plugin<Settings> {
     void apply(Settings settings) {
@@ -12,23 +16,69 @@ class PreventRNLinkPlugin implements Plugin<Settings> {
             // Output to console to confirm plugin is working
             println "✅ Modifying settings to exclude react-native-device-info..."
 
-            // Defining the project path for react-native-reanimated
-            String excludedProjectPath = ':react-native-device-info'
+            // List of projects to be excluded
+            List<String> excludedProjectsPaths = [':react-native-device-info', ':react-native-video',':react-native-svg',':react-native-screens',':react-native-linear-gradient', ':react-native-sqlite-storage']
 
-            // Example redirection to a dummy directory
-            File unusedDirectory = new File(settings.rootDir, 'build/unused')
-            if (!unusedDirectory.exists()) {
-                unusedDirectory.mkdirs() // Ensure the directory exists
+            // Iterate over each project in the list
+            excludedProjectsPaths.each { excludedProjectPath ->
+                File unusedDirectory = new File(settings.rootDir, "build/unused/${excludedProjectPath.replace(':', '')}")
+
+                // Create a dummy directory if it does not exist
+                if (!unusedDirectory.exists()) {
+                    unusedDirectory.mkdirs() // Ensure the directory exists
+                    println "Created unused directory for $excludedProjectPath at: ${unusedDirectory.path}"
+                }
+                
+                // Check if the project is included in the settings
+                if (settings.findProject(excludedProjectPath)) {
+                    // Modify the project directory to the unused directory
+                    settings.project(excludedProjectPath).projectDir = unusedDirectory
+                    println "🚫 Excluded $excludedProjectPath by setting project dir to an unused directory."
+                } else {
+                    println "❌ Project $excludedProjectPath not found."
+                }
             }
 
-            println "OK " + settings.project(excludedProjectPath)
 
-            // Check and modify the specific project directory to an unused one
-            if (settings.project(excludedProjectPath)) {
-                println "first!"
-                settings.project(excludedProjectPath).projectDir = unusedDirectory
-                println "🚫 Excluded ${excludedProjectPath} by setting project dir to an unused directory."
+            def autolinkingFile = new File(settings.rootProject.projectDir, "build/generated/autolinking/autolinking.json")
+            if (autolinkingFile.exists()) {
+                def slurper = new JsonSlurper()
+                def json = slurper.parse(autolinkingFile) as Map
+
+                def dependencies = json.get('dependencies') as Map<String, Map>
+                def mavenDependencies = [
+                    'react-native-device-info': 'com:ReactNativeDeviceInfo:1.0.0',
+                    'react-native-video': 'com:ReactNativeVideo:1.0.0',
+                    'react-native-svg': 'com.swmansion:ReactNativeSvg:1.0.0',
+                    'react-native-screens': 'com.swmansion:ReactNativeScreens:1.0.0',
+                    'react-native-linear-gradient': 'com.BV:LinearGradient:1.0.0',
+                    'react-native-sqlite-storage': 'com:ReactNativeSqliteStorage:1.0.0'
+                ]
+
+                dependencies.each { key, value ->
+                    def dependencyMap = value
+                    def mavenDependency = mavenDependencies.get(key)
+                    if (mavenDependency) {
+                        dependencyMap.put('mavenDependency', "MAVEN:" + mavenDependency)
+                        def platformsMap = dependencyMap.get('platforms')
+                        if (platformsMap && platformsMap.containsKey('android')) {
+                            def androidMap = platformsMap.get('android')
+                            androidMap.put('sourceDir', '')
+                            androidMap.put('componentDescriptors', [])
+                            platformsMap.put('android', androidMap)
+                        }
+                    } else {
+                        dependencyMap.put('mavenDependency', null)
+                    }
+                }
+
+                def builder = new JsonBuilder(json)
+                autolinkingFile.text = builder.toPrettyString()
+                println "Updated autolinking.json successfully."
+            } else {
+                println "The specified autolinking.json file does not exist: ${autolinkingFile.path}"
             }
+
         }
     }
 }

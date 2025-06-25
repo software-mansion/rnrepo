@@ -122,10 +122,10 @@ dependencies {
     }
 
      // implementation(name: 'LinearGradient-1.0.0', ext: 'aar')
-    implementation("com.BV:LinearGradient:1.0.0")
+    // implementation("com.BV:LinearGradient:1.0.0")
 
     // implementation(name: 'ReactNativeVideo-1.0.0', ext: 'aar')
-    implementation("com:ReactNativeVideo:1.0.0")
+    // implementation("com:ReactNativeVideo:1.0.0")
 
     // implementation(name: 'FlashList-1.0.0', ext: 'aar')
     // implementation("com:FlashList:1.0.0") 
@@ -134,19 +134,19 @@ dependencies {
     //implementation("com.swmansion:reanimated:1.0.0")
 
     // implementation(name: 'ReactNativeSvg-1.0.0', ext: 'aar')
-    implementation("com.swmansion:ReactNativeSvg:1.0.0")
+    // implementation("com.swmansion:ReactNativeSvg:1.0.0")
 
     // implementation(name: 'ReactNativeDeviceInfo-1.0.0', ext: 'aar')
-    implementation("com:ReactNativeDeviceInfo:1.0.0")
+    // implementation("com:ReactNativeDeviceInfo:1.0.0")
 
     // implementation(name: 'mmkv-1.0.0', ext: 'aar')
     implementation("com.mrousavy:mmkv:1.0.0")
 
     // implementation(name: 'ReactNativeScreens-1.0.0', ext: 'aar')
-    implementation("com.swmansion:ReactNativeScreens:1.0.0")
+    // implementation("com.swmansion:ReactNativeScreens:1.0.0")
 
     // implementation(name: 'ReactNativeScreens-1.0.0', ext: 'aar')
-    implementation("com:ReactNativeSqliteStorage:1.0.0")
+    // implementation("com:ReactNativeSqliteStorage:1.0.0")
 
 }
 
