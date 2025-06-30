@@ -4,8 +4,8 @@
 
 - [Android](#android)
 - [iOS](#ios)
-  - [Creating `.xcframework` binary from library files](ios-resources/README.md)
-  - [Using script to create xcframework](#using-script-to-create-xcframework)
+    - [Creating `.xcframework` binary from library files](ios-resources/README.md)
+    - [Using script to create xcframework](#using-script-to-create-xcframework)
 
 ## Android
 
@@ -285,9 +285,7 @@ npm run build-xcf -- \
   -m RNSVG  
 ```
 
----
-
-## Options
+#### Options
 
 | Option                 | Alias | Description                                                                   |
 |------------------------|-------|-------------------------------------------------------------------------------|
@@ -297,3 +295,43 @@ npm run build-xcf -- \
 | `--project <path>`     | `-p`  | Path to the root project that contains the `.podspec` (default: `.`)          |
 | `--platforms <list>`   |       | Comma-separated list of build platforms (default: `iphonesimulator,iphoneos`) |
 | `--skip-pods`          |       | If set, skips `pod install` (useful if already installed)                     |
+
+### Using script to include xcframework
+
+You will need Ruby to use the script.
+
+Install project dependencies (be sure to install `xcodeproj` and `optparse` gems as well):
+
+```bash
+npm install
+[sudo] gem install optparse xcodeproj 
+```
+
+Then run the script:
+
+```bash
+npm run include-xcf -- \
+  --target YourAppTarget \
+  --ios-project ./example/ios \
+  --xcframework ./dist/MyLibrary.xcframework
+```
+
+Target is the name of the target in your Xcode project where you want to include the `.xcframework`. It's optional, if
+not provided it will default to the first target found in the project. If there are multiple targets the script will
+fail, you can specify the one you want to include the `.xcframework` in via `--target` option.
+
+```bash
+npm run include-xcf -- \
+  --project ~/react-native-reanimated/apps/fabric-example/ios/FabricExample.xcodeproj \ 
+  --framework ~/buildle/RNReanimated.xcframework
+```
+
+
+#### Options
+
+| Option      | Alias | Description                                                                             |
+|-------------|-------|-----------------------------------------------------------------------------------------|
+| --project   | -p    | Path to the .xcodeproj file (**required**)                                              |
+| --framework | -f    | Path to the .xcframework file (absolute or relative) (**required**)                     |
+| --target    | -t    | Name of the Xcode target to apply the framework to (required if multiple targets exist) |
+| --help      | -h    | Show usage help and exit                                                                |
