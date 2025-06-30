@@ -122,4 +122,7 @@ if (createXcframeworkCmd.exitCode !== 0) {
   throw new Error(`Failed to create XCFramework: ${createXcframeworkCmd.stderr}`);
 }
 
+// Cleanup, so headers don't mix when building different modules
+fs.rmSync(headersDirectory, {force: true, recursive: true});
+
 console.log(`XCFramework created successfully at ${xcframeworkPath}`);
