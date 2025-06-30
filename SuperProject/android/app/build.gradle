@@ -131,7 +131,7 @@ dependencies {
     // implementation("com:FlashList:1.0.0") 
 
     // implementation(name: 'reanimated-1.0.0', ext: 'aar')
-    //implementation("com.swmansion:reanimated:1.0.0")
+    //implementation("com.swmansion:ReactNativeReanimated:1.0.0")
 
     // implementation(name: 'ReactNativeSvg-1.0.0', ext: 'aar')
     // implementation("com.swmansion:ReactNativeSvg:1.0.0")
