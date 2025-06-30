@@ -6,6 +6,7 @@
 - [iOS](#ios)
     - [Creating `.xcframework` binary from library files](ios-resources/README.md)
     - [Using script to create xcframework](#using-script-to-create-xcframework)
+    - [Using script to include xcframework](#using-script-to-include-xcframework)
 
 ## Android
 
@@ -265,9 +266,7 @@ Install project dependencies:
 npm install
 ```
 
----
-
-## Usage
+#### Usage
 
 ```bash
 npm run build-xcf --  \
