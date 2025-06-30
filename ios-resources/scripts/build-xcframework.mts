@@ -89,11 +89,12 @@ const resolvedHeaders = await globby(headersPaths, {
 })
 
 // Copy resolved headers to the headers directory in build directory
-await Promise.all(resolvedHeaders.map(async (headerPath) => {
+await Promise.all(resolvedHeaders.filter(header => header.endsWith(".h")).map(async (headerPath) => {
   const headerDest = path.join(headersDirectory, path.basename(headerPath));
   return fs.copyFileSync(headerPath, headerDest);
-}))
-console.log(`Found and copied ${resolvedHeaders.length} headers`);
+})).then((res) => {
+  console.log(`Found and copied ${res.length} headers`);
+});
 
 // Create XCArchive for each platform. They are later used to create XCFramework.
 for (const platform of options.platforms.split(',')) {
