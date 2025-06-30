@@ -1,0 +1,20 @@
+{
+  "name": "buildle",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build-xcf": "ts-node --esm ios-resources/scripts/build-xcframework.mts"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.0.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "zx": "^8.6.0"
+  }
+}
