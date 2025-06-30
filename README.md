@@ -1,5 +1,11 @@
 # Buildle
 
+## Contents
+
+- [Android](#android)
+- [iOS](#ios)
+  - [Creating `.xcframework` binary from library files](ios-resources/README.md)
+  - [Using script to create xcframework](#using-script-to-create-xcframework)
 
 ## Android
 
@@ -68,6 +74,7 @@ Make sure to apply `maven-publish` plugin.
 Replace all the information in angle brackets with library-specific info.
 
 Example:
+
 ```kt
 apply plugin: "maven-publish"
 
@@ -112,8 +119,10 @@ For above example it would be:
 Once you build your library's `.aar`, you can replace library native code from `node_modules`.
 
 You can achieve it in two distinct ways:
+
 - Maven Local - you can import your aar directly from its maven local repo,
-- Local directory - you can import your aar by placing it in chosen directory inside your app's android folder, e.g.: `YourSuperProject/android/libs`,
+- Local directory - you can import your aar by placing it in chosen directory inside your app's android folder,
+  e.g.: `YourSuperProject/android/libs`,
 
 Regardless of which way you choose, follow the steps below:
 
@@ -201,7 +210,6 @@ rm -rf android/app/build
 npm run android
 ```
 
-
 ### Troubleshooting
 
 - app build fails
@@ -215,12 +223,13 @@ npm run android --reset-cache
 ```
 
 ### Q&A
+
 - How do I know which file from my aar should I import in `MainApplication.kt`?
 
 Most often it is just `<GROUP-ID>.<ARTIFACT-ID>.<ARTIFACT-ID>Package` but it is not a rule.
 
 Every library which provides android native code must have a file which contains a main package class.  
-This class is the only one extending `ReactPackage` like: 
+This class is the only one extending `ReactPackage` like:
 
 ```java
 class MyPackage : ReactPackage {
@@ -236,61 +245,55 @@ class MyPackage : ReactPackage {
 
 Most often it is placed in a file with a `Package` postfix, but again, it is not a rule.
 
-To find exact location and name of this package file you can unzip `.aar` file, then unzip `classes.jar` and find the package file.
-
+To find exact location and name of this package file you can unzip `.aar` file, then unzip `classes.jar` and find the
+package file.
 
 ## IOS
 
-### Getting started
+### Creating `.xcframework` binary from library files
 
-#### OCFrameworkNEW:
+In order to pack chosen library's native code into `.xcframework` binary, you can either:
 
-Generate necessary node modules:
+- Use script provided by this repository (see [usage](#using-script-to-create-xcframework))
+- Use `xcodebuild` command to create `.xcframework` manually (see [writeup](ios-resources/README.md) on whole process).
 
-```
-cd OCFrameworkNEW
+### Using script to create xcframework
+
+Install project dependencies:
+
+```bash
 npm install
 ```
 
-In `build.sh` script find APPLE_DEVELOPER_IDENTIFIER variable and replace "ENTER-YOUR-DEVELOPER-IDENTIFIER-HERE" with your codesign identifier key.
+---
 
-You can find your key by using the following command:
+## Usage
 
-```
-security find-identity -v -p codesigning
-```
-
-#### SuperProject:
-
-Install all necessary node modules and pods by using the commands below:
-
-```
-cd SuperProject
-npm install
-cd ios
-pod install
+```bash
+npm run build-xcf --  \
+  --module MyLibrary \
+  --ios-project ./example/ios \
+  --output ./dist \
+  --project ./libs/MyLibrary \
+  --platforms iphonesimulator,iphoneos
 ```
 
-#### OCFrameworkNEW
-
-In `OCFrameworkNEW/scripts` you can find two scipts:
-    - `build.sh` for building framework into .xcframework
-    - `generate.sh` for generating Codegen files for native modules,
-
-Generate codegen files only once you introduce any changes to native modules.
-
-You can use the scripts above by running respectively:
-
-```
-npm run build
-npm run generate
+```bash
+npm run build-xcf -- \
+  -p ~/react-native-svg \
+  -i ~/react-native-svg/apps/fabric-example/ios \
+  -m RNSVG  
 ```
 
-#### SuperProject
+---
 
-To run the app use the following command:
+## Options
 
-```
-npm run ios
-```
-
+| Option                 | Alias | Description                                                                   |
+|------------------------|-------|-------------------------------------------------------------------------------|
+| `--module <name>`      | `-m`  | **(Required)** Name of the module (matching the podspec name)                 |
+| `--ios-project <path>` | `-i`  | **(Required)** Path to the `ios/` directory of your example app               |
+| `--output <path>`      | `-o`  | Destination directory for the generated `.xcframework` (default: `.`)         |
+| `--project <path>`     | `-p`  | Path to the root project that contains the `.podspec` (default: `.`)          |
+| `--platforms <list>`   |       | Comma-separated list of build platforms (default: `iphonesimulator,iphoneos`) |
+| `--skip-pods`          |       | If set, skips `pod install` (useful if already installed)                     |
