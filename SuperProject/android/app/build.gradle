@@ -3,7 +3,7 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 // custom plugin
-apply plugin: "com.example.preventrnlink"
+apply plugin: "org.buildle.preventrnlink"
 
 
 

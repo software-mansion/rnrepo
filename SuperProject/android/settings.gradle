@@ -14,7 +14,7 @@ pluginManagement {
     includeBuild("../node_modules/@react-native/gradle-plugin")
     includeBuild("../../android-resources/plugins/settings-gradle-plugin")
 
-    includeBuild('../../android-resources/plugins/my-test-gradle-plugin')
+    includeBuild('../../android-resources/plugins/autolink-aars-plugin')
 }
 plugins { 
     id("com.facebook.react.settings")
@@ -29,5 +29,5 @@ includeBuild('../node_modules/@react-native/gradle-plugin')
 includeBuild('../../android-resources/plugins/settings-gradle-plugin')
 
 
-includeBuild('../../android-resources/plugins/my-test-gradle-plugin')
+includeBuild('../../android-resources/plugins/autolink-aars-plugin')
 

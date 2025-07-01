@@ -1,4 +1,4 @@
-package com.example.mytestplugin
+package org.buildle.autolink_aars_plugin
 
 import groovy.json.JsonSlurper
 import org.gradle.api.Plugin
@@ -19,11 +19,10 @@ class PreventRNLinkPlugin implements Plugin<Project> {
                                 .file("generated/autolinking/autolinking.json")
                                 .get().asFile
         
-        Map dependencyInfo = getGradleDependenciesToApply(inputFile)
+        Map dependencyInfo = getDependencies(inputFile)
         List<Map.Entry<String, String>> dependenciesToApply = dependencyInfo.dependenciesToApply
         List<String> dependenciesToRemove = dependencyInfo.dependenciesToRemove
 
-        // Exclude dependencies
         project.configurations.all { config ->
             dependenciesToRemove.each { depName ->
                 config.exclude module: depName.replaceAll(":", "")
@@ -31,7 +30,6 @@ class PreventRNLinkPlugin implements Plugin<Project> {
         }
     
         
-        // Add only maven dependencies
         dependenciesToApply.each { Map.Entry<String, String> dependencyEntry ->
             String configuration = dependencyEntry.key
             String path = dependencyEntry.value
@@ -39,7 +37,7 @@ class PreventRNLinkPlugin implements Plugin<Project> {
         }
     }
 
-    Map getGradleDependenciesToApply(File inputFile) {
+    Map getDependencies(File inputFile) {
         def model = new JsonSlurper().parse(inputFile)
         def result = []
         def dependenciesToRemove = []

@@ -5,7 +5,7 @@ plugins {
     id 'maven-publish'
 }
 
-group = 'com.example'
+group = 'org.buildle'
 version = '1.0.0'
 
 repositories {
@@ -29,8 +29,8 @@ sourceSets {
 gradlePlugin {
     plugins {
         create("preventRNLink") {
-            id = "com.example.preventrnlink" // <-- Plugin ID you'll use to apply it
-            implementationClass = "com.example.mytestplugin.PreventRNLinkPlugin"
+            id = "org.buildle.preventrnlink" // <-- Plugin ID you'll use to apply it
+            implementationClass = "org.buildle.autolink_aars_plugin.PreventRNLinkPlugin"
         }
     }
 }
