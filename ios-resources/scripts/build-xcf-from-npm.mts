@@ -3,7 +3,6 @@ import path from "node:path";
 import {program} from 'commander';
 import {$} from "zx";
 
-// resolve sandbox to ../../ path
 const sandboxPath = path.resolve("buildler")
 if (!sandboxPath.endsWith("buildler")) {
   throw new Error(`Sandbox path is not correct: ${sandboxPath}`);

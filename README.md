@@ -334,3 +334,25 @@ npm run include-xcf -- \
 | --framework | -f    | Path to the .xcframework file (absolute or relative) (**required**)                     |
 | --target    | -t    | Name of the Xcode target to apply the framework to (required if multiple targets exist) |
 | --help      | -h    | Show usage help and exit                                                                |
+
+### Using script to create xcframework from npm package
+
+Install project dependencies (be sure to install `xcodeproj` and `optparse` gems as well):
+
+```bash
+npm install
+[sudo] gem install optparse xcodeproj 
+```
+
+Then run the script:
+
+```bash
+npm run npm-build-xcf -- \
+  --package react-native-reanimated
+```
+
+#### Options
+
+| Option      | Alias | Description                                                                             |
+|-------------|-------|-----------------------------------------------------------------------------------------|
+| --package   | -p    | NPM package to create .xcframework for. Has to contain valid podspec file.              |
