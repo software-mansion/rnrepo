@@ -15,9 +15,9 @@ const isDirectory = (dir: string) => {
 }
 
 program
-  .requiredOption('-m, --module <name>', 'Name of the module to build')
+  .option('-m, --module <name>', 'Name of the module to build')
   .option('-o, --output <path>', 'Output directory for the xcframework', '.')
-  .option('-p, --project <path>', 'Path to root library project', '.')
+  .requiredOption('-p, --project <path>', 'Path to root library project', '.')
   .option('--skip-pods', 'Skip pod installation step', false)
   .requiredOption('-i, --ios-project <path>', 'Path to iOS directory inside of example app')
   .option('--platforms <platforms>', 'Comma-separated list of platforms to build for', 'iphonesimulator')
@@ -26,6 +26,7 @@ program.parse(process.argv, {from: "node"});
 const options = program.opts();
 const outputDir = path.resolve(options.output);
 
+
 if (!isDirectory(outputDir)) {
   throw new Error(`Output path is not a directory or doesn't exist: ${outputDir}`);
 }
@@ -33,6 +34,18 @@ if (!isDirectory(outputDir)) {
 const projectRoot = path.resolve(options.project);
 if (!isDirectory(projectRoot)) {
   throw new Error(`Project root path is not a directory or doesn't exist: ${projectRoot}`);
+}
+
+if (!options.module) {
+  const podspecFiles = globby.sync('*.podspec', {cwd: projectRoot});
+  if (podspecFiles.length === 0) {
+    throw new Error(`No podspec files found in project root: ${projectRoot}`);
+  }
+  if (podspecFiles.length > 1) {
+    throw new Error(`Multiple podspec files found in project root: ${projectRoot}. Please specify the module name using -m option.`);
+  }
+  options.module = podspecFiles[0].replace('.podspec', '');
+  console.log(`No module specified, using automatically found podspec: ${options.module}`);
 }
 
 const buildDirectory = path.join(outputDir, 'build');
