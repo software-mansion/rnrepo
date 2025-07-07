@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build-xcf": "ts-node --esm ios-resources/scripts/build-xcframework.mts",
-    "include-xcf": "ruby ios-resources/scripts/include-xcframework.rb"
+    "include-xcf": "ruby ios-resources/scripts/include-xcframework.rb",
+    "npm-build-xcf": "ts-node --esm ios-resources/scripts/build-xcf-from-npm.mts"
   },
   "author": "",
   "license": "ISC",
