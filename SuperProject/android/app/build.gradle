@@ -81,6 +81,16 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
+    defaultConfig {
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_PREFAB=ENABLED"
+            }
+        }
+    }
+    buildFeatures {
+        prefab true
+    }
     namespace "com.superproject"
     defaultConfig {
         applicationId "com.superproject"
@@ -122,31 +132,31 @@ dependencies {
     }
 
      // implementation(name: 'LinearGradient-1.0.0', ext: 'aar')
-    implementation("com.BV:LinearGradient:1.0.0")
+    // implementation("com.BV:LinearGradient:1.0.0")
 
     // implementation(name: 'ReactNativeVideo-1.0.0', ext: 'aar')
-    implementation("com:ReactNativeVideo:1.0.0")
+    // implementation("com:ReactNativeVideo:1.0.0")
 
     // implementation(name: 'FlashList-1.0.0', ext: 'aar')
     // implementation("com:FlashList:1.0.0") 
 
     // implementation(name: 'reanimated-1.0.0', ext: 'aar')
-    //implementation("com.swmansion:reanimated:1.0.0")
+    implementation("com.swmansion:ReactNativeReanimated:1.0.0")
 
     // implementation(name: 'ReactNativeSvg-1.0.0', ext: 'aar')
-    implementation("com.swmansion:ReactNativeSvg:1.0.0")
+    // implementation("com.swmansion:ReactNativeSvg:1.0.0")
 
     // implementation(name: 'ReactNativeDeviceInfo-1.0.0', ext: 'aar')
-    implementation("com:ReactNativeDeviceInfo:1.0.0")
+    // implementation("com:ReactNativeDeviceInfo:1.0.0")
 
     // implementation(name: 'mmkv-1.0.0', ext: 'aar')
-    implementation("com.mrousavy:mmkv:1.0.0")
+    // implementation("com.mrousavy:mmkv:1.0.0")
 
     // implementation(name: 'ReactNativeScreens-1.0.0', ext: 'aar')
-    implementation("com.swmansion:ReactNativeScreens:1.0.0")
+    // implementation("com.swmansion:ReactNativeScreens:1.0.0")
 
     // implementation(name: 'ReactNativeScreens-1.0.0', ext: 'aar')
-    implementation("com:ReactNativeSqliteStorage:1.0.0")
+    // implementation("com:ReactNativeSqliteStorage:1.0.0")
 
 }
 

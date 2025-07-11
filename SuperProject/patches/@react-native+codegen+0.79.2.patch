@@ -1,0 +1,13 @@
+diff --git a/node_modules/@react-native/codegen/lib/generators/modules/GenerateModuleJniH.js b/node_modules/@react-native/codegen/lib/generators/modules/GenerateModuleJniH.js
+index df616b8..110aa09 100644
+--- a/node_modules/@react-native/codegen/lib/generators/modules/GenerateModuleJniH.js
++++ b/node_modules/@react-native/codegen/lib/generators/modules/GenerateModuleJniH.js
+@@ -64,7 +64,7 @@ file(GLOB react_codegen_SRCS CONFIGURE_DEPENDS *.cpp react/renderer/components/$
+ 
+ add_library(
+   react_codegen_${libraryName}
+-  OBJECT
++  SHARED
+   \${react_codegen_SRCS}
+ )
+ 

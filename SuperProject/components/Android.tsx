@@ -7,17 +7,19 @@ import LocalNativeViewTest from './android/LocalNativeViewTest';
 import ReactNativeSVGTest from './android/ReactNativeSVGTest';
 import ReactNativeDeviceInfoTest from './android/ReactNativeDeviceInfoTest';
 import ReactNativeScreensTest from './android/ReactNativeScreensTest';
+import Reanimated from 'react-native-reanimated';
 
 const Android = () => {
+  // const reaView = Reanimated.createAnimatedComponent(View);
   return (
     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-      <LocalNativeViewTest />
-      <ReactNativeVideoTest />
+      {/* <LocalNativeViewTest />
+      <ReactNativeVideoTest /> */}
       {/* <ReactNativeSVGTest /> */}
-      <ReactNativeDeviceInfoTest />
+      {/* <ReactNativeDeviceInfoTest /> */}
       {/* <MMKVTest /> */}
-      <ReactNativeScreensTest />
-      <RNSQLiteTest />
+      {/* <ReactNativeScreensTest /> */}
+      {/* <RNSQLiteTest /> */}
     </View>
   );
 };

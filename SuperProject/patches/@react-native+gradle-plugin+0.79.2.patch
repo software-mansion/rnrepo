@@ -1,0 +1,50 @@
+diff --git a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/tasks/GenerateAutolinkingNewArchitecturesFileTask.kt b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/tasks/GenerateAutolinkingNewArchitecturesFileTask.kt
+index 38a31b8..d87fd4c 100644
+--- a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/tasks/GenerateAutolinkingNewArchitecturesFileTask.kt
++++ b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react/tasks/GenerateAutolinkingNewArchitecturesFileTask.kt
+@@ -31,7 +31,6 @@ abstract class GenerateAutolinkingNewArchitecturesFileTask : DefaultTask() {
+   @TaskAction
+   fun taskAction() {
+     val model = JsonUtils.fromAutolinkingConfigJson(autolinkInputFile.get().asFile)
+-
+     val packages = filterAndroidPackages(model)
+     val cmakeFileContent = generateCmakeFileContent(packages)
+     val cppFileContent = generateCppFileContent(packages)
+@@ -105,6 +104,12 @@ abstract class GenerateAutolinkingNewArchitecturesFileTask : DefaultTask() {
+           }
+           include
+         }
++            .plus(
++      """
++            #include <jni/rnreanimated.h>
++      """
++      )
++
+ 
+     val cppTurboModuleJavaProviders =
+         packagesWithLibraryNames.joinToString("\n") { dep ->
+@@ -118,6 +123,14 @@ abstract class GenerateAutolinkingNewArchitecturesFileTask : DefaultTask() {
+       """
+               .trimIndent()
+         }
++            .plus(
++            """
++      auto module_rnreanimated = rnreanimated_ModuleProvider(moduleName, params);
++      if (module_rnreanimated != nullptr) {
++        return module_rnreanimated;
++        }
++      """
++        )
+ 
+     val cppTurboModuleCxxProviders =
+         packagesWithLibraryNames
+@@ -175,6 +188,9 @@ abstract class GenerateAutolinkingNewArchitecturesFileTask : DefaultTask() {
+       
+       {{ libraryIncludes }}
+       
++      find_package(react-native-reanimated CONFIG REQUIRED)
++      target_link_libraries (appmodules react-native-reanimated::react_codegen_rnreanimated)
++      
+       set(AUTOLINKED_LIBRARIES
+         {{ libraryModules }}
+       )

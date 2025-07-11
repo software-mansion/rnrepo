@@ -1,0 +1,112 @@
+diff --git a/node_modules/react-native-reanimated/android/build.gradle b/node_modules/react-native-reanimated/android/build.gradle
+index 8a10e1f..6c9da48 100644
+--- a/node_modules/react-native-reanimated/android/build.gradle
++++ b/node_modules/react-native-reanimated/android/build.gradle
+@@ -147,6 +147,7 @@ def reactNativeAndroidDownloadDir = new File("$reactNativeRootDir/ReactAndroid/b
+ 
+ def workletsPrefabHeadersDir = project.file("$buildDir/prefab-headers/worklets")
+ def reanimatedPrefabHeadersDir = project.file("$buildDir/prefab-headers/reanimated")
++def reacodegenPrefabHeadersDir = project.file("$buildDir/prefab-headers/react_codegen_rnreanimated")
+ 
+ def JS_RUNTIME = {
+     // Override JS runtime with environment variable
+@@ -236,6 +237,9 @@ android {
+         reanimated {
+             headers reanimatedPrefabHeadersDir.absolutePath
+         }
++        react_codegen_rnreanimated {
++            headers reacodegenPrefabHeadersDir.absolutePath
++        }
+     }
+ 
+     defaultConfig {
+@@ -258,7 +262,9 @@ android {
+                         "-DREANIMATED_VERSION=${REANIMATED_VERSION}",
+                         "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
+                 abiFilters (*reactNativeArchitectures())
+-                targets("reanimated", "worklets")
++                targets("reanimated", "worklets"
++                        , "react_codegen_rnreanimated"
++                )
+             }
+         }
+ 
+@@ -376,6 +382,12 @@ android {
+                 println("Generated clangd metadata.")
+             }
+     }
++
++    publishing {
++        singleVariant("release") {
++            withSourcesJar()
++        }
++    }
+ }
+ 
+ def assertMinimalReactNativeVersion = task assertMinimalReactNativeVersionTask {
+@@ -401,6 +413,16 @@ task prepareReanimatedHeadersForPrefabs(type: Copy) {
+     into(reanimatedPrefabHeadersDir)
+ }
+ 
++task prepareReacodegenHeadersForPrefabs(type: Copy) {
++    def buildTasks = tasks.findAll({ task -> (
++            task.name.contains("generateCodegenArtifactsFromSchema")
++    ) })
++    dependsOn(buildTasks)
++    from("$projectDir/build/generated/source/codegen/")
++    include("jni/**/*.h")
++    into(reacodegenPrefabHeadersDir)
++}
++
+ tasks.preBuild {
+     dependsOn assertMinimalReactNativeVersion
+ }
+@@ -422,12 +444,14 @@ task createNativeDepsDirectories() {
+     thirdPartyNdkDir.mkdirs()
+     workletsPrefabHeadersDir.mkdirs()
+     reanimatedPrefabHeadersDir.mkdirs()
++    reacodegenPrefabHeadersDir.mkdirs()
+ }
+ 
+ task packageNdkLibs(type: Copy) {
+     from("$buildDir/reanimated-ndk/all")
+     include("**/libworklets.so")
+     include("**/libreanimated.so")
++    include("**/libreact_codegen_rnreanimated.so")
+     into("$projectDir/src/main/jniLibs")
+ }
+ 
+@@ -467,9 +491,13 @@ def nativeBuildDependsOn(dependsOnTask) {
+     buildTasks.forEach { task -> task.dependsOn(dependsOnTask) }
+ }
+ 
++apply plugin: "maven-publish"
++
++
+ afterEvaluate {
+     preBuild.dependsOn(prepareWorkletsHeadersForPrefabs)
+     preBuild.dependsOn(prepareReanimatedHeadersForPrefabs)
++    preBuild.dependsOn(prepareReacodegenHeadersForPrefabs)
+ 
+     tasks.forEach({ task ->
+         if (task.name.contains("JniLibFolders")) {
+@@ -491,4 +519,19 @@ afterEvaluate {
+     } else {
+       throw GradleScriptException("[Reanimated] Unknown JS runtime ${JS_RUNTIME}.")
+     }
++
++    publishing {
++        publications {
++            release(MavenPublication) {
++                groupId = 'com.swmansion'
++                artifactId = 'ReactNativeReanimated'
++                version = '1.0.0'
++                from components.release
++            }
++        }
++        repositories {
++            mavenLocal()
++        }
++    }
+ }
++
