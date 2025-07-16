@@ -8,7 +8,7 @@ const storage = new MMKV();
 const MMKVTest = () => {
   useEffect(() => {
     storage.set('user', 'Marc');
-  });
+  }, []);
 
   const username = storage.getString('user');
   return <Text>Username: {username}</Text>;

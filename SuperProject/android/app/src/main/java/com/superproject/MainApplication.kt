@@ -14,8 +14,8 @@ import com.facebook.soloader.SoLoader
 
 import com.superproject.MyLocalTest.MyLocalTestPackage
 //import com.shopify.reactnative.flash_list.ReactNativeFlashListPackage
-//import com.swmansion.reanimated.ReanimatedPackage
-import com.mrousavy.mmkv.MmkvPackage
+// import com.swmansion.reanimated.ReanimatedPackage
+//import com.mrousavy.mmkv.MmkvPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -26,8 +26,8 @@ class MainApplication : Application(), ReactApplication {
               // Packages that cannot be autolinked yet can be added manually here, for example:
               add(MyLocalTestPackage())
               //add(ReactNativeFlashListPackage())
-              //add(ReanimatedPackage())
-              add(MmkvPackage())
+              // add(ReanimatedPackage())
+              //add(MmkvPackage())
             }
 
         override fun getJSMainModuleName(): String = "index"

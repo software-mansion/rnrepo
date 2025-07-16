@@ -11,63 +11,108 @@ import java.nio.file.Paths
 
 class PreventRNLinkPlugin implements Plugin<Settings> {
     void apply(Settings settings) {
+        def rootNodeModulesDir = new File(settings.rootProject.projectDir, "../node_modules")
+        def mavenDependencies = new HashMap<>()
+
+        if (!rootNodeModulesDir.exists() || !rootNodeModulesDir.isDirectory()) {
+            println "🚫 'node_modules' directory not found or not a directory."
+            return
+        }
+        
+        def slurper = new JsonSlurper()
+
+        rootNodeModulesDir.eachDir { File moduleDir ->
+            fetchMavenDependencies(moduleDir, mavenDependencies, slurper)
+        }
+
+        println "Final Maven Dependencies Map:"
+        mavenDependencies.each { key, value ->
+            println "$key -> $value"
+        }
+
         settings.gradle.settingsEvaluated {
-            // Maven dependency mappings
-            def mavenDependencies = [
-                'react-native-device-info': 'com:ReactNativeDeviceInfo:1.0.0',
-                'react-native-video': 'com:ReactNativeVideo:1.0.0',
-                'react-native-svg': 'com.swmansion:ReactNativeSvg:1.0.0',
-                'react-native-screens': 'com.swmansion:ReactNativeScreens:1.0.0',
-                'react-native-linear-gradient': 'com.BV:LinearGradient:1.0.0',
-                'react-native-sqlite-storage': 'com:ReactNativeSqliteStorage:1.0.0'
-            ]
-
-            // Convert Maven dependency keys to Gradle project paths
-            List<String> excludedProjectsPaths = mavenDependencies.keySet().collect { ":$it" }
-
-            excludedProjectsPaths.each { excludedProjectPath ->
-                File unusedDirectory = new File(settings.rootDir, "build/unused/${excludedProjectPath.replace(':', '')}")
-                if (!unusedDirectory.exists()) {
-                    unusedDirectory.mkdirs()
-                    println "Created unused directory for $excludedProjectPath at: ${unusedDirectory.path}"
-                }
-                
-                if (settings.findProject(excludedProjectPath)) {
-                    settings.project(excludedProjectPath).projectDir = unusedDirectory
-                    println "🚫 Excluded $excludedProjectPath by setting project dir to an unused directory."
-                } else {
-                    println "❌ Project $excludedProjectPath not found."
-                }
+            if (!(settings.getGradle().startParameter.taskNames.any { it.contains("assembleRelease") || it.contains("publishToMavenLocal") })) {
+                excludeMavenDependencies(settings, mavenDependencies)
+                modifyAutolinkingJsonFile(settings, slurper, mavenDependencies)
             }
+        }
+    }
 
-            def autolinkingFile = new File(settings.rootProject.projectDir, "build/generated/autolinking/autolinking.json")
-            if (autolinkingFile.exists()) {
-                def slurper = new JsonSlurper()
-                def json = slurper.parse(autolinkingFile) as Map
-                def dependencies = json.get('dependencies') as Map<String, Map>
-                
-                dependencies.each { key, value ->
-                    def mavenDependency = mavenDependencies.get(key)
-                    if (mavenDependency) {
-                        def platformsMap = value.get('platforms')
-                        if (platformsMap && platformsMap.containsKey('android')) {
-                            def androidMap = platformsMap.get('android')
-                            androidMap.put('sourceDir', '')
-                            androidMap.put('mavenDependency', mavenDependency)
-                            androidMap.put('componentDescriptors', [])
-                            platformsMap.put('android', androidMap)
-                        }
-                    } else {
-                        value.put('mavenDependency', null)
-                    }
-                }
+    private void fetchMavenDependencies(File moduleDir, Map mavenDependencies, JsonSlurper slurper) {
+        File androidDir = new File(moduleDir, "android")
+        File buildleConfigFile = new File(androidDir, ".buildlerc.json")
 
-                def builder = new JsonBuilder(json)
-                autolinkingFile.text = builder.toPrettyString()
-                println "Updated autolinking.json successfully."
+        File platformsAndroidDir = new File(moduleDir, "platforms/android")
+        File platformsBuildleConfigFile = new File(platformsAndroidDir, ".buildlerc.json")
+
+        Map buildleConfig = null
+
+        if (androidDir.exists() && buildleConfigFile.exists()) {
+            buildleConfig = slurper.parse(buildleConfigFile) as Map
+        } else if(platformsAndroidDir.exists() && platformsBuildleConfigFile.exists()){
+            buildleConfig = slurper.parse(platformsBuildleConfigFile) as Map
+        }
+            
+        if(buildleConfig) {
+            def libraryName = buildleConfig.libraryName
+            def artifactGroup = buildleConfig.artifactGroup
+            def artifactName = buildleConfig.artifactName
+            def libraryVersion = buildleConfig.libraryVersion
+
+            mavenDependencies.put(libraryName, "$artifactGroup:$artifactName:$libraryVersion")
+        }
+    }
+
+    private void excludeMavenDependencies(Settings settings, Map mavenDependencies) {
+        List<String> excludedProjectsPaths = mavenDependencies.keySet().collect { ":$it" }
+
+        excludedProjectsPaths.each { excludedProjectPath ->
+            File unusedDirectory = new File(settings.rootDir, "build/unused/${excludedProjectPath.replace(':', '')}")
+            if (!unusedDirectory.exists()) {
+                unusedDirectory.mkdirs()
+                println "Created unused directory for $excludedProjectPath at: ${unusedDirectory.path}"
+            }
+            
+            if (settings.findProject(excludedProjectPath)) {
+                settings.project(excludedProjectPath).projectDir = unusedDirectory
+                println "🚫 Excluded $excludedProjectPath by setting project dir to an unused directory."
             } else {
-                println "The specified autolinking.json file does not exist: ${autolinkingFile.path}"
+                println "❌ Project $excludedProjectPath not found."
             }
+        }
+    }
+
+    private void modifyAutolinkingJsonFile(Settings settings, JsonSlurper slurper, Map mavenDependencies){
+        def autolinkingFile = new File(settings.rootProject.projectDir, "build/generated/autolinking/autolinking.json")
+        if (autolinkingFile.exists()) {
+            def json = slurper.parse(autolinkingFile) as Map
+            def dependencies = json.get('dependencies') as Map<String, Map>
+            
+            dependencies.each { key, value ->
+                def mavenDependency = mavenDependencies.get(key)
+                if (mavenDependency) {
+                    def platformsMap = value.get('platforms')
+                    if (platformsMap && platformsMap.containsKey('android')) {
+                        def androidMap = platformsMap.get('android')
+                        if ( androidMap ) {
+                            androidMap.put('sourceDir', '')
+                            // if (key == "react-native-vision-camera") {
+                            //     androidMap.put('cmakeListsPath', '/Users/krzysztofsliwinski/Desktop/buildle/SuperProject/node_modules/react-native-vision-camera/android/codegen/CMakeLists.txt')
+                            // }
+                            androidMap.put('mavenDependency', mavenDependency)
+                        }
+                        platformsMap.put('android', androidMap)
+                    }
+                } else {
+                    value.put('mavenDependency', null)
+                }
+            }
+
+            def builder = new JsonBuilder(json)
+            autolinkingFile.text = builder.toPrettyString()
+            println "Updated autolinking.json successfully."
+        } else {
+            println "The specified autolinking.json file does not exist: ${autolinkingFile.path}"
         }
     }
 }

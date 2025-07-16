@@ -132,7 +132,7 @@ dependencies {
     // implementation("com:FlashList:1.0.0") 
 
     // implementation(name: 'reanimated-1.0.0', ext: 'aar')
-    //implementation("com.swmansion:ReactNativeReanimated:1.0.0")
+    // implementation("com.swmansion:ReactNativeReanimated:1.0.0")
 
     // implementation(name: 'ReactNativeSvg-1.0.0', ext: 'aar')
     // implementation("com.swmansion:ReactNativeSvg:1.0.0")
@@ -141,7 +141,7 @@ dependencies {
     // implementation("com:ReactNativeDeviceInfo:1.0.0")
 
     // implementation(name: 'mmkv-1.0.0', ext: 'aar')
-    implementation("com.mrousavy:mmkv:1.0.0")
+    // implementation("com.mrousavy:mmkv:1.0.0")
 
     // implementation(name: 'ReactNativeScreens-1.0.0', ext: 'aar')
     // implementation("com.swmansion:ReactNativeScreens:1.0.0")
