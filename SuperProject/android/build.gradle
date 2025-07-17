@@ -22,7 +22,7 @@ buildscript {
 }
 
 plugins { 
-    id("org.buildle.preventrnlink") version "1.0.0"
+    id("org.buildle.autolinkaars") version "1.0.0"
  }
 
 

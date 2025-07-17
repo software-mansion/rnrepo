@@ -19,8 +19,8 @@ Go to `node_modules/<library-name>/android` directory and find `build.gradle` fi
 In some rare cases library might not have `android` folder directly inside its node modules.
 If that's the case, search for it inside other folders named e.g.: `platforms`.
 
-3) Modify `build.gradle` file:
 
+3) <a id="build-gradle-modifications">Modify `build.gradle` file:</a>
 First off, find `repositories` section and make sure it includes `mavenLocal` repository:
 
 ```kt
@@ -89,7 +89,7 @@ afterEvaluate {
 }
 ```
 
-4) You are ready to create `.aar` file now!
+4) <a id="publishing-aar">You are ready to create `.aar` file now!</a>
 
 Go inside `android` folder of your app and run the following commands:
 
@@ -200,6 +200,33 @@ rm -rf android/app/build
 ```
 npm run android
 ```
+
+### Gradle Plugins
+
+Buildle uses two custom gradle plugins to autolink proper maven dependencies instead of node-modules-based sources:
+
+- `settings-gradle-plugin`
+
+    - detects maven dependencies by searching `.buildlerc.json` file which includes maven dependency information, 
+    - excludes `node_modules` native android code by setting its project dir to an empty, unused directory,
+    - attaches maven dependency info to `autolinking.json` file (platforms -> android -> mavenDependency field),
+
+- `autolink-aars-plugin`
+    - detects maven dependencies based on `mavenDependency` field in `autolinking.json` file,
+    - excludes `node_modules` dependencies which have their `mavenDependency` from project,
+    - applies maven dependencies to project,
+
+### Scripts
+
+Buildle provides a script for building aar of any library containing native android sources. 
+
+It works as follows:
+
+- gets library info (library name and its version) from its `package.json`,
+- modifies library `build.gradle` file (as described [here](#build-gradle-modifications)),
+- assembles and publishes aar file to maven local repo (as described [here](#publishing-aar)),
+- saves maven dependency info into `<library>/android/.buildlerc.json` to be used by `settings-gradle-plugin` to detect maven dependencies,
+
 
 
 ### Troubleshooting

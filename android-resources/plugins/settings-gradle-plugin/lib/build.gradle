@@ -72,7 +72,7 @@ gradlePlugin {
     plugins {
         create("settings-gradle-plugin") {
             id = "org.buildle.settings-gradle-plugin" // <-- Plugin ID you'll use to apply it
-            implementationClass = "org.buildle.PreventRNLinkPlugin"
+            implementationClass = "org.buildle.SettingsGradlePlugin"
         }
     }
 }

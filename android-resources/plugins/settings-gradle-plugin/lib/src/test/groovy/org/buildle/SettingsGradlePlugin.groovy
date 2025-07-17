@@ -5,6 +5,6 @@ package org.buildle
 
 import spock.lang.Specification
 
-class PreventRNLinkPluginTest extends Specification {
+class SettingsGradlePluginTest extends Specification {
 
 }

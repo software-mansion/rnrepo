@@ -5,7 +5,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import java.io.File
 
-class PreventRNLinkPlugin implements Plugin<Project> {
+class AutolinkAarsPlugin implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.withId('com.android.application') {
             project.afterEvaluate {
@@ -39,7 +39,7 @@ class PreventRNLinkPlugin implements Plugin<Project> {
 
     Map getDependencies(File inputFile) {
         def model = new JsonSlurper().parse(inputFile)
-        def result = []
+        def dependenciesToApply = []
         def dependenciesToRemove = []
         
         model.dependencies.each { depName, depDetails ->
@@ -47,11 +47,11 @@ class PreventRNLinkPlugin implements Plugin<Project> {
                 String dependencyConfiguration = depDetails.platforms.android.dependencyConfiguration ?: 'implementation'
                 String mavenDependency = depDetails.platforms.android.mavenDependency
                 if (mavenDependency) {
-                    result << new AbstractMap.SimpleEntry(dependencyConfiguration, mavenDependency)
+                    dependenciesToApply << new AbstractMap.SimpleEntry(dependencyConfiguration, mavenDependency)
                     dependenciesToRemove << depName
                 }
             }
         }
-        return [dependenciesToApply: result, dependenciesToRemove: dependenciesToRemove]
+        return [dependenciesToApply: dependenciesToApply, dependenciesToRemove: dependenciesToRemove]
     }
 }

@@ -9,7 +9,7 @@ import groovy.json.JsonBuilder
 import java.nio.file.Files
 import java.nio.file.Paths
 
-class PreventRNLinkPlugin implements Plugin<Settings> {
+class SettingsGradlePlugin implements Plugin<Settings> {
     void apply(Settings settings) {
         def rootNodeModulesDir = new File(settings.rootProject.projectDir, "../node_modules")
         def mavenDependencies = new HashMap<>()
@@ -22,7 +22,7 @@ class PreventRNLinkPlugin implements Plugin<Settings> {
         def slurper = new JsonSlurper()
 
         rootNodeModulesDir.eachDir { File moduleDir ->
-            fetchMavenDependencies(moduleDir, mavenDependencies, slurper)
+            detectMavenDependencies(moduleDir, mavenDependencies, slurper)
         }
 
         println "Final Maven Dependencies Map:"
@@ -32,13 +32,13 @@ class PreventRNLinkPlugin implements Plugin<Settings> {
 
         settings.gradle.settingsEvaluated {
             if (!(settings.getGradle().startParameter.taskNames.any { it.contains("assembleRelease") || it.contains("publishToMavenLocal") })) {
-                excludeMavenDependencies(settings, mavenDependencies)
+                excludeNodeModulesDependencies(settings, mavenDependencies)
                 modifyAutolinkingJsonFile(settings, slurper, mavenDependencies)
             }
         }
     }
 
-    private void fetchMavenDependencies(File moduleDir, Map mavenDependencies, JsonSlurper slurper) {
+    private void detectMavenDependencies(File moduleDir, Map mavenDependencies, JsonSlurper slurper) {
         File androidDir = new File(moduleDir, "android")
         File buildleConfigFile = new File(androidDir, ".buildlerc.json")
 
@@ -63,7 +63,7 @@ class PreventRNLinkPlugin implements Plugin<Settings> {
         }
     }
 
-    private void excludeMavenDependencies(Settings settings, Map mavenDependencies) {
+    private void excludeNodeModulesDependencies(Settings settings, Map mavenDependencies) {
         List<String> excludedProjectsPaths = mavenDependencies.keySet().collect { ":$it" }
 
         excludedProjectsPaths.each { excludedProjectPath ->

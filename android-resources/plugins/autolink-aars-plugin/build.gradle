@@ -28,9 +28,9 @@ sourceSets {
 
 gradlePlugin {
     plugins {
-        create("preventRNLink") {
-            id = "org.buildle.preventrnlink" // <-- Plugin ID you'll use to apply it
-            implementationClass = "org.buildle.autolink_aars_plugin.PreventRNLinkPlugin"
+        create("AutolinkAarsPlugin") {
+            id = "org.buildle.autolinkaars" // <-- Plugin ID you'll use to apply it
+            implementationClass = "org.buildle.autolink_aars_plugin.AutolinkAarsPlugin"
         }
     }
 }
