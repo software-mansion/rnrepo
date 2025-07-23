@@ -10,7 +10,10 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 LIB_PATH=$1
 ANDROID_PATH="$LIB_PATH/android"
-PROJECT_PATH="$LIB_PATH/../../../SuperProject"
+PROJECT_PATH="${LIB_PATH%%/node_modules*}"
+
+echo "LIB PATH $LIB_PATH"
+echo "PROJECT PATH $PROJECT_PATH"
 
 # Check if the android folder exists
 if [ ! -d "$ANDROID_PATH" ]; then
@@ -22,17 +25,18 @@ echo "Android folder found, proceeding with modifications..."
 
 # Get package name and version using Node.js script
 echo "LIB PATH $LIB_PATH"
-read -r LIB_NAME LIB_VERSION <<< $(node $SCRIPT_DIR/get-package-info.cjs "$LIB_PATH")
+read -r JS_LIB_NAME LIB_VERSION JAVA_LIB_NAME <<< $(node $SCRIPT_DIR/get-package-info.cjs "$LIB_PATH")
 if [ $? -ne 0 ]; then
   echo "Failed to get library name and version from package.json."
   exit 1
 fi
 
-echo "Library Name: $LIB_NAME"
+echo "Library Name: $JS_LIB_NAME"
 echo "Library Version: $LIB_VERSION"
+echo "Java Library Name: $JAVA_LIB_NAME"
 
 # Run the Node.js script modify-build-gradle.cjs
-node $SCRIPT_DIR/modify-build-gradle.cjs "$LIB_PATH" "$LIB_NAME" "$LIB_VERSION"
+node $SCRIPT_DIR/modify-build-gradle.cjs "$LIB_PATH" "$JAVA_LIB_NAME" "$LIB_VERSION"
 if [ $? -ne 0 ]; then
   echo "Failed to modify the build.gradle file."
   exit 1
@@ -42,8 +46,8 @@ echo "Successfully modified the Gradle file. Proceeding to build the AAR..."
 
 # Change directory to the android folder and run Gradle build
 cd $PROJECT_PATH/android
-./gradlew :$LIB_NAME:assembleRelease
-./gradlew :$LIB_NAME:publishToMavenLocal
+./gradlew :$JAVA_LIB_NAME:assembleRelease
+./gradlew :$JAVA_LIB_NAME:publishToMavenLocal
 cd ..
 
 if [ $? -ne 0 ]; then
@@ -55,7 +59,7 @@ echo "AAR build successful!"
 echo "ANDROID PATH: $ANDROID_PATH"
 echo $(pwd)
 # Create .buildlerc.json using the Node.js script
-node $SCRIPT_DIR/save-artifact-info.cjs "$LIB_NAME" "$LIB_VERSION" "$ANDROID_PATH"
+node $SCRIPT_DIR/save-artifact-info.cjs "$JS_LIB_NAME" "$LIB_VERSION" "$ANDROID_PATH"
 if [ $? -ne 0 ]; then
   echo "Failed to create .buildlerc.json."
   exit 1
