@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build-xcf": "ts-node --esm ios-resources/scripts/build-xcframework.mts",
+    "build-xcf": "node --loader ts-node/esm ios-resources/scripts/build-xcframework.mts",
     "include-xcf": "ruby ios-resources/scripts/include-xcframework.rb",
-    "npm-build-xcf": "ts-node --esm ios-resources/scripts/build-xcf-from-npm.mts"
+    "npm-build-xcf": "node --loader ts-node/esm ios-resources/scripts/build-xcf-from-npm.mts",
+    "test-ios": "node --loader ts-node/esm ios-resources/scripts/test-ios-app.mts"
   },
   "author": "",
   "license": "ISC",
