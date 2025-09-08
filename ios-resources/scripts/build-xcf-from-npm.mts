@@ -3,6 +3,11 @@ import path from "node:path";
 import {program} from 'commander';
 import {$} from "zx";
 
+process.on('exit', function () {
+  $`git checkout buildler` // cleanup sandbox after build / interruption
+  sb$`npm install` // reinstall dependencies in sandbox
+});
+
 const sandboxPath = path.resolve("buildler")
 if (!sandboxPath.endsWith("buildler")) {
   throw new Error(`Sandbox path is not correct: ${sandboxPath}`);
@@ -13,6 +18,7 @@ const sb$ = $({cwd: sandboxPath})
 
 program
   .requiredOption('-p, --package <name>', 'Name of the package to build')
+  .option('-v, --version <version>', 'Version of package to use', '.')
   .option('-o, --output <path>', 'Output directory for the xcframework', '.')
   .option('--platforms <platforms>', 'Comma-separated list of platforms to build for', 'iphonesimulator');
 
@@ -22,7 +28,7 @@ const options = program.opts();
 const outputDir = path.resolve(options.output);
 const packageName = options.package;
 
-const install = await sb$`npm install ${packageName}`
+const install = await sb$`npm install ${packageName}${options.version ? `@${options.version}` : ''} --no-package-lock --no-audit --no-fund`;
 if (install.exitCode !== 0) {
   throw new Error(`Failed to install package ${packageName}: ${install.stderr}`);
 }
@@ -40,4 +46,3 @@ if (buildXcf.exitCode !== 0) {
   throw new Error(`Failed to build xcframework for package ${packageName}: ${buildXcf.stderr}`);
 }
 
-$`git checkout buildler` // cleanup sandbox after build

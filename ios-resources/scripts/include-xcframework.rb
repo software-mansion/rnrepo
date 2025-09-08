@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+`#!/usr/bin/env ruby
 require 'optparse'
 require 'xcodeproj'
 
@@ -88,3 +88,4 @@ end
 project.save
 
 puts "🚀 Successfully added '#{xcframework_path}' to target '#{target.name}' in project '#{project_path}'."
+`
