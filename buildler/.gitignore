@@ -77,3 +77,5 @@ yarn-error.log
 .bundle/
 
 Podfile.lock
+
+android/libs/*.aar
