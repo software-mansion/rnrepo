@@ -5,3 +5,4 @@ build
 *.xcframework
 *.xcarchive
 dist
+*.aar

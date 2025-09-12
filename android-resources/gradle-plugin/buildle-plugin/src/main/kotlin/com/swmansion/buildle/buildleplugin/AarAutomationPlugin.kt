@@ -24,17 +24,14 @@ class AarAutomationPlugin : Plugin<Project> {
             }
         }
         
-        // Configure after evaluation to ensure extension is populated
         project.afterEvaluate {
             configureAndroidBuild(project, extension)
         }
     }
     
     private fun configureAndroidBuild(project: Project, extension: BuildleExtension) {
-        // Configure each subproject that matches our criteria
         project.subprojects.forEach { subproject ->
             if (subproject.name == "app") {
-                // Wait for the android plugin to be applied before configuring
                 subproject.pluginManager.withPlugin("com.android.application") {
                     configureAppProject(subproject, extension)
                 }
@@ -43,60 +40,118 @@ class AarAutomationPlugin : Plugin<Project> {
     }
     
     private fun configureAppProject(subproject: Project, extension: BuildleExtension) {
-        // Add BuildConfig field
         val android = subproject.extensions.getByName("android")
         try {
-            // Use reflection to safely call buildConfigField
-            val buildTypes = android.javaClass.getMethod("getBuildTypes").invoke(android)
-            val debugBuildType = buildTypes.javaClass.getMethod("getByName", String::class.java).invoke(buildTypes, "debug")
-            val buildConfigFieldMethod = debugBuildType.javaClass.getMethod("buildConfigField", String::class.java, String::class.java, String::class.java)
-            buildConfigFieldMethod.invoke(debugBuildType, "boolean", "USE_PREBUILT_AARS", "true")
-            
-            val releaseBuildType = buildTypes.javaClass.getMethod("getByName", String::class.java).invoke(buildTypes, "release")
-            buildConfigFieldMethod.invoke(releaseBuildType, "boolean", "USE_PREBUILT_AARS", "true")
+            val defaultConfig = android.javaClass.getMethod("getDefaultConfig").invoke(android)
+            val buildConfigFieldMethod = defaultConfig.javaClass.getMethod("buildConfigField", String::class.java, String::class.java, String::class.java)
+            buildConfigFieldMethod.invoke(defaultConfig, "boolean", "USE_PREBUILT_AARS", "true")
+            subproject.logger.info("Added USE_PREBUILT_AARS BuildConfig field")
         } catch (e: Exception) {
             subproject.logger.warn("Could not add BUILD_CONFIG field: ${e.message}")
         }
         
-        // Add repositories and dependencies
         subproject.repositories.apply {
             flatDir { flatDir ->
-                flatDir.dirs(extension.aarsDir)
-                flatDir.name = "flatDir"
+                flatDir.dirs("libs")
+                flatDir.name = "appLibsDir"
             }
+            val parentLibsPath = File(subproject.rootDir, extension.aarsDir).absolutePath
             flatDir { flatDir ->
-                flatDir.dirs("libs") 
-                flatDir.name = "flatDir2"
+                flatDir.dirs(parentLibsPath)
+                flatDir.name = "parentLibsDir"
             }
         }
         
-        // Add AAR dependencies
         val dependencies = subproject.dependencies
         extension.packages.forEach { packageName ->
             val gradleProjectName = convertToGradleProjectName(packageName)
-            val aarFile = File(subproject.rootDir, "${extension.aarsDir}/${gradleProjectName}.aar")
             
-            if (aarFile.exists()) {
-                dependencies.add("implementation", aarFile.nameWithoutExtension)
-                subproject.logger.info("Added AAR dependency: ${aarFile.nameWithoutExtension}")
+            val appLibsAar = File(subproject.projectDir, "libs/${gradleProjectName}.aar")
+            val parentLibsAar = File(subproject.rootDir, "${extension.aarsDir}/${gradleProjectName}.aar")
+            
+            val aarFile = when {
+                appLibsAar.exists() -> appLibsAar
+                parentLibsAar.exists() -> parentLibsAar
+                else -> null
             }
+            
+            if (aarFile != null) {
+                val relativePath = aarFile.relativeTo(subproject.projectDir).path
+                dependencies.add("implementation", subproject.files(relativePath))
+                subproject.logger.info("Added AAR dependency: $relativePath")
+                
+                addTransitiveDependencies(subproject, packageName, dependencies)
+            } else {
+                subproject.logger.warn("AAR file not found for package: $packageName")
+            }
+        }
+    }
+    
+    private fun addTransitiveDependencies(subproject: Project, packageName: String, dependencies: org.gradle.api.artifacts.dsl.DependencyHandler) {
+        try {
+            val reactNativeRoot = if (subproject.rootDir.name == "android") {
+                subproject.rootDir.parentFile
+            } else {
+                subproject.rootDir
+            }
+            
+            val packageBuildGradle = File(reactNativeRoot, "node_modules/$packageName/android/build.gradle")
+            if (!packageBuildGradle.exists()) {
+                subproject.logger.warn("Could not find build.gradle for $packageName to extract dependencies")
+                return
+            }
+            
+            val buildGradleContent = packageBuildGradle.readText()
+            
+            val variables = mutableMapOf<String, String>()
+            val variablePattern = Regex("def\\s+(\\w+)\\s*=\\s*['\"]([^'\"]+)['\"]")
+            variablePattern.findAll(buildGradleContent).forEach { match ->
+                variables[match.groupValues[1]] = match.groupValues[2]
+            }
+            
+            val implementationPatterns = listOf(
+                Regex("implementation\\s+['\"]([^'\"]+)['\"]"),
+                Regex("implementation\\s*\\(['\"]([^'\"]+)['\"]\\)")
+            )
+            
+            val addedDeps = mutableSetOf<String>()
+            implementationPatterns.forEach { pattern ->
+                pattern.findAll(buildGradleContent).forEach { match ->
+                    var dependency = match.groupValues[1]
+                    
+                    val variableSubstitution = Regex("\\$\\{(\\w+)\\}")
+                    dependency = variableSubstitution.replace(dependency) { variableMatch ->
+                        variables[variableMatch.groupValues[1]] ?: variableMatch.value
+                    }
+                    
+                    if (!dependency.contains("react-native") && 
+                        !dependency.contains("facebook.react") &&
+                        !dependency.startsWith(":") &&
+                        !dependency.endsWith(":+") &&
+                        addedDeps.add(dependency)) {
+                        
+                        dependencies.add("implementation", dependency)
+                        subproject.logger.info("Added transitive dependency for $packageName: $dependency")
+                    }
+                }
+            }
+            
+        } catch (e: Exception) {
+            subproject.logger.warn("Failed to add transitive dependencies for $packageName: ${e.message}")
         }
     }
     
     private fun setupAarAutomation(project: Project, extension: BuildleExtension) {
         println("Setting up AAR automation...")
         
-        // Generate react-native.config.js
         generateReactNativeConfig(project, extension)
-        
-        // Update MainApplication with package registration
         updateMainApplication(project, extension)
+        patchAutolinkingForNewArchitecture(project)
         
         println("AAR automation setup completed!")
     }
     
     private fun generateReactNativeConfig(project: Project, extension: BuildleExtension) {
-        // If we're running from the android directory, go up one level to find the React Native root
         val reactNativeRoot = if (project.rootDir.name == "android") {
             project.rootDir.parentFile
         } else {
@@ -114,7 +169,7 @@ class AarAutomationPlugin : Plugin<Project> {
         }
         
         val configContent = buildString {
-            appendLine("// Auto-generated config to disable autolinking for AAR packages")
+            appendLine("// Disable autolinking for AAR packages")
             appendLine("module.exports = {")
             appendLine("  dependencies: {")
             
@@ -135,7 +190,6 @@ class AarAutomationPlugin : Plugin<Project> {
     }
     
     private fun updateMainApplication(project: Project, extension: BuildleExtension) {
-        // Find MainApplication.kt file
         val mainApplicationFile = findMainApplicationFile(project)
         
         if (mainApplicationFile == null) {
@@ -146,33 +200,32 @@ class AarAutomationPlugin : Plugin<Project> {
         val originalContent = mainApplicationFile.readText()
         var modifiedContent = originalContent
         
-        // Remove any existing AAR automation block
         modifiedContent = removeExistingAarBlock(modifiedContent)
         
-        // Add new AAR automation block if we have packages
         if (extension.packages.isNotEmpty()) {
             val packageRegistrations = generatePackageRegistrations(project, extension)
-            val aarBlock = """
-        // AAR automation - auto-generated package registration
-        if (BuildConfig.USE_PREBUILT_AARS) {
-          try {
+            if (packageRegistrations.isNotEmpty()) {
+                val aarBlock = """
+                    
+                    // AAR automation - auto-generated package registration
+                    if (BuildConfig.USE_PREBUILT_AARS) {
+                      try {
 $packageRegistrations
-          } catch (e: Exception) {
-            android.util.Log.e("MainApplication", "Failed to load pre-built AAR packages: ${'$'}{e.message}")
-          }
-        }
-"""
-            
-            // Insert inside the apply block, before the closing brace
-            val applyPattern = Regex("(PackageList\\(this\\)\\.packages\\.apply\\s*\\{[^}]*?)(\\s*\\})", RegexOption.DOT_MATCHES_ALL)
-            if (applyPattern.containsMatchIn(modifiedContent)) {
-                modifiedContent = applyPattern.replace(modifiedContent) { matchResult ->
-                    val beforeClosing = matchResult.groupValues[1]
-                    val closingBrace = matchResult.groupValues[2]
-                    "$beforeClosing$aarBlock$closingBrace"
+                      } catch (e: Exception) {
+                        android.util.Log.e("MainApplication", "Failed to load pre-built AAR packages: ${'$'}{e.message}")
+                      }
+                    }"""
+                
+                val applyPattern = Regex("(PackageList\\(this\\)\\.packages\\.apply\\s*\\{.*?// add\\(MyReactNativePackage\\(\\)\\).*?)(\\s*\\})", RegexOption.DOT_MATCHES_ALL)
+                val applyMatch = applyPattern.find(modifiedContent)
+                
+                if (applyMatch != null) {
+                    val beforeClosing = applyMatch.groupValues[1]
+                    val closingBrace = applyMatch.groupValues[2]
+                    modifiedContent = modifiedContent.replace(applyMatch.value, "$beforeClosing$aarBlock$closingBrace")
+                } else {
+                    println("Could not find PackageList(this).packages.apply pattern to insert AAR automation")
                 }
-            } else {
-                println("Could not find PackageList(this).packages.apply pattern")
             }
         }
         
@@ -183,7 +236,6 @@ $packageRegistrations
     }
     
     private fun findMainApplicationFile(project: Project): File? {
-        // If we're running from the android directory, go up one level to find the React Native root
         val reactNativeRoot = if (project.rootDir.name == "android") {
             project.rootDir.parentFile
         } else {
@@ -197,12 +249,11 @@ $packageRegistrations
     }
     
     private fun removeExistingAarBlock(content: String): String {
-        val blockPattern = Regex("\\s*// AAR automation.*?\\}\\s*\\}\\s*\\}", RegexOption.DOT_MATCHES_ALL)
+        val blockPattern = Regex("\\s*// AAR automation - auto-generated package registration.*?\\}\\s*\\}", RegexOption.DOT_MATCHES_ALL)
         return blockPattern.replace(content, "")
     }
     
     private fun generatePackageRegistrations(project: Project, extension: BuildleExtension): String {
-        // If we're running from the android directory, go up one level to find the React Native root
         val reactNativeRoot = if (project.rootDir.name == "android") {
             project.rootDir.parentFile
         } else {
@@ -225,7 +276,6 @@ $packageRegistrations
         val packagePath = File(reactNativeRoot, "node_modules/$packageName/android")
         if (!packagePath.exists()) return null
         
-        // Search patterns for React Native package classes (Java and Kotlin)
         val patterns = listOf(
             ".*Package\\.java$",
             ".*ReactPackage\\.java$", 
@@ -235,7 +285,6 @@ $packageRegistrations
             ".*NativePackage\\.kt$"
         )
         
-        // Search in multiple source directories - include all src subdirectories
         val sourceDirs = packagePath.listFiles()?.filter { it.isDirectory && it.name.startsWith("src") }?.flatMap { srcDir ->
             srcDir.walkTopDown().filter { it.isDirectory && it.name == "java" }.map { 
                 it.relativeTo(packagePath).path 
@@ -259,17 +308,13 @@ $packageRegistrations
                         if (packageMatch != null) {
                             val packageNameInFile = packageMatch.groupValues[1]
                             
-                            // Extract class name - more flexible patterns for Java and Kotlin
                             val classPatterns = listOf(
-                                // Java patterns - extends BaseReactPackage
                                 Regex("public\\s+class\\s+(\\w+)\\s+extends\\s+BaseReactPackage"),
                                 Regex("class\\s+(\\w+)\\s+extends\\s+BaseReactPackage"),
-                                // Java patterns - implements ReactPackage
                                 Regex("public\\s+class\\s+(\\w+)\\s+.*implements.*ReactPackage"),
                                 Regex("public\\s+class\\s+(\\w+)\\s+.*ReactPackage"),
                                 Regex("class\\s+(\\w+)\\s+.*implements.*ReactPackage"),
                                 Regex("class\\s+(\\w+)\\s+.*ReactPackage"),
-                                // Kotlin patterns  
                                 Regex("class\\s+(\\w+)\\s*:\\s*BaseReactPackage"),
                                 Regex("class\\s+(\\w+)\\s*:\\s*ReactPackage"),
                                 Regex("class\\s+(\\w+)\\s+.*:\\s*BaseReactPackage"),
@@ -287,7 +332,6 @@ $packageRegistrations
                             }
                         }
                     } catch (e: Exception) {
-                        // Continue searching if file cannot be read
                     }
                 }
             }
@@ -298,10 +342,12 @@ $packageRegistrations
     }
     
     private fun convertToGradleProjectName(packageName: String): String {
-        // Convert npm package name to Gradle project name following React Native's pattern
-        // @react-native-community/slider -> react-native-community_slider
         return packageName
-            .removePrefix("@")        // Remove leading @
-            .replace("/", "_")        // Replace / with _
+            .removePrefix("@")
+            .replace("/", "_")
+    }
+    
+    private fun patchAutolinkingForNewArchitecture(project: Project) {
+        project.logger.info("AAR packages configured")
     }
 }
