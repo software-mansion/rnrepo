@@ -10,244 +10,90 @@
 
 ## Android
 
-### Creating `.aar` binary from library files
+**📖 Comprehensive Guide**: See detailed documentation at [android-resources/README.md](android-resources/README.md)
 
-In order to pack chosen library's native code into `.aar` binary please follow the steps listed below:
+Buildle provides an automated system for building and integrating React Native packages as AAR (Android Archive) files, dramatically improving build performance by eliminating source compilation.
 
-1) Install library via npm
+### Quick Start
 
-```
-npm install <library-name> 
-```
+1. **Install project dependencies:**
+   ```bash
+   npm install
+   ```
 
-2) Find `build.gradle` file inside library modules
+2. **Install the Gradle plugin** (one-time setup):
+   ```bash
+   cd android-resources/gradle-plugin/buildle-plugin
+   ./gradlew publishToMavenLocal
+   ```
 
-Go to `node_modules/<library-name>/android` directory and find `build.gradle` file there.  
-In some rare cases library might not have `android` folder directly inside its node modules.
-If that's the case, search for it inside other folders named e.g.: `platforms`.
+3. **Add plugin to your project's `android/build.gradle`:**
+   ```gradle
+   buildscript {
+       repositories {
+           mavenLocal()
+           google()
+           mavenCentral()
+       }
+       dependencies {
+           classpath 'com.swmansion:buildle-plugin:1.0.0'
+       }
+   }
 
-3) Modify `build.gradle` file:
+   apply plugin: 'com.swmansion.buildle'
 
-First off, find `repositories` section and make sure it includes `mavenLocal` repository:
+   buildle {
+       packages = ['react-native-svg', '@react-native-community/slider']
+       aarsDir = "android/libs"
+   }
+   ```
 
-```kt
-repositories {
-    // ...
-    mavenLocal()
-    // ...
-}
-```
+4. **Build AARs and configure your project:**
+   ```bash
+   # Build AARs from your existing project
+   npm run build-aar -- \
+     --packages "react-native-svg,@react-native-community/slider" \
+     --android-project ./MyReactNativeApp
 
-Then go to `android` section and add the following code:
+   # Configure project to use the AARs
+   npm run include-aar -- \
+     --packages "react-native-svg,@react-native-community/slider" \
+     --android-project ./MyReactNativeApp
+   ```
 
-```kt
-publishing {
-    singleVariant("release") {
-        withSourcesJar()
-    }
-}
-```
+### Available Commands
 
-Finally, add a new section called `publishing`:
-
-```kt
-apply plugin: "maven-publish"
-
-afterEvaluate {
-    publishing {
-        publications {
-            release(MavenPublication) {
-                groupId = '<LIBRARY_GROUP_ID>'
-                artifactId = '<LIBRARY_ARTIFACT_ID>'
-                version = '<LIBRARY_VERSION>'
-
-                from components.release
-            }
-        }
-        repositories {
-            mavenLocal()
-        }
-    }
-}
-```
-
-Make sure to apply `maven-publish` plugin.  
-Replace all the information in angle brackets with library-specific info.
-
-Example:
-
-```kt
-apply plugin: "maven-publish"
-
-afterEvaluate {
-    publishing {
-        publications {
-            release(MavenPublication) {
-                groupId = 'com.mycompany'
-                artifactId = 'SuperReactNativeLibrary'
-                version = '1.0.0'
-
-                from components.release
-            }
-        }
-        repositories {
-            mavenLocal()
-        }
-    }
-}
+#### Build AARs from existing project
+```bash
+npm run build-aar -- \
+  --packages "react-native-svg,@react-native-community/slider" \
+  --android-project ./MyReactNativeApp
 ```
 
-4) You are ready to create `.aar` file now!
-
-Go inside `android` folder of your app and run the following commands:
-
-```
-./gradlew :<library-name>:assembleRelease
-```
-
-```
-./gradlew :<library-name>:publishToMavenLocal
+#### Build AARs from npm packages
+```bash
+npm run npm-build-aar -- \
+  --packages "react-native-vector-icons,react-native-linear-gradient" \
+  --version "^10.0.0"
 ```
 
-Now you should be able to find `.aar` binary inside:   
-`~/.m2/repository/your/group/id/<LIBRARY_ARTIFACT_ID>/<LIBRARY_VERSION>`
-
-For above example it would be:  
-`~/.m2/repository/com/mycompany/SuperReactNativeLibrary/1.0.0`
-
-### Replacing `node_modules` native code with `.aar`:
-
-Once you build your library's `.aar`, you can replace library native code from `node_modules`.
-
-You can achieve it in two distinct ways:
-
-- Maven Local - you can import your aar directly from its maven local repo,
-- Local directory - you can import your aar by placing it in chosen directory inside your app's android folder,
-  e.g.: `YourSuperProject/android/libs`,
-
-Regardless of which way you choose, follow the steps below:
-
-1) Modify your app's `build.gradle` file:
-
-You can find it in `YourSuperProject/android/app`.
-
-```kt
-// ...
-
-dependencies {
-    ...
-    // for maven-local-published aars:
-    implementation("<LIBRARY_GROUP_ID>:<LIBRARY_ARTIFACT_ID>:<LIBRARY_VERSION>")
-
-    // for local directory aars:
-    implementation(name: '<AAR-NAME>', ext: 'aar')
-}
-
-// ...
-
-repositories {
-    // for maven-local-published aars:
-    mavenLocal()
-
-    // for local directory aars:
-    flatDir {
-      dirs '<YOUR-DIR-NAME>'    // relative to android folder
-    }
-}
-
-// ...
-
+#### Configure project to use AARs
+```bash
+npm run include-aar -- \
+  --packages "react-native-svg,react-native-vector-icons" \
+  --android-project ./MyReactNativeApp
 ```
 
-2) Register library package in `MainApplication.kt` file:
+### How It Works
 
-You can find `MainApplication.kt` file inside `YourSuperProject/android/app/src/main/java/.../MainApplication.kt`.
+The AAR integration process follows these steps:
 
-```kt
-package com.yoursuperproject
+1. **Build AAR files**: Each React Native package gets compiled into a standalone `.aar` file using a temporary build environment
+2. **Package detection**: The system scans each package to find the main ReactPackage class (the entry point for React Native modules)
+3. **Setup repositories**: Your project's Gradle configuration gets updated to look for AAR files in the `android/libs` directory
+4. **Disable autolinking**: A `react-native.config.js` file is generated to prevent React Native from trying to auto-link the packages
+5. **Register packages**: Your `MainApplication.kt` file gets updated with code to manually load and register each AAR package
 
-import android.app.Application
-// other default imports
-
-
-import com.mycompany.SuperReactNativeLibraryPackage
-
-
-class MainApplication : Application(), ReactApplication {
-
-  override val reactNativeHost: ReactNativeHost =
-      object : DefaultReactNativeHost(this) {
-        override fun getPackages(): List<ReactPackage> =
-            PackageList(this).packages.apply {
-              // Packages that cannot be autolinked yet 
-              add(MyLibraryPackage())
-            }
-
-        // ...
-      }
-
-    // ...
-}
-
-```
-
-3) Clean previous build files
-
-As we are changing location of library native code we need to remove previous builds to avoid build errors.
-
-Run the following commands in the project's root directory:
-
-```
-rm -rf android/build
-```
-
-```
-rm -rf android/app/build
-```
-
-4) Run the app:
-
-```
-npm run android
-```
-
-### Troubleshooting
-
-- app build fails
-
-Remove build folders ( `android/build` and `android/app/build` )
-
-If this does not help, try resetting cache:
-
-```
-npm run android --reset-cache
-```
-
-### Q&A
-
-- How do I know which file from my aar should I import in `MainApplication.kt`?
-
-Most often it is just `<GROUP-ID>.<ARTIFACT-ID>.<ARTIFACT-ID>Package` but it is not a rule.
-
-Every library which provides android native code must have a file which contains a main package class.  
-This class is the only one extending `ReactPackage` like:
-
-```java
-class MyPackage : ReactPackage {
-  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-    // ...
-  }
-
-  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-    // ...
-  }
-}
-```
-
-Most often it is placed in a file with a `Package` postfix, but again, it is not a rule.
-
-To find exact location and name of this package file you can unzip `.aar` file, then unzip `classes.jar` and find the
-package file.
 
 ## IOS
 
@@ -334,3 +180,25 @@ npm run include-xcf -- \
 | --framework | -f    | Path to the .xcframework file (absolute or relative) (**required**)                     |
 | --target    | -t    | Name of the Xcode target to apply the framework to (required if multiple targets exist) |
 | --help      | -h    | Show usage help and exit                                                                |
+
+### Using script to create xcframework from npm package
+
+Install project dependencies (be sure to install `xcodeproj` and `optparse` gems as well):
+
+```bash
+npm install
+[sudo] gem install optparse xcodeproj 
+```
+
+Then run the script:
+
+```bash
+npm run npm-build-xcf -- \
+  --package react-native-reanimated
+```
+
+#### Options
+
+| Option      | Alias | Description                                                                             |
+|-------------|-------|-----------------------------------------------------------------------------------------|
+| --package   | -p    | NPM package to create .xcframework for. Has to contain valid podspec file.              |

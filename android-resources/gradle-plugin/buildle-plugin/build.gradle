@@ -1,0 +1,47 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.8.22'
+    id 'maven-publish'
+    id 'java-gradle-plugin'
+}
+
+group = 'com.swmansion'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    google()
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation 'com.android.tools.build:gradle:8.1.0'
+    implementation 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+}
+
+gradlePlugin {
+    plugins {
+        buildle {
+            id = 'com.swmansion.buildle'
+            implementationClass = 'com.swmansion.buildle.buildleplugin.AarAutomationPlugin'
+            displayName = 'Buildle Plugin'
+            description = 'Automates React Native AAR integration for faster builds'
+        }
+    }
+}
+
+publishing {
+    repositories {
+        mavenLocal()
+    }
+}
