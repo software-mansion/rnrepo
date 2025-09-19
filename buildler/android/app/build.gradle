@@ -107,6 +107,22 @@ android {
     }
 }
 
+// Uncomment it if you want to get the libs from mavenLocal
+// repositories {
+//     mavenLocal()
+// }
+
+// Here you specify the libraries that you want to subsitute with the prebuilt ones. You have to have them published somewhere,
+// I started with mavenLocal, following the instruction from https://github.com/software-mansion-labs/buildle/tree/feature/autolinking-aars?tab=readme-ov-file#android
+afterEvaluate {
+    configurations.configureEach {
+        resolutionStrategy.dependencySubstitution {
+            //  substitute project(':react-native-reanimated') using module('com.swmansion:react-native-reanimated:3.19.1-rn0.81.1')
+            //  substitute project(':react-native-safe-area-context') using module('com.th3rdwave:react-native-safe-area-context:5.6.1-rn0.81.1')
+        }
+    }
+}
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
