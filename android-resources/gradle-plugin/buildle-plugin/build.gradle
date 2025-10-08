@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.swmansion'
-version = '1.0.0'
+version = '1.0.1'
 
 repositories {
     mavenCentral()
@@ -41,26 +41,13 @@ gradlePlugin {
 }
 
 publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            groupId = project.group
-            version = project.version
-            artifactId = 'buildle-plugin'
-
-            from components.java
-        }
-    }
-
     repositories {
-        //mavenLocal()
         maven { 
             name "reposiliteRepositoryReleases" 
             url "https://repo.swmtest.xyz/releases" 
 
             credentials {
-                // Get username from a project property (e.g., defined in ~/.gradle/gradle.properties)
                 username = project.properties["mavenUser"] ?: System.getenv("MAVEN_USER")
-                // Get password from a project property or environment variable
                 password = project.properties["mavenPassword"] ?: System.getenv("MAVEN_PASSWORD")
             }
         }

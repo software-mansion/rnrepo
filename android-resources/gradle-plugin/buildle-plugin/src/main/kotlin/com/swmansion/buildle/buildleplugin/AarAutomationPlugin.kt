@@ -17,13 +17,27 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.TimeUnit
 
+open class PackageItem(val name: String, val version: String) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is PackageItem) return false
 
+        if (name != other.name) return false
+        if (version != other.version) return false
 
-open class PackageItem(val name: String, val version: String)
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + version.hashCode()
+        return result
+    }
+}
+
 
 open class BuildleExtension {
     var packages: List<PackageItem> = listOf()
-    var aarsDir: String = "android/libs"
     var reactNativeVersion: String = ""
     var supportedPackages: Set<PackageItem> = emptySet()
 }
@@ -31,6 +45,7 @@ open class BuildleExtension {
 class AarAutomationPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("buildle", BuildleExtension::class.java)
+        println("Start BUILDLE")
         
         // Add SWM Maven repository with AAR artifacts
         project.repositories.apply {
@@ -98,10 +113,7 @@ class AarAutomationPlugin : Plugin<Project> {
     }
 
     private fun filterUnsupportedPackages(extension: BuildleExtension) {
-        // make union of extension.packages and extension.supportedPackages
-        val supportedNames = extension.supportedPackages.map { it.name }.toSet()
-        val filteredPackages = extension.packages.filter { supportedNames.contains(it.name) }
-        extension.packages = filteredPackages
+        extension.packages = extension.packages.intersect(extension.supportedPackages).toList()
         println("Filtered packages: ${extension.packages.map { "${it.name}@${it.version}" }}")
     }
 

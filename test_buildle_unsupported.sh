@@ -3,8 +3,7 @@
 echo "N" |npx @react-native-community/cli@latest init AwesomeProject --version 0.81.4 
 cd AwesomeProject
 
-npm install react-native-svg@15.13.0
-
+# edit app
 sed -i '' "/} from 'react-native-safe-area-context';/a\\
 import {Svg, Circle} from \"react-native-svg\";
 " App.tsx
@@ -15,12 +14,13 @@ sed -i '' "/<View style={styles.container}>/a\\
       </Svg>
 " App.tsx
 
+# setup plugin
 sed -i '' "/apply plugin: \"com.facebook.react\"/a\\
 apply plugin: \"com.swmansion.buildle\"
 " android/app/build.gradle
 
 sed -i '' "/classpath(\"org.jetbrains.kotlin:kotlin-gradle-plugin\")/a\\
-        classpath(\"com.swmansion:buildle-plugin:1.0.0\")
+        classpath(\"com.swmansion:buildle-plugin:1.0.1\")
 " android/build.gradle
 
 sed -i '' "/mavenCentral()/a\\
@@ -31,6 +31,13 @@ sed -i '' "/mavenCentral()/a\\
         // mavenLocal() \\
 " android/build.gradle
 
+# install unsupported svg
+npm install react-native-svg@15.12.1 --save-exact
+
 npm install
 
-echo "\n\nRUN \"npm run android\" and you should see red circle above basic RN app"
+sed -i '' "/public void setR(Dynamic r) {/a\\
+    System.out.println(\"BUILDLE: YOU SHOULD SEE THAT\");
+" node_modules/react-native-svg/android/src/main/java/com/horcrux/svg/CircleView.java
+
+echo "RUN \"npm run android\" and you should see red circle above basic RN app. Device logs should have message: \"BUILDLE: YOU SHOULD SEE THAT\""
