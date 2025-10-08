@@ -41,7 +41,28 @@ gradlePlugin {
 }
 
 publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = project.group
+            version = project.version
+            artifactId = 'buildle-plugin'
+
+            from components.java
+        }
+    }
+
     repositories {
-        mavenLocal()
+        //mavenLocal()
+        maven { 
+            name "reposiliteRepositoryReleases" 
+            url "https://repo.swmtest.xyz/releases" 
+
+            credentials {
+                // Get username from a project property (e.g., defined in ~/.gradle/gradle.properties)
+                username = project.properties["mavenUser"] ?: System.getenv("MAVEN_USER")
+                // Get password from a project property or environment variable
+                password = project.properties["mavenPassword"] ?: System.getenv("MAVEN_PASSWORD")
+            }
+        }
     }
 }

@@ -5,349 +5,139 @@ import org.gradle.api.tasks.*
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
+import groovy.json.JsonSlurper
+import org.gradle.api.artifacts.*
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.kotlin.dsl.* // Import DSL extensions for dependencies and properties
+import java.net.URI
+import org.gradle.api.artifacts.Configuration
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.TimeUnit
+
+
+
+open class PackageItem(val name: String, val version: String)
 
 open class BuildleExtension {
-    var packages: List<String> = listOf()
+    var packages: List<PackageItem> = listOf()
     var aarsDir: String = "android/libs"
+    var reactNativeVersion: String = ""
+    var supportedPackages: Set<PackageItem> = emptySet()
 }
 
 class AarAutomationPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("buildle", BuildleExtension::class.java)
         
-        project.tasks.register("setupAars") { task ->
-            task.group = "aar"
-            task.description = "Generate configuration files for AAR automation"
-            
-            task.doLast {
-                setupAarAutomation(project, extension)
+        // Add SWM Maven repository with AAR artifacts
+        project.repositories.apply {
+            maven { repo ->
+                repo.name = "reposiliteRepositoryReleases"
+                repo.url = URI("https://repo.swmtest.xyz/releases")
             }
         }
-        
+
+        // Check what packages are in project and which are we supporting
+        findPackagesWithVersions(project, extension)
+        fetchSupportedPackages(project, extension)
+        filterUnsupportedPackages(extension)
+
+        // Add dependencies for supported packages 
+        extension.packages.forEach { packageItem ->
+            println("RAD Adding dependency for ${packageItem.name} version ${packageItem.version}")
+            //project.dependencies.add("implementation", "com.swmansion:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}")
+            project.dependencies.add("implementation", "com.swmansion:${packageItem.name}:${packageItem.version}")
+        }
+ 
+        // Add substitution for supported packages 
         project.afterEvaluate {
-            configureAndroidBuild(project, extension)
-        }
-    }
-    
-    private fun configureAndroidBuild(project: Project, extension: BuildleExtension) {
-        project.subprojects.forEach { subproject ->
-            if (subproject.name == "app") {
-                subproject.pluginManager.withPlugin("com.android.application") {
-                    configureAppProject(subproject, extension)
-                }
-            }
-        }
-    }
-    
-    private fun configureAppProject(subproject: Project, extension: BuildleExtension) {
-        val android = subproject.extensions.getByName("android")
-        try {
-            val defaultConfig = android.javaClass.getMethod("getDefaultConfig").invoke(android)
-            val buildConfigFieldMethod = defaultConfig.javaClass.getMethod("buildConfigField", String::class.java, String::class.java, String::class.java)
-            buildConfigFieldMethod.invoke(defaultConfig, "boolean", "USE_PREBUILT_AARS", "true")
-            subproject.logger.info("Added USE_PREBUILT_AARS BuildConfig field")
-        } catch (e: Exception) {
-            subproject.logger.warn("Could not add BUILD_CONFIG field: ${e.message}")
-        }
-        
-        subproject.repositories.apply {
-            flatDir { flatDir ->
-                flatDir.dirs("libs")
-                flatDir.name = "appLibsDir"
-            }
-            val parentLibsPath = File(subproject.rootDir, extension.aarsDir).absolutePath
-            flatDir { flatDir ->
-                flatDir.dirs(parentLibsPath)
-                flatDir.name = "parentLibsDir"
-            }
-        }
-        
-        val dependencies = subproject.dependencies
-        extension.packages.forEach { packageName ->
-            val gradleProjectName = convertToGradleProjectName(packageName)
-            
-            val appLibsAar = File(subproject.projectDir, "libs/${gradleProjectName}.aar")
-            val parentLibsAar = File(subproject.rootDir, "${extension.aarsDir}/${gradleProjectName}.aar")
-            
-            val aarFile = when {
-                appLibsAar.exists() -> appLibsAar
-                parentLibsAar.exists() -> parentLibsAar
-                else -> null
-            }
-            
-            if (aarFile != null) {
-                val relativePath = aarFile.relativeTo(subproject.projectDir).path
-                dependencies.add("implementation", subproject.files(relativePath))
-                subproject.logger.info("Added AAR dependency: $relativePath")
-                
-                addTransitiveDependencies(subproject, packageName, dependencies)
-            } else {
-                subproject.logger.warn("AAR file not found for package: $packageName")
-            }
-        }
-    }
-    
-    private fun addTransitiveDependencies(subproject: Project, packageName: String, dependencies: org.gradle.api.artifacts.dsl.DependencyHandler) {
-        try {
-            val reactNativeRoot = if (subproject.rootDir.name == "android") {
-                subproject.rootDir.parentFile
-            } else {
-                subproject.rootDir
-            }
-            
-            val packageBuildGradle = File(reactNativeRoot, "node_modules/$packageName/android/build.gradle")
-            if (!packageBuildGradle.exists()) {
-                subproject.logger.warn("Could not find build.gradle for $packageName to extract dependencies")
-                return
-            }
-            
-            val buildGradleContent = packageBuildGradle.readText()
-            
-            val variables = mutableMapOf<String, String>()
-            val variablePattern = Regex("def\\s+(\\w+)\\s*=\\s*['\"]([^'\"]+)['\"]")
-            variablePattern.findAll(buildGradleContent).forEach { match ->
-                variables[match.groupValues[1]] = match.groupValues[2]
-            }
-            
-            val implementationPatterns = listOf(
-                Regex("implementation\\s+['\"]([^'\"]+)['\"]"),
-                Regex("implementation\\s*\\(['\"]([^'\"]+)['\"]\\)")
-            )
-            
-            val addedDeps = mutableSetOf<String>()
-            implementationPatterns.forEach { pattern ->
-                pattern.findAll(buildGradleContent).forEach { match ->
-                    var dependency = match.groupValues[1]
-                    
-                    val variableSubstitution = Regex("\\$\\{(\\w+)\\}")
-                    dependency = variableSubstitution.replace(dependency) { variableMatch ->
-                        variables[variableMatch.groupValues[1]] ?: variableMatch.value
-                    }
-                    
-                    if (!dependency.contains("react-native") && 
-                        !dependency.contains("facebook.react") &&
-                        !dependency.startsWith(":") &&
-                        !dependency.endsWith(":+") &&
-                        addedDeps.add(dependency)) {
-                        
-                        dependencies.add("implementation", dependency)
-                        subproject.logger.info("Added transitive dependency for $packageName: $dependency")
+            extension.packages.forEach { packageItem ->
+                println("Adding substitution for ${packageItem.name}")
+                project.configurations.all { config ->
+                    config.resolutionStrategy.dependencySubstitution {
+                        it.substitute(it.project(":${packageItem.name}"))
+                            .using(it.module("com.swmansion:${packageItem.name}:${packageItem.version}"))
+                            //.using(it.module("com.swmansion:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}"))
                     }
                 }
             }
-            
-        } catch (e: Exception) {
-            subproject.logger.warn("Failed to add transitive dependencies for $packageName: ${e.message}")
         }
     }
-    
-    private fun setupAarAutomation(project: Project, extension: BuildleExtension) {
-        println("Setting up AAR automation...")
-        
-        generateReactNativeConfig(project, extension)
-        updateMainApplication(project, extension)
-        patchAutolinkingForNewArchitecture(project)
-        
-        println("AAR automation setup completed!")
+
+    private fun fetchSupportedPackages(project: Project, extension: BuildleExtension) {
+        val configName = "downloadSupportedPackages"
+        val downloadConfig: Configuration = project.configurations.maybeCreate(configName).apply {
+            isTransitive = false
+        }
+
+        project.dependencies.add(configName, "com.swmansion:supported-packages:1.0.0@json")
+        try {
+            val resolvedFiles = downloadConfig.resolve() 
+            if (resolvedFiles.isEmpty()) {
+                throw IllegalStateException("Nie znaleziono artefaktu: supported-packages.json")
+            }
+            
+            // read json to extension.supportedPackages
+            val jsonfile = resolvedFiles.first()
+            val json = JsonSlurper().parse(jsonfile) as Map<String, Map<String, String>>
+            val supportedPackages = mutableSetOf<PackageItem>()
+            val supportedForReactNativeVersion = json[extension.reactNativeVersion] ?: emptyMap()
+            supportedForReactNativeVersion.forEach { (name, version) ->
+                supportedPackages.add(PackageItem(name, version))
+            }
+            extension.supportedPackages = supportedPackages
+        } catch (e: Exception) {
+            project.logger.error("Błąd podczas pobierania artefaktu supported-packages: ${e.message}", e)
+        } finally {
+            project.configurations.remove(downloadConfig)
+        }
+
     }
-    
-    private fun generateReactNativeConfig(project: Project, extension: BuildleExtension) {
-        val reactNativeRoot = if (project.rootDir.name == "android") {
-            project.rootDir.parentFile
+
+    private fun filterUnsupportedPackages(extension: BuildleExtension) {
+        // make union of extension.packages and extension.supportedPackages
+        val supportedNames = extension.supportedPackages.map { it.name }.toSet()
+        val filteredPackages = extension.packages.filter { supportedNames.contains(it.name) }
+        extension.packages = filteredPackages
+        println("Filtered packages: ${extension.packages.map { "${it.name}@${it.version}" }}")
+    }
+
+    private fun findPackagesWithVersions(rootProject: Project, extension: BuildleExtension) {
+        val reactNativeRoot = if (rootProject.rootDir.name == "android") {
+            rootProject.rootDir.parentFile
         } else {
-            project.rootDir
+            rootProject.rootDir
         }
-        
-        val configFile = File(reactNativeRoot, "react-native.config.js")
-        
-        if (extension.packages.isEmpty()) {
-            if (configFile.exists()) {
-                configFile.delete()
-                println("Removed react-native.config.js (no packages configured)")
-            }
+
+        // iter over node_modules/<package>/package.json
+        val node_modulesDir = File(reactNativeRoot, "node_modules")
+        if (!node_modulesDir.exists()) {
+            println("node_modules directory not found: ${node_modulesDir.absolutePath}. Run your command from YourProjectDir or YourProjectDir/android")
             return
         }
-        
-        val configContent = buildString {
-            appendLine("// Disable autolinking for AAR packages")
-            appendLine("module.exports = {")
-            appendLine("  dependencies: {")
-            
-            extension.packages.forEach { packageName ->
-                appendLine("    \"$packageName\": {")
-                appendLine("      \"platforms\": {")
-                appendLine("      \"android\": null")
-                appendLine("    }")
-                appendLine("    }${if (packageName != extension.packages.last()) "," else ""}")
-            }
-            
-            appendLine("  }")
-            appendLine("};")
-        }
-        
-        configFile.writeText(configContent)
-        println("Generated react-native.config.js")
-    }
-    
-    private fun updateMainApplication(project: Project, extension: BuildleExtension) {
-        val mainApplicationFile = findMainApplicationFile(project)
-        
-        if (mainApplicationFile == null) {
-            println("MainApplication.kt not found - skipping package registration")
-            return
-        }
-        
-        val originalContent = mainApplicationFile.readText()
-        var modifiedContent = originalContent
-        
-        modifiedContent = removeExistingAarBlock(modifiedContent)
-        
-        if (extension.packages.isNotEmpty()) {
-            val packageRegistrations = generatePackageRegistrations(project, extension)
-            if (packageRegistrations.isNotEmpty()) {
-                val aarBlock = """
-                    
-                    // AAR automation - auto-generated package registration
-                    if (BuildConfig.USE_PREBUILT_AARS) {
-                      try {
-$packageRegistrations
-                      } catch (e: Exception) {
-                        android.util.Log.e("MainApplication", "Failed to load pre-built AAR packages: ${'$'}{e.message}")
-                      }
-                    }"""
-                
-                val applyPattern = Regex("(PackageList\\(this\\)\\.packages\\.apply\\s*\\{.*?// add\\(MyReactNativePackage\\(\\)\\).*?)(\\s*\\})", RegexOption.DOT_MATCHES_ALL)
-                val applyMatch = applyPattern.find(modifiedContent)
-                
-                if (applyMatch != null) {
-                    val beforeClosing = applyMatch.groupValues[1]
-                    val closingBrace = applyMatch.groupValues[2]
-                    modifiedContent = modifiedContent.replace(applyMatch.value, "$beforeClosing$aarBlock$closingBrace")
-                } else {
-                    println("Could not find PackageList(this).packages.apply pattern to insert AAR automation")
-                }
-            }
-        }
-        
-        if (modifiedContent != originalContent) {
-            mainApplicationFile.writeText(modifiedContent)
-            println("Updated MainApplication.kt with package registrations")
-        }
-    }
-    
-    private fun findMainApplicationFile(project: Project): File? {
-        val reactNativeRoot = if (project.rootDir.name == "android") {
-            project.rootDir.parentFile
-        } else {
-            project.rootDir
-        }
-        
-        val appDir = File(reactNativeRoot, "android/app/src/main")
-        return appDir.walkTopDown()
-            .filter { it.isFile && it.name == "MainApplication.kt" }
-            .firstOrNull()
-    }
-    
-    private fun removeExistingAarBlock(content: String): String {
-        val blockPattern = Regex("\\s*// AAR automation - auto-generated package registration.*?\\}\\s*\\}", RegexOption.DOT_MATCHES_ALL)
-        return blockPattern.replace(content, "")
-    }
-    
-    private fun generatePackageRegistrations(project: Project, extension: BuildleExtension): String {
-        val reactNativeRoot = if (project.rootDir.name == "android") {
-            project.rootDir.parentFile
-        } else {
-            project.rootDir
-        }
-        
-        val registrations = extension.packages.mapNotNull { packageName ->
-            val packageClass = detectReactPackageClass(reactNativeRoot, packageName)
-            packageClass?.let { className ->
-                val varName = convertToGradleProjectName(packageName).replace("-", "").replace("_", "").replace("@", "").replace("/", "")
-                """            val ${varName}Class = Class.forName("$className")
-            add(${varName}Class.newInstance() as ReactPackage)"""
-            }
-        }.joinToString("\n")
-        
-        return registrations
-    }
-    
-    private fun detectReactPackageClass(reactNativeRoot: File, packageName: String): String? {
-        val packagePath = File(reactNativeRoot, "node_modules/$packageName/android")
-        if (!packagePath.exists()) return null
-        
-        val patterns = listOf(
-            ".*Package\\.java$",
-            ".*ReactPackage\\.java$", 
-            ".*NativePackage\\.java$",
-            ".*Package\\.kt$",
-            ".*ReactPackage\\.kt$",
-            ".*NativePackage\\.kt$"
-        )
-        
-        val sourceDirs = packagePath.listFiles()?.filter { it.isDirectory && it.name.startsWith("src") }?.flatMap { srcDir ->
-            srcDir.walkTopDown().filter { it.isDirectory && it.name == "java" }.map { 
-                it.relativeTo(packagePath).path 
-            }
-        } ?: listOf("src/main/java", "src/paper/java", "src/fabric/java")
-        
-        
-        for (sourceDir in sourceDirs) {
-            val srcPath = File(packagePath, sourceDir)
-            if (!srcPath.exists()) continue
-            
-            srcPath.walkTopDown().forEach { file ->
-                if (file.isFile && patterns.any { pattern -> 
-                    file.name.matches(Regex(pattern))
-                }) {
-                    try {
-                        val content = file.readText()
-                        val packagePattern = Regex("package\\s+([a-zA-Z0-9_.]+)")
-                        val packageMatch = packagePattern.find(content)
-                        
-                        if (packageMatch != null) {
-                            val packageNameInFile = packageMatch.groupValues[1]
-                            
-                            val classPatterns = listOf(
-                                Regex("public\\s+class\\s+(\\w+)\\s+extends\\s+BaseReactPackage"),
-                                Regex("class\\s+(\\w+)\\s+extends\\s+BaseReactPackage"),
-                                Regex("public\\s+class\\s+(\\w+)\\s+.*implements.*ReactPackage"),
-                                Regex("public\\s+class\\s+(\\w+)\\s+.*ReactPackage"),
-                                Regex("class\\s+(\\w+)\\s+.*implements.*ReactPackage"),
-                                Regex("class\\s+(\\w+)\\s+.*ReactPackage"),
-                                Regex("class\\s+(\\w+)\\s*:\\s*BaseReactPackage"),
-                                Regex("class\\s+(\\w+)\\s*:\\s*ReactPackage"),
-                                Regex("class\\s+(\\w+)\\s+.*:\\s*BaseReactPackage"),
-                                Regex("class\\s+(\\w+)\\s+.*:\\s*ReactPackage")
-                            )
-                            
-                            for (classPattern in classPatterns) {
-                                val classMatch = classPattern.find(content)
-                                if (classMatch != null) {
-                                    val className = classMatch.groupValues[1]
-                                    val fullClassName = "$packageNameInFile.$className"
-                                    println("Detected ReactPackage: $fullClassName")
-                                    return fullClassName
-                                }
-                            }
-                        }
-                    } catch (e: Exception) {
+
+        val packagesWithVersions = mutableListOf<PackageItem>()
+        node_modulesDir.listFiles()?.forEach { packageDir ->
+            if (!packageDir.isDirectory) return@forEach
+            val packageJsonFile = File(packageDir, "package.json")
+            if (!packageJsonFile.exists()) return@forEach
+            try {
+                val json = JsonSlurper().parse(packageJsonFile) as Map<String, Any>
+                val packageName = json["name"] as? String
+                val packageVersion = json["version"] as? String
+                if (packageName != null && packageVersion != null) {
+                    if (packageName == "react-native") {
+                        extension.reactNativeVersion = packageVersion
+                        println("Set reactNativeVersion to ${extension.reactNativeVersion}")
+                    } else {
+                        packagesWithVersions.add(PackageItem(packageName, packageVersion))
                     }
                 }
-            }
+            } catch (e: Exception) {}
         }
-        
-        println("Could not detect ReactPackage class for $packageName")
-        return null
-    }
-    
-    private fun convertToGradleProjectName(packageName: String): String {
-        return packageName
-            .removePrefix("@")
-            .replace("/", "_")
-    }
-    
-    private fun patchAutolinkingForNewArchitecture(project: Project) {
-        project.logger.info("AAR packages configured")
+        extension.packages = packagesWithVersions
     }
 }
