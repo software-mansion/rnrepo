@@ -16,6 +16,8 @@ import org.gradle.api.artifacts.Configuration
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.TimeUnit
+import com.android.build.gradle.AppExtension
+import com.android.build.gradle.BaseExtension 
 
 open class PackageItem(val name: String, val version: String) {
     override fun equals(other: Any?): Boolean {
@@ -64,17 +66,38 @@ class AarAutomationPlugin : Plugin<Project> {
         extension.packages.forEach { packageItem ->
             println("RAD Adding dependency for ${packageItem.name} version ${packageItem.version}")
             //project.dependencies.add("implementation", "com.swmansion:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}")
-            project.dependencies.add("implementation", "com.swmansion:${packageItem.name}:${packageItem.version}")
+            project.dependencies.add("implementation", "com.swmansion:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}@aar")
         }
  
         // Add substitution for supported packages 
+
+        extension.packages.forEach { packageItem ->
+            if (packageItem.name == "react-native-reanimated") {
+                val androidExtension = project.extensions.getByName("android") as? BaseExtension
+                androidExtension?.let { android ->
+                    val packagingOptions = android.packagingOptions
+                    val excludedPatterns = packagingOptions.excludes
+
+                    packagingOptions.apply {
+                        pickFirsts += "lib/arm64-v8a/libworklets.so"
+                        pickFirsts += "lib/armeabi-v7a/libworklets.so"
+                        pickFirsts += "lib/x86/libworklets.so"
+                        pickFirsts += "lib/x86_64/libworklets.so"
+                    }
+                    // 
+                } ?: run {
+                    project.logger.warn("The Android Gradle Plugin is not applied to this project.")
+                }
+            }
+        }
+
         project.afterEvaluate {
             extension.packages.forEach { packageItem ->
                 println("Adding substitution for ${packageItem.name}")
                 project.configurations.all { config ->
                     config.resolutionStrategy.dependencySubstitution {
                         it.substitute(it.project(":${packageItem.name}"))
-                            .using(it.module("com.swmansion:${packageItem.name}:${packageItem.version}"))
+                            .using(it.module("com.swmansion:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}@aar"))
                             //.using(it.module("com.swmansion:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}"))
                     }
                 }
