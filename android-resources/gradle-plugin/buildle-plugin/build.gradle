@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.swmansion'
-version = '1.0.1'
+version = '1.0.2'
 
 repositories {
     mavenCentral()
@@ -41,11 +41,20 @@ gradlePlugin {
 }
 
 publishing {
+    publications {
+        buildleArtefact(MavenPublication) {
+            groupId = group
+            artifactId = System.getenv("PACKAGE_NAME")
+            version = "${System.getenv("LIB_VERSION")}-rn${System.getenv("RN_VERSION")}"
+            artifact(file("${System.getenv("AAR_FILEPATH")}")) {
+                extension 'aar' 
+            }
+        }
+    }
     repositories {
         maven { 
             name "reposiliteRepositoryReleases" 
             url "https://repo.swmtest.xyz/releases" 
-
             credentials {
                 username = project.properties["mavenUser"] ?: System.getenv("MAVEN_USER")
                 password = project.properties["mavenPassword"] ?: System.getenv("MAVEN_PASSWORD")
