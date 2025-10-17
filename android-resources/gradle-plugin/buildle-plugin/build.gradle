@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.swmansion'
-version = '1.0.2'
+version = '1.0.3'
 
 repositories {
     mavenCentral()
@@ -52,6 +52,7 @@ publishing {
         }
     }
     repositories {
+        mavenLocal()
         maven { 
             name "reposiliteRepositoryReleases" 
             url "https://repo.swmtest.xyz/releases" 
