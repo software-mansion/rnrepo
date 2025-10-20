@@ -120,11 +120,13 @@ class AarAutomationPlugin : Plugin<Project> {
             
             // read json to extension.supportedPackages
             val jsonfile = resolvedFiles.first()
-            val json = JsonSlurper().parse(jsonfile) as Map<String, Map<String, String>>
+            val json = JsonSlurper().parse(jsonfile) as Map<String, Map<String, List<String>>>
             val supportedPackages = mutableSetOf<PackageItem>()
             val supportedForReactNativeVersion = json[extension.reactNativeVersion] ?: emptyMap()
-            supportedForReactNativeVersion.forEach { (name, version) ->
-                supportedPackages.add(PackageItem(name, version))
+            supportedForReactNativeVersion.forEach { (name, versionsList) ->
+                versionsList.forEach { version ->
+                    supportedPackages.add(PackageItem(name, version))
+                }
             }
             extension.supportedPackages = supportedPackages
         } catch (e: Exception) {

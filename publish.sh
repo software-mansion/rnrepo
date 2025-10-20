@@ -4,7 +4,7 @@ trap 'exit 130' INT
 JSON_FILE="supported_versions.json"
 AARS_ROOT_DIR="android-resources/gradle-plugin/buildle-plugin/AARS"
 
-MAVEN_USER=a${MAVEN_USER:-"user"}
+MAVEN_USER=${MAVEN_USER:-"user"}
 MAVEN_PASSWORD=${MAVEN_PASSWORD:-"password"}
 
 if [ ! -f "$JSON_FILE" ]; then
@@ -40,11 +40,7 @@ for RN_VERSION in $RN_VERSIONS; do
                 echo "Publishing $PACKAGE_NAME@$LIB_VERSION (RN:$RN_VERSION) from $AAR_FILE"
 
                 pushd android-resources/gradle-plugin/buildle-plugin
-                MAVEN_USER=$MAVEN_USER MAVEN_PASSWORD=$MAVEN_PASSWORD ./gradlew publishMavenJavaPublicationToReposiliteRepositoryReleases \
-                    -P aarsRootDir="AARS" \
-                    -P rnVersion="$RN_VERSION" \
-                    -P packageName="$PACKAGE_NAME" \
-                    -P libVersion="$LIB_VERSION"
+                MAVEN_USER="$MAVEN_USER" MAVEN_PASSWORD="$MAVEN_PASSWORD" PACKAGE_NAME="$PACKAGE_NAME" LIB_VERSION="$LIB_VERSION" RN_VERSION="$RN_VERSION" AAR_FILEPATH="AARS/$RN_VERSION/$PACKAGE_NAME/$LIB_VERSION/$PACKAGE_NAME.aar" ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases
                 
                 popd
                 if [ $? -ne 0 ]; then

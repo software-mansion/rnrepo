@@ -1,5 +1,6 @@
 #!/bin/bash
 
+trap 'exit 130' INT
 JSON_FILE="supported_versions.json"
 if [ ! -f "$JSON_FILE" ]; then
     echo "Error: JSON file not found at $JSON_FILE" >&2
