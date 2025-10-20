@@ -16,7 +16,8 @@ end
 
 target 'buildler' do
   config = use_native_modules!
-
+#  load File.join(__dir__, '../../ios-resources/scripts/build_and_upload_xcfs.rb')
+ load File.join(__dir__, '../../ios-resources/scripts/include_xcframeworks_from_repo.rb')
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.
