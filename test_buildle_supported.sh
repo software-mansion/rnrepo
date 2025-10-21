@@ -20,7 +20,7 @@ apply plugin: \"com.swmansion.buildle\"
 " android/app/build.gradle
 
 sed -i '' "/classpath(\"org.jetbrains.kotlin:kotlin-gradle-plugin\")/a\\
-        classpath(\"com.swmansion:buildle-plugin:1.0.1\")
+        classpath(\"com.swmansion:buildle-plugin:1.0.5\")
 " android/build.gradle
 
 sed -i '' "/mavenCentral()/a\\
