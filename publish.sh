@@ -30,23 +30,23 @@ for RN_VERSION in $RN_VERSIONS; do
     PACKAGE_OBJECT=$(echo "$JSON_DATA" | jq -r --arg rn_v "$RN_VERSION" '.[$rn_v]')
     PACKAGES=$(echo "$PACKAGE_OBJECT" | jq -r 'keys[]')
     
-    for PACKAGE_NAME in $PACKAGES; do
-        VERSION_ARRAY=$(echo "$PACKAGE_OBJECT" | jq -r --arg pkg "$PACKAGE_NAME" '.[$pkg][]')
+    for PKG_NAME in $PACKAGES; do
+        VERSION_ARRAY=$(echo "$PACKAGE_OBJECT" | jq -r --arg pkg "$PKG_NAME" '.[$pkg][]')
         
         for LIB_VERSION in $VERSION_ARRAY; do
-            AAR_FILE="$AARS_ROOT_DIR/$RN_VERSION/$PACKAGE_NAME/$LIB_VERSION/$PACKAGE_NAME.aar"
+            AAR_FILE="$AARS_ROOT_DIR/$RN_VERSION/$PKG_NAME/$LIB_VERSION/$PKG_NAME.aar"
 
             if [ -f "$AAR_FILE" ]; then
-                echo "Publishing $PACKAGE_NAME@$LIB_VERSION (RN:$RN_VERSION) from $AAR_FILE"
+                echo "Publishing $PKG_NAME@$LIB_VERSION (RN:$RN_VERSION) from $AAR_FILE"
 
                 pushd android-resources/gradle-plugin/buildle-plugin
-                MAVEN_USER="$MAVEN_USER" MAVEN_PASSWORD="$MAVEN_PASSWORD" PACKAGE_NAME="$PACKAGE_NAME" LIB_VERSION="$LIB_VERSION" RN_VERSION="$RN_VERSION" AAR_FILEPATH="AARS/$RN_VERSION/$PACKAGE_NAME/$LIB_VERSION/$PACKAGE_NAME.aar" ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases
+                MAVEN_USER="$MAVEN_USER" MAVEN_PASSWORD="$MAVEN_PASSWORD" PACKAGE_NAME="$PKG_NAME-reanimated" LIB_VERSION="$LIB_VERSION" RN_VERSION="$RN_VERSION" AAR_FILEPATH="../../../$RN_VERSION/$PKG_NAME+reanimated/$LIB_VERSION/$PKG_NAME.aar" ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases
                 
                 popd
                 if [ $? -ne 0 ]; then
                     echo "Error: Maven publishing failed for $AAR_FILE" >&2
                 else
-                    echo "SUCCESS: Published $PACKAGE_NAME@$LIB_VERSION (RN:$RN_VERSION)"
+                    echo "SUCCESS: Published $PKG_NAME@$LIB_VERSION (RN:$RN_VERSION)"
                 fi
 
             else

@@ -19,13 +19,20 @@ import java.util.concurrent.TimeUnit
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.BaseExtension 
 
-open class PackageItem(val name: String, val version: String) {
+class PackageItem(val name: String, val version: String, var module: String = "") {
+    init { 
+        if (module.isEmpty()) {
+            module = name
+        }
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is PackageItem) return false
 
         if (name != other.name) return false
         if (version != other.version) return false
+        if (module != other.module) return false
 
         return true
     }
@@ -33,6 +40,7 @@ open class PackageItem(val name: String, val version: String) {
     override fun hashCode(): Int {
         var result = name.hashCode()
         result = 31 * result + version.hashCode()
+        result = 31 * result + module.hashCode()
         return result
     }
 }
@@ -65,8 +73,7 @@ class AarAutomationPlugin : Plugin<Project> {
         // Add dependencies for supported packages 
         extension.packages.forEach { packageItem ->
             println("RAD Adding dependency for ${packageItem.name} version ${packageItem.version}")
-            //project.dependencies.add("implementation", "com.swmansion:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}")
-            project.dependencies.add("implementation", "com.swmansion:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}@aar")
+            project.dependencies.add("implementation", "com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}@aar")
         }
  
         // Add substitution for supported packages 
@@ -97,8 +104,7 @@ class AarAutomationPlugin : Plugin<Project> {
                 project.configurations.all { config ->
                     config.resolutionStrategy.dependencySubstitution {
                         it.substitute(it.project(":${packageItem.name}"))
-                            .using(it.module("com.swmansion:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}@aar"))
-                            //.using(it.module("com.swmansion:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}"))
+                            .using(it.module("com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}@aar"))
                     }
                 }
             }
@@ -125,7 +131,13 @@ class AarAutomationPlugin : Plugin<Project> {
             val supportedForReactNativeVersion = json[extension.reactNativeVersion] ?: emptyMap()
             supportedForReactNativeVersion.forEach { (name, versionsList) ->
                 versionsList.forEach { version ->
-                    supportedPackages.add(PackageItem(name, version))
+                    supportedPackages.add(
+                        if (name == "react-native-gesture-handler-reanimated") {
+                            PackageItem("react-native-gesture-handler", version, name)
+                        } else {
+                            PackageItem(name, version)
+                        }
+                    )
                 }
             }
             extension.supportedPackages = supportedPackages
@@ -174,6 +186,14 @@ class AarAutomationPlugin : Plugin<Project> {
                     }
                 }
             } catch (e: Exception) {}
+        }
+
+        // gesture-handler and reanimated share common interfaces, so if both are present then we need to use other aar file
+        // todo GH&svg common interfaces
+        val gestureHandlerItem = packagesWithVersions.find { it.name == "react-native-gesture-handler" }
+        val hasReanimated = packagesWithVersions.any { it.name == "react-native-reanimated" }
+        if (gestureHandlerItem != null && hasReanimated) {
+            gestureHandlerItem.module = "react-native-gesture-handler-reanimated"
         }
         extension.packages = packagesWithVersions
     }
