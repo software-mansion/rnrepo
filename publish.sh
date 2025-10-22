@@ -2,7 +2,6 @@
 
 trap 'exit 130' INT
 JSON_FILE="supported_versions.json"
-AARS_ROOT_DIR="android-resources/gradle-plugin/buildle-plugin/AARS"
 
 MAVEN_USER=${MAVEN_USER:-"user"}
 MAVEN_PASSWORD=${MAVEN_PASSWORD:-"password"}

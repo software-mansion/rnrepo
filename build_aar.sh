@@ -106,7 +106,7 @@ publishing {
             ./gradlew ":$PACKAGE_NAME:publishReleasePublicationToMavenLocal"
             
             popd > /dev/null
-            cp ~/.m2/repository/com/swmansion/$PACKAGE_NAME/$VERSION-rn$RN_VERSION/*.pom $TARGET_AAR_DIR
+            cp ~/.m2/repository/com/swmansion/$PACKAGE_NAME/$VERSION-rn$RN_VERSION/*.pom $TARGET_AAR_DIR/$PACKAGE_NAME.pom
 
 
             if [ $? -ne 0 ]; then
