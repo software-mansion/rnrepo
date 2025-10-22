@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROJECT_PATH=${PROJECT_PATH:-"AwesomeProject"}
+PROJECT_PATH=${PROJECT_PATH:-"."}
 
 cd "$PROJECT_PATH"
 
