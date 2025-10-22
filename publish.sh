@@ -34,13 +34,13 @@ for RN_VERSION in $RN_VERSIONS; do
         VERSION_ARRAY=$(echo "$PACKAGE_OBJECT" | jq -r --arg pkg "$PKG_NAME" '.[$pkg][]')
         
         for LIB_VERSION in $VERSION_ARRAY; do
-            AAR_FILE="$AARS_ROOT_DIR/$RN_VERSION/$PKG_NAME/$LIB_VERSION/$PKG_NAME.aar"
+            AAR_FILE="AARS/$RN_VERSION/$PKG_NAME/$LIB_VERSION/$PKG_NAME.aar"
 
             if [ -f "$AAR_FILE" ]; then
                 echo "Publishing $PKG_NAME@$LIB_VERSION (RN:$RN_VERSION) from $AAR_FILE"
 
                 pushd android-resources/gradle-plugin/buildle-plugin
-                MAVEN_USER="$MAVEN_USER" MAVEN_PASSWORD="$MAVEN_PASSWORD" PACKAGE_NAME="$PKG_NAME-reanimated" LIB_VERSION="$LIB_VERSION" RN_VERSION="$RN_VERSION" AAR_FILEPATH="../../../$RN_VERSION/$PKG_NAME+reanimated/$LIB_VERSION/$PKG_NAME.aar" ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases
+                MAVEN_USER="$MAVEN_USER" MAVEN_PASSWORD="$MAVEN_PASSWORD" PACKAGE_NAME="$PKG_NAME" LIB_VERSION="$LIB_VERSION" RN_VERSION="$RN_VERSION" AAR_FILEPATH="../../../$AAR_FILE" ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases
                 
                 popd
                 if [ $? -ne 0 ]; then

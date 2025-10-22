@@ -49,6 +49,24 @@ publishing {
             artifact(file("${System.getenv("AAR_FILEPATH")}")) {
                 extension 'aar' 
             }
+            pom {
+                withXml {
+                    def pomPath = System.getenv("AAR_FILEPATH").replace('.aar', '.pom')
+                    def pomFile = file(pomPath) 
+                    def existingPom = new XmlParser().parse(pomFile)
+                    def rootNode = asNode()
+                    existingPom.dependencies.dependency.each { dep ->
+                        def dependenciesNode = rootNode.children().find { it.name() == 'dependencies' }
+                        if (dependenciesNode == null) {
+                            dependenciesNode = rootNode.appendNode('dependencies')
+                        }
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', dep.groupId.text())
+                        dependencyNode.appendNode('artifactId', dep.artifactId.text())
+                        dependencyNode.appendNode('version', dep.version.text())
+                    }
+                }
+            }
         }
     }
     repositories {

@@ -73,7 +73,7 @@ class AarAutomationPlugin : Plugin<Project> {
         // Add dependencies for supported packages 
         extension.packages.forEach { packageItem ->
             println("RAD Adding dependency for ${packageItem.name} version ${packageItem.version}")
-            project.dependencies.add("implementation", "com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}@aar")
+            project.dependencies.add("implementation", "com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}")
         }
  
         // Add substitution for supported packages 
@@ -104,7 +104,7 @@ class AarAutomationPlugin : Plugin<Project> {
                 project.configurations.all { config ->
                     config.resolutionStrategy.dependencySubstitution {
                         it.substitute(it.project(":${packageItem.name}"))
-                            .using(it.module("com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}@aar"))
+                            .using(it.module("com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}"))
                     }
                 }
             }
