@@ -54,8 +54,7 @@ open class BuildleExtension {
 
 class AarAutomationPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        val gradleStartTaskName = project.gradle.startParameter.taskNames
-        if (gradleStartTaskName.any { it.contains("assemble") || it.contains("build") }) {
+        if (shouldPluginExecute(project)) {
             val extension = project.extensions.create("buildle", BuildleExtension::class.java)
             println("Start BUILDLE ")
             
@@ -118,16 +117,44 @@ class AarAutomationPlugin : Plugin<Project> {
     }
 
     /**
-    * Checks if a specific package is available in the remote repository.
-    *
-    * This function performs a HEAD request to determine if the specified package version is present for the given React Native (RN) version.
-    *
-    * @param packageName The name of the package to check.
-    * @param packageVersion The version of the package.
-    * @param RNVersion The React Native version that the package is intended for.
-    *
-    * @return True if the package is available, false otherwise.
-    */
+     * Determines whether the plugin should execute based on the current build command and environment variable.
+     * By default plugin is considered as enabled.
+     *
+     * This function evaluates three main conditions:
+     * 1. **Task command check**: Checks if the current task command includes "assemble" or "build".
+     *    This looks at the task names passed to Gradle at runtime to see if any involve building or assembling the project.
+     *
+     * 2. **Environment Variable check**: Inspects the "DISABLE_BUILDLE" environment variable.
+     *    The plugin execution will be enabled unless the environment variable "DISABLE_BUILDLE" is explicitly set to "true" (ignoring case).
+     *    If "DISABLE_BUILDLE" is set to "true", the plugin execution will be disabled; if it's unset or set to any other value, the execution will proceed.
+     *
+     * 3. **System Property check**: Looks at the "DISABLE_BUILDLE" system property.
+     *    Similar to the environment variable, if the system property "DISABLE_BUILDLE" is set to "true" (case insensitive), the plugin will not execute.
+     *    By default, if this property is not set, it defaults to "false", thereby enabling the plugin execution.
+     *
+     * @param project The Gradle project context providing access to configuration and execution parameters.
+     * @return True if all conditions favor execution, otherwise false.
+     */
+    private fun shouldPluginExecute(project: Project): Boolean {
+        val isBuildingCommand: Boolean = project.gradle.startParameter.taskNames.any {
+            it.contains("assemble") || it.contains("build") }
+        val isEnvEnabled: Boolean = System.getenv("DISABLE_BUILDLE")?.equals("true", ignoreCase = true)?.not() ?: true
+        val isPropertyEnabled: Boolean = System.getProperty("DISABLE_BUILDLE", "false").equals("true", ignoreCase = true).not()
+        // TODO(radoslawrolka): add another check for value inside rn-repo config JSON (json with allowlist/denylist etc.)
+        return isBuildingCommand && isEnvEnabled && isPropertyEnabled
+    }
+
+    /**
+     * Checks if a specific package is available in the remote repository.
+     *
+     * This function performs a HEAD request to determine if the specified package version is present for the given React Native (RN) version.
+     *
+     * @param packageName The name of the package to check.
+     * @param packageVersion The version of the package.
+     * @param RNVersion The React Native version that the package is intended for.
+     *
+     * @return True if the package is available, false otherwise.
+     */
     private fun isPackageAvailable(
         packageName: String, 
         packageVersion: String, 
