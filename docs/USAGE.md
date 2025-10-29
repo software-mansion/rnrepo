@@ -3,10 +3,12 @@
 ## publishing new version of plugin
 REMOTE
 ```
+cd android-resources/gradle-plugin/buildle-plugin
 MAVEN_USER=<> MAVEN_PASSWORD=<> ./gradlew publishPluginMavenPublicationToReposiliteRepositoryReleasesRepository
 ```
 LOCAL
 ```
+cd android-resources/gradle-plugin/buildle-plugin
 ./gradlew publishPluginMavenPublicationToMavenLocalRepository
 ```
 
@@ -18,6 +20,7 @@ MAVEN_USER=<> MAVEN_PASSWORD=<> PACKAGE_NAME=<react-native-reanimated> LIB_VERSI
 ```
 LOCAL
 ```
+cd android-resources/gradle-plugin/buildle-plugin
 PACKAGE_NAME=react-native-reanimated LIB_VERSION=4.1.3 RN_VERSION=0.81.4 AAR_FILEPATH=AARS/0.81.4/react-native-reanimated/4.1.3/react-native-reanimated.aar ./gradlew publishBuildleArtefactPublicationToMavenLocal
 ```
 AAR_FILEPATH: is based in android-resources/gradle-plugin/buildle-plugin/<AAR_FILEPATH>

@@ -16,7 +16,7 @@ buildscript {
   ...
   dependencies {
     ...
-+    classpath("com.swmansion:buildle-plugin:1.0.5")
++    classpath("com.swmansion:buildle-plugin:1.0.6")
   }
 }
 apply plugin: "com.facebook.react.rootproject"

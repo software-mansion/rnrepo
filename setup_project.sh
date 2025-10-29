@@ -10,7 +10,7 @@ apply plugin: \"com.swmansion.buildle\"
 " android/app/build.gradle
 
 sed -i '' "/org.jetbrains.kotlin:kotlin-gradle-plugin/a\\
-    classpath(\"com.swmansion:buildle-plugin:1.0.5\")
+    classpath(\"com.swmansion:buildle-plugin:1.0.6\")
 " android/build.gradle
 
 sed -i '' "/mavenCentral()/a\\
