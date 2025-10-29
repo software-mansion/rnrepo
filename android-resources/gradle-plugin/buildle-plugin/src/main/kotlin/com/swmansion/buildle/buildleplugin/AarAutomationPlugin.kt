@@ -50,7 +50,6 @@ class PackageItem(val name: String, val version: String, var module: String = ""
 open class BuildleExtension {
     var packages: List<PackageItem> = listOf()
     var reactNativeVersion: String = ""
-    var supportedPackages: Set<PackageItem> = emptySet()
 }
 
 class AarAutomationPlugin : Plugin<Project> {
@@ -68,8 +67,6 @@ class AarAutomationPlugin : Plugin<Project> {
 
         // Check what packages are in project and which are we supporting
         findPackagesWithVersions(project, extension)
-        fetchSupportedPackages(project, extension)
-        filterUnsupportedPackages(extension)
 
         // Add dependencies for supported packages 
         extension.packages.forEach { packageItem ->
@@ -117,47 +114,49 @@ class AarAutomationPlugin : Plugin<Project> {
         }
     }
 
-    private fun fetchSupportedPackages(project: Project, extension: BuildleExtension) {
-        val configName = "downloadSupportedPackages"
-        val downloadConfig: Configuration = project.configurations.maybeCreate(configName).apply {
-            isTransitive = false
+    /**
+    * Checks if a specific package is available in the remote repository.
+    *
+    * This function performs a HEAD request to determine if the specified package version is present for the given React Native (RN) version.
+    *
+    * @param packageName The name of the package to check.
+    * @param packageVersion The version of the package.
+    * @param RNVersion The React Native version that the package is intended for.
+    *
+    * @return True if the package is available, false otherwise.
+    */
+    private fun isPackageAvailable(
+        packageName: String, 
+        packageVersion: String, 
+        RNVersion: String
+    ): Boolean {
+        val cachePath = System.getProperty("user.home") + "/.gradle/caches/modules-2/files-2.1"
+        val groupPath = "com.swmansion/$packageName"
+        val artifactPath = "${packageVersion}-rn$RNVersion"
+        
+        // Construct the local path expected for the .aar file in cache
+        val filePathInCache = "$cachePath/$groupPath/$artifactPath"
+        val cacheFile = File(filePathInCache)
+        // Check if the directory for this package and version exists in the cache
+        if (cacheFile.exists() && cacheFile.isDirectory) {
+ 
+            // If the directory exists, we presume the AAR is cached correctly (could extend to check for file)
+            return true
         }
 
-        project.dependencies.add(configName, "com.swmansion:supported-packages:1.0.0@json")
-        try {
-            val resolvedFiles = downloadConfig.resolve() 
-            if (resolvedFiles.isEmpty()) {
-                throw IllegalStateException("Nie znaleziono artefaktu: supported-packages.json")
-            }
-            
-            // read json to extension.supportedPackages
-            val jsonfile = resolvedFiles.first()
-            val json = JsonSlurper().parse(jsonfile) as Map<String, Map<String, List<String>>>
-            val supportedPackages = mutableSetOf<PackageItem>()
-            val supportedForReactNativeVersion = json[extension.reactNativeVersion] ?: emptyMap()
-            supportedForReactNativeVersion.forEach { (name, versionsList) ->
-                versionsList.forEach { version ->
-                    supportedPackages.add(
-                        if (name == "react-native-gesture-handler-reanimated") {
-                            PackageItem("react-native-gesture-handler", version, name)
-                        } else {
-                            PackageItem(name, version)
-                        }
-                    )
-                }
-            }
-            extension.supportedPackages = supportedPackages
+        val urlString = "https://repo.swmtest.xyz/releases/com/swmansion/${packageName}/${packageVersion}-rn${RNVersion}/${packageName}-${packageVersion}-rn${RNVersion}.aar"
+        return try {
+            val url = URL(urlString)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "HEAD"
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            val responseCode = connection.responseCode
+            connection.disconnect()
+            return responseCode == HttpURLConnection.HTTP_OK
         } catch (e: Exception) {
-            project.logger.error("Błąd podczas pobierania artefaktu supported-packages: ${e.message}", e)
-        } finally {
-            project.configurations.remove(downloadConfig)
+            return false
         }
-
-    }
-
-    private fun filterUnsupportedPackages(extension: BuildleExtension) {
-        extension.packages = extension.packages.intersect(extension.supportedPackages).toList()
-        println("Filtered packages: ${extension.packages.map { "${it.name}@${it.version}" }}")
     }
 
     private fun findPackagesWithVersions(rootProject: Project, extension: BuildleExtension) {
@@ -174,21 +173,41 @@ class AarAutomationPlugin : Plugin<Project> {
             return
         }
 
+        // find react-native version
+        val rnPackageJsonFile = File(node_modulesDir, "react-native/package.json")
+        if (!rnPackageJsonFile.exists()) {
+            println("react-native package.json not found in node_modules/react-native")
+            return
+        }
+        try {
+            val json = JsonSlurper().parse(rnPackageJsonFile) as Map<String, Any>
+            val rnVersion = json["version"] as? String
+            if (rnVersion != null) {
+                extension.reactNativeVersion = rnVersion
+                println("Detected React Native version: $rnVersion")
+            } else {
+                println("Could not find version field in react-native package.json")
+                return
+            }
+        } catch (e: Exception) {
+            println("Error parsing react-native package.json: ${e.message}")
+            return
+        }
+
         val packagesWithVersions = mutableListOf<PackageItem>()
         node_modulesDir.listFiles()?.forEach { packageDir ->
             if (!packageDir.isDirectory) return@forEach
             val packageJsonFile = File(packageDir, "package.json")
-            if (!packageJsonFile.exists()) return@forEach
+            val androidDir = File(packageDir, "android")
+            if (!packageJsonFile.exists() || !androidDir.exists()) return@forEach
             try {
                 val json = JsonSlurper().parse(packageJsonFile) as Map<String, Any>
                 val packageName = json["name"] as? String
                 val packageVersion = json["version"] as? String
                 if (packageName != null && packageVersion != null) {
-                    if (packageName == "react-native") {
-                        extension.reactNativeVersion = packageVersion
-                        println("Set reactNativeVersion to ${extension.reactNativeVersion}")
-                    } else {
+                    if (isPackageAvailable(packageName, packageVersion, extension.reactNativeVersion)) {
                         packagesWithVersions.add(PackageItem(packageName, packageVersion))
+                        println("Found supported package: $packageName version $packageVersion")
                     }
                 }
             } catch (e: Exception) {}
