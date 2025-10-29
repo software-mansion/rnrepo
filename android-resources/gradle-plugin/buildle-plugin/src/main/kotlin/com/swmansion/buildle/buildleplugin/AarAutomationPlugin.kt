@@ -54,60 +54,63 @@ open class BuildleExtension {
 
 class AarAutomationPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        val extension = project.extensions.create("buildle", BuildleExtension::class.java)
-        println("Start BUILDLE")
-        
-        // Add SWM Maven repository with AAR artifacts
-        project.repositories.apply {
-            maven { repo ->
-                repo.name = "reposiliteRepositoryReleases"
-                repo.url = URI("https://repo.swmtest.xyz/releases")
-            }
-        }
-
-        // Check what packages are in project and which are we supporting
-        findPackagesWithVersions(project, extension)
-
-        // Add dependencies for supported packages 
-        extension.packages.forEach { packageItem ->
-            println("RAD Adding dependency for ${packageItem.name} version ${packageItem.version}")
-            project.dependencies.add("implementation", "com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}")
-        }
-
-        // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
-        extension.packages.forEach { packageItem ->
-            if (packageItem.name == "react-native-reanimated") {
-                val androidExtension = project.extensions.getByName("android") as? BaseExtension
-                androidExtension?.let { android ->
-                    val packagingOptions = android.packagingOptions
-                    val excludedPatterns = packagingOptions.excludes
-
-                    packagingOptions.apply {
-                        pickFirsts += "lib/arm64-v8a/libworklets.so"
-                        pickFirsts += "lib/armeabi-v7a/libworklets.so"
-                        pickFirsts += "lib/x86/libworklets.so"
-                        pickFirsts += "lib/x86_64/libworklets.so"
-                    }
-                } ?: run {
-                    project.logger.warn("The Android Gradle Plugin is not applied to this project.")
+        val gradleStartTaskName = project.gradle.startParameter.taskNames
+        if (gradleStartTaskName.any { it.contains("assemble") || it.contains("build") }) {
+            val extension = project.extensions.create("buildle", BuildleExtension::class.java)
+            println("Start BUILDLE ")
+            
+            // Add SWM Maven repository with AAR artifacts
+            project.repositories.apply {
+                maven { repo ->
+                    repo.name = "reposiliteRepositoryReleases"
+                    repo.url = URI("https://repo.swmtest.xyz/releases")
                 }
             }
-        }
 
-        // Add dependency on generating codegen schema for each library so that task is not dropped
-        extension.packages.forEach { packageItem ->
-            println("Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
-            project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
-        }
+            // Check what packages are in project and which are we supporting
+            findPackagesWithVersions(project, extension)
 
-        // Add substitution for supported packages 
-        project.afterEvaluate {
+            // Add dependencies for supported packages 
             extension.packages.forEach { packageItem ->
-                println("Adding substitution for ${packageItem.name}")
-                project.configurations.all { config ->
-                    config.resolutionStrategy.dependencySubstitution {
-                        it.substitute(it.project(":${packageItem.name}"))
-                            .using(it.module("com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}"))
+                println("RAD Adding dependency for ${packageItem.name} version ${packageItem.version}")
+                project.dependencies.add("implementation", "com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}")
+            }
+
+            // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
+            extension.packages.forEach { packageItem ->
+                if (packageItem.name == "react-native-reanimated") {
+                    val androidExtension = project.extensions.getByName("android") as? BaseExtension
+                    androidExtension?.let { android ->
+                        val packagingOptions = android.packagingOptions
+                        val excludedPatterns = packagingOptions.excludes
+
+                        packagingOptions.apply {
+                            pickFirsts += "lib/arm64-v8a/libworklets.so"
+                            pickFirsts += "lib/armeabi-v7a/libworklets.so"
+                            pickFirsts += "lib/x86/libworklets.so"
+                            pickFirsts += "lib/x86_64/libworklets.so"
+                        }
+                    } ?: run {
+                        project.logger.warn("The Android Gradle Plugin is not applied to this project.")
+                    }
+                }
+            }
+
+            // Add dependency on generating codegen schema for each library so that task is not dropped
+            extension.packages.forEach { packageItem ->
+                println("Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
+                project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
+            }
+
+            // Add substitution for supported packages 
+            project.afterEvaluate {
+                extension.packages.forEach { packageItem ->
+                    println("Adding substitution for ${packageItem.name}")
+                    project.configurations.all { config ->
+                        config.resolutionStrategy.dependencySubstitution {
+                            it.substitute(it.project(":${packageItem.name}"))
+                                .using(it.module("com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}"))
+                        }
                     }
                 }
             }
