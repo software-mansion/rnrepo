@@ -69,6 +69,7 @@ publishing {
             version = '$VERSION-rn$RN_VERSION'
 
             pom {
+                packaging 'aar'
                 withXml {
                     def dependenciesNode = asNode().appendNode('dependencies')
                     project.configurations.api.allDependencies.each { dependency ->

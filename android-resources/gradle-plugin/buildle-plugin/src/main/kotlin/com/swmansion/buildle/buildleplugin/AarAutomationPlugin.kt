@@ -18,6 +18,7 @@ import java.net.URL
 import java.util.concurrent.TimeUnit
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.BaseExtension 
+import com.android.build.gradle.internal.tasks.factory.dependsOn
 
 class PackageItem(val name: String, val version: String, var module: String = "") {
     init { 
@@ -75,9 +76,8 @@ class AarAutomationPlugin : Plugin<Project> {
             println("RAD Adding dependency for ${packageItem.name} version ${packageItem.version}")
             project.dependencies.add("implementation", "com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}")
         }
- 
-        // Add substitution for supported packages 
 
+        // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
         extension.packages.forEach { packageItem ->
             if (packageItem.name == "react-native-reanimated") {
                 val androidExtension = project.extensions.getByName("android") as? BaseExtension
@@ -91,13 +91,19 @@ class AarAutomationPlugin : Plugin<Project> {
                         pickFirsts += "lib/x86/libworklets.so"
                         pickFirsts += "lib/x86_64/libworklets.so"
                     }
-                    // 
                 } ?: run {
                     project.logger.warn("The Android Gradle Plugin is not applied to this project.")
                 }
             }
         }
 
+        // Add dependency on generating codegen schema for each library so that task is not dropped
+        extension.packages.forEach { packageItem ->
+            println("Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
+            project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
+        }
+
+        // Add substitution for supported packages 
         project.afterEvaluate {
             extension.packages.forEach { packageItem ->
                 println("Adding substitution for ${packageItem.name}")
