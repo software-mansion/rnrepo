@@ -50,9 +50,12 @@ class PackageItem(val name: String, val version: String, var module: String = ""
 open class BuildleExtension {
     var packages: List<PackageItem> = listOf()
     var reactNativeVersion: String = ""
+    var denyList: Set<String> = setOf()
 }
 
 class AarAutomationPlugin : Plugin<Project> {
+    private val CONFIG_FILE_NAME = "rnrepo.config.json"
+
     override fun apply(project: Project) {
         if (shouldPluginExecute(project)) {
             val extension = project.extensions.create("buildle", BuildleExtension::class.java)
@@ -67,6 +70,7 @@ class AarAutomationPlugin : Plugin<Project> {
             }
 
             // Check what packages are in project and which are we supporting
+            loadDenyList(project.rootProject, extension)
             findPackagesWithVersions(project, extension)
 
             // Add dependencies for supported packages 
@@ -145,6 +149,62 @@ class AarAutomationPlugin : Plugin<Project> {
     }
 
     /**
+     * Retrieves the root directory of the React Native project.
+     *
+     * @param rootProject The Gradle root project context, usually named ':'.
+     * @return The root directory of the React Native project as a [File] object.
+     */
+    private fun getReactNativeRoot(rootProject: Project): File {
+        return if (rootProject.rootDir.name == "android") rootProject.rootDir.parentFile else rootProject.rootDir
+    }
+
+    /**
+     * Loads the deny list from the configuration file located in the React Native root directory.
+     *
+     * @param project The Gradle project context.
+     * @param extension The BuildleExtension instance where the deny list will be stored.
+     */
+    private fun loadDenyList(project: Project, extension: BuildleExtension) {
+        val reactNativeRoot = getReactNativeRoot(project.rootProject)
+        val configFile = File(reactNativeRoot, CONFIG_FILE_NAME)
+        if (!configFile.exists()) {
+            println("Config file $CONFIG_FILE_NAME not found in React Native root: ${reactNativeRoot.absolutePath}. Using empty deny list.")
+            return
+        }
+        try {
+            val json = JsonSlurper().parse(configFile) as Map<String, Any>
+            val denyList = json["denyList"] as? List<String>
+            if (denyList != null) {
+                println("Loaded deny list from config: $denyList")
+                extension.denyList = denyList.toSet()
+            } else {
+                println("No denyList found in config file. Using empty deny list.")
+            }
+        } catch (e: Exception) {
+            println("Error parsing $CONFIG_FILE_NAME: ${e.message}. Using empty deny list.")
+        }
+    }
+    
+    /**
+     * Checks if a specific package is not in the deny list.
+     *
+     * @param packageName The name of the package to check.
+     * @param extension The BuildleExtension instance containing the deny list.
+     *
+     * @return True if the package is not denied, false otherwise.
+     */
+    private fun isPackageNotDenied(
+        packageName: String,
+        extension: BuildleExtension
+    ): Boolean {
+        if (extension.denyList.contains(packageName)) {
+            println("Package $packageName is in deny list, skipping in RN-Repo.")
+            return false
+        }
+        return true
+    }
+
+    /**
      * Checks if a specific package is available in the remote repository.
      *
      * This function performs a HEAD request to determine if the specified package version is present for the given React Native (RN) version.
@@ -190,11 +250,7 @@ class AarAutomationPlugin : Plugin<Project> {
     }
 
     private fun findPackagesWithVersions(rootProject: Project, extension: BuildleExtension) {
-        val reactNativeRoot = if (rootProject.rootDir.name == "android") {
-            rootProject.rootDir.parentFile
-        } else {
-            rootProject.rootDir
-        }
+        val reactNativeRoot = getReactNativeRoot(rootProject)
 
         // iter over node_modules/<package>/package.json
         val node_modulesDir = File(reactNativeRoot, "node_modules")
@@ -235,7 +291,8 @@ class AarAutomationPlugin : Plugin<Project> {
                 val packageName = json["name"] as? String
                 val packageVersion = json["version"] as? String
                 if (packageName != null && packageVersion != null) {
-                    if (isPackageAvailable(packageName, packageVersion, extension.reactNativeVersion)) {
+                    if (isPackageAvailable(packageName, packageVersion, extension.reactNativeVersion) &&
+                        isPackageNotDenied(packageName, extension)) {
                         packagesWithVersions.add(PackageItem(packageName, packageVersion))
                         println("Found supported package: $packageName version $packageVersion")
                     }
