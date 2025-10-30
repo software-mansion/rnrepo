@@ -31,7 +31,7 @@ const projectRoot = path.resolve(options.project);
 if (!isDirectory(projectRoot)) throw new Error(`Project root doesn't exist: ${projectRoot}`);
 
 if (!options.module) {
-  const podspecFiles = globby.sync("*.podspec", {cwd: projectRoot});
+  const podspecFiles = fs.readdirSync(projectRoot).filter(f => f.endsWith(".podspec"));
   if (podspecFiles.length === 0) throw new Error(`No podspec found at: ${projectRoot}`);
   if (podspecFiles.length > 1)
     throw new Error(`Multiple podspecs found, use --module to specify.`);
@@ -43,7 +43,11 @@ const buildDirectory = path.join(outputDir, "build");
 if (!isDirectory(buildDirectory)) fs.mkdirSync(buildDirectory, {recursive: true});
 
 const iosProjectPath = path.resolve(options.iosProject);
-if (!isDirectory(iosProjectPath)) throw new Error(`Invalid iOS project: ${iosProjectPath}`);
+console.log(`iOS project path: ${iosProjectPath}`);
+if (!isDirectory(iosProjectPath)) {
+  console.error(`Directory does not exist or is not a directory: ${iosProjectPath}`);
+  throw new Error(`Invalid iOS project: ${iosProjectPath}`);
+}
 
 // Pod install
 if (!options.skipPods) {
@@ -167,7 +171,11 @@ const libraryParameters = options.platforms.split(",").flatMap((platform: string
 });
 
 const createXC = await $`cd ${iosProjectPath}/Pods && xcodebuild -create-xcframework ${libraryParameters} -output ${xcframeworkPath}`;
-if (createXC.exitCode !== 0) throw new Error(`Failed to create XCFramework`);
+if (createXC.exitCode !== 0) {
+  console.error(`Failed to create XCFramework. Exit code: ${createXC.exitCode}`);
+  console.error(`Command output: ${createXC.stderr}`);
+  throw new Error(`Failed to create XCFramework`);
+}
 
 fs.rmSync(headersDirectory, {force: true, recursive: true});
 console.log(`XCFramework successfully created at: ${xcframeworkPath}`);

@@ -202,3 +202,33 @@ npm run npm-build-xcf -- \
 | Option      | Alias | Description                                                                             |
 |-------------|-------|-----------------------------------------------------------------------------------------|
 | --package   | -p    | NPM package to create .xcframework for. Has to contain valid podspec file.              |
+
+### Using script to upload xcframework to Reposilite
+
+Upload a built `.xcframework` to a Reposilite Maven repository with version information:
+
+```bash
+npm run upload-xcf -- \
+  --framework ./RNSVG.xcframework \
+  --name RNSVG \
+  --lib-version 15.0.0 \
+  --rn-version 0.80.1 \
+  --repository https://repo.example.com/releases \
+  --username admin \
+  --password secret
+```
+
+This uploads as `RNSVG-15.0.0-rn0.80.1.xcframework` to Maven path `com/swmansion/buildle/RNSVG/15.0.0-rn0.80.1/`
+
+#### Options
+
+| Option           | Alias | Description                                                     |
+|------------------|-------|-----------------------------------------------------------------|
+| --framework      | -f    | Path to .xcframework (**required**)                             |
+| --name           | -n    | Framework name (e.g., RNSVG) (**required**)                     |
+| --lib-version    | -l    | Library version (e.g., 15.0.0) (**required**)                   |
+| --rn-version     | -v    | React Native version (e.g., 0.80.1) (**required**)              |
+| --repository     | -r    | Reposilite repository URL (**required**)                        |
+| --username       | -u    | Repository username                                             |
+| --password       | -p    | Repository password                                             |
+| --group          | -g    | Maven group ID (default: `com.swmansion.buildle`)               |

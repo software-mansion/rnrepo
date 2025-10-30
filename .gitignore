@@ -7,3 +7,4 @@ build
 dist
 *.aar
 *.pom
+.xcframeworks-cache
