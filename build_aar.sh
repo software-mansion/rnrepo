@@ -1,5 +1,17 @@
 #!/bin/bash
 
+for arg in "$@"; do
+  if [[ "$arg" == "-h" || "$arg" == "--help" ]]; then
+    echo """
+    Usage: ./build_aar.sh
+
+    This script builds AAR files for libs specified in the supported_versions.json file.
+    No additional environment variables / options are required.
+    """
+    exit 0
+  fi
+done
+
 trap 'exit 130' INT
 JSON_FILE="supported_versions.json"
 if [ ! -f "$JSON_FILE" ]; then
@@ -12,113 +24,156 @@ JSON_DATA=$(cat "$JSON_FILE")
 RN_VERSIONS=$(echo "$JSON_DATA" | jq -r 'keys[]')
 TEMP_PROJECT_DIR="TEMPORARY_RN_PROJECT"
 
-for RN_VERSION in $RN_VERSIONS; do
-    echo "Processing React Native Version: $RN_VERSION"
-    npx @react-native-community/cli@latest init $TEMP_PROJECT_DIR --version $RN_VERSION --skip-install
+create_temp_rn_project() {
+    local RN_VERSION=$1
+    local TEMP_DIR=$2
+    local IS_EXPO=$3
+
+    if [ "$IS_EXPO" = true ]; then
+        npx create-expo-app@latest "$TEMP_DIR"
+        ( cd "$TEMP_DIR" && npx expo install react-native@"$RN_VERSION" )
+        ( cd "$TEMP_DIR" && npx expo prebuild -p android )
+    else
+        npx @react-native-community/cli@latest init "$TEMP_DIR" --version "$RN_VERSION" --skip-install
+    fi
 
     if [ $? -ne 0 ]; then
         echo "Error: Failed to create temporary RN project for $RN_VERSION. Skipping." >&2
         rm -rf "$TEMP_PROJECT_DIR" 2>/dev/null
         continue
     fi
+}
 
-    PACKAGE_OBJECT=$(echo "$JSON_DATA" | jq -r --arg rn_v "$RN_VERSION" '.[$rn_v]')
-    PACKAGES=$(echo "$PACKAGE_OBJECT" | jq -r 'keys[]')
-    
-    for PACKAGE_NAME in $PACKAGES; do
-        VERSION_ARRAY=$(echo "$PACKAGE_OBJECT" | jq -r --arg pkg "$PACKAGE_NAME" '.[$pkg][]')
+install_dependencies() {
+    local PACKAGE_NAME=$1
+    local VERSION=$2
+    local IS_EXPO=$3
 
-        for VERSION in $VERSION_ARRAY; do
-            TARGET_AAR_DIR="$ROOT_PATH/AARS/$RN_VERSION/$PACKAGE_NAME/$VERSION"
-            mkdir -p "$TARGET_AAR_DIR"
+    if [ "$IS_EXPO" = true ]; then
+        npx expo install "$PACKAGE_NAME@$VERSION"
+    else
+        npm install "$PACKAGE_NAME@$VERSION" --save-exact
+    fi
+}
 
-            if [ "$(ls -A "$TARGET_AAR_DIR" 2>/dev/null)" ]; then
-                echo "Skipping for $RN_VERSION@$PACKAGE_NAME@$VERSION"
+uninstall_dependencies() {
+    local PACKAGE_NAME=$1
+    local VERSION=$2
+    local IS_EXPO=$3
+
+    if [ "$IS_EXPO" = true ]; then
+        npx expo uninstall "$PACKAGE_NAME"
+    else
+        npm uninstall "$PACKAGE_NAME"
+    fi
+}
+
+for IS_EXPO_PROJECTS in false true; do
+    for RN_VERSION in $RN_VERSIONS; do
+        echo "Processing React Native Version: $RN_VERSION"
+        create_temp_rn_project "$RN_VERSION" "$TEMP_PROJECT_DIR" "$IS_EXPO_PROJECTS"
+
+        PACKAGE_OBJECT=$(echo "$JSON_DATA" | jq -r --arg rn_v "$RN_VERSION" '.[$rn_v]')
+        PACKAGES=$(echo "$PACKAGE_OBJECT" | jq -r 'keys[]')
+        
+        for PACKAGE_NAME in $PACKAGES; do
+            # Build expo libs in expo-projects and non-expo libs in non-expo projects only
+            if { [[ "$PACKAGE_NAME" == *"expo"* ]] && [ "$IS_EXPO_PROJECTS" = false ]; } || \
+            { [[ "$PACKAGE_NAME" != *"expo"* ]] && [ "$IS_EXPO_PROJECTS" = true ]; }; then
                 continue
             fi
+            
+            VERSION_ARRAY=$(echo "$PACKAGE_OBJECT" | jq -r --arg pkg "$PACKAGE_NAME" '.[$pkg][]')
 
-            pushd "$TEMP_PROJECT_DIR" > /dev/null
-            npm install "$PACKAGE_NAME@$VERSION" --save-exact
+            for VERSION in $VERSION_ARRAY; do
+                TARGET_AAR_DIR="$ROOT_PATH/AARS/$RN_VERSION/$PACKAGE_NAME/$VERSION"
+                mkdir -p "$TARGET_AAR_DIR"
 
-            # change all 'implementation' to 'api' in node_module/$PACKAGE_NAME/android/build.gradle
-            sed -i '' 's/implementation/api/g' "node_modules/$PACKAGE_NAME/android/build.gradle"
+                if [ "$(ls -A "$TARGET_AAR_DIR" 2>/dev/null)" ]; then
+                    echo "Skipping for $RN_VERSION@$PACKAGE_NAME@$VERSION"
+                    continue
+                fi
 
-            # add 'maven-publish' plugin
-            if grep -q 'plugins {' "node_modules/$PACKAGE_NAME/android/build.gradle"; then
-                sed -i '' -e "/plugins {/a\\
-    id 'maven-publish'" "node_modules/react-native-screens/android/build.gradle"
-            else
-                sed -i '' '/buildscript {/,/^}/ {
-/^}/ {
-a\
-\
-plugins {\
-    id "maven-publish"\
-}
-}
-}' "node_modules/$PACKAGE_NAME/android/build.gradle"
-            fi
+                pushd "$TEMP_PROJECT_DIR" > /dev/null
+                install_dependencies "$PACKAGE_NAME" "$VERSION" "$IS_EXPO_PROJECTS"
 
-            # add publishing block
-            echo "
-publishing {
-    publications {
-        release(MavenPublication) {
-            groupId = 'com.swmansion'
-            artifactId = '$PACKAGE_NAME'
-            version = '$VERSION-rn$RN_VERSION'
+                # change all 'implementation' to 'api' in node_module/$PACKAGE_NAME/android/build.gradle
+                sed -i '' 's/implementation/api/g' "node_modules/$PACKAGE_NAME/android/build.gradle"
 
-            pom {
-                packaging 'aar'
-                withXml {
-                    def dependenciesNode = asNode().appendNode('dependencies')
-                    project.configurations.api.allDependencies.each { dependency ->
-                        def dependencyNode = dependenciesNode.appendNode('dependency')
-                        dependencyNode.appendNode('groupId', dependency.group)
-                        dependencyNode.appendNode('artifactId', dependency.name)
-                        dependencyNode.appendNode('version', dependency.version)
+                # add 'maven-publish' plugin
+                if ! grep -q 'maven-publish' "node_modules/$PACKAGE_NAME/android/build.gradle"; then
+                    if grep -q 'plugins {' "node_modules/$PACKAGE_NAME/android/build.gradle"; then
+                        sed -i '' -e "/plugins {/a\\
+                        id 'maven-publish'" "node_modules/$PACKAGE_NAME/android/build.gradle"
+                    else
+                        sed -i '' '/buildscript {/,/^}/ {
+                        /^}/ {
+                        a\
+                        \
+                        plugins {\
+                            id "maven-publish"\
+                        }
+                        }
+                        }' "node_modules/$PACKAGE_NAME/android/build.gradle"
+                    fi
+                fi
+
+                # add publishing block
+                echo "
+    publishing {
+        publications {
+            releaseRNREPO(MavenPublication) {
+                groupId = 'com.swmansion'
+                artifactId = '$PACKAGE_NAME'
+                version = '$VERSION-rn$RN_VERSION'
+
+                pom {
+                    packaging 'aar'
+                    withXml {
+                        def dependenciesNode = asNode().appendNode('dependencies')
+                        project.configurations.api.allDependencies.each { dependency ->
+                            def dependencyNode = dependenciesNode.appendNode('dependency')
+                            dependencyNode.appendNode('groupId', dependency.group)
+                            dependencyNode.appendNode('artifactId', dependency.name)
+                            dependencyNode.appendNode('version', dependency.version)
+                        }
                     }
                 }
             }
         }
-    }
-    repositories {
-        mavenLocal()
-    }
-}" >> "node_modules/$PACKAGE_NAME/android/build.gradle"
-            
-            if [ "$PACKAGE_NAME" = "react-native-reanimated" ]; then
-                if [[ "$VERSION" == 4.0.* ]]; then
-                    npm install react-native-worklets@0.4.0 --save-exact
-                elif [[ "$VERSION" == 4.1.* ]]; then
-                    npm install react-native-worklets@0.5.0 --save-exact
+        repositories {
+            mavenLocal()
+        }
+    }" >> "node_modules/$PACKAGE_NAME/android/build.gradle"
+                
+                if [ "$PACKAGE_NAME" = "react-native-reanimated" ]; then
+                    if [[ "$VERSION" == 4.0.* ]]; then
+                        npm install react-native-worklets@0.4.0 --save-exact
+                    elif [[ "$VERSION" == 4.1.* ]]; then
+                        npm install react-native-worklets@0.5.0 --save-exact
+                    fi
                 fi
-            fi
 
-            npm install
-            popd > /dev/null
+                npm install
+                popd > /dev/null
 
-            npm run build-aar -- \
-                --packages "$PACKAGE_NAME" \
-                --android-project "$TEMP_PROJECT_DIR" \
-                --output "$TARGET_AAR_DIR"
+                npm run build-aar -- \
+                    --packages "$PACKAGE_NAME" \
+                    --android-project "$TEMP_PROJECT_DIR" \
+                    --output "$TARGET_AAR_DIR"
 
-            pushd "$TEMP_PROJECT_DIR/android" > /dev/null
-            ./gradlew ":$PACKAGE_NAME:publishReleasePublicationToMavenLocal"
-            
-            popd > /dev/null
-            cp ~/.m2/repository/com/swmansion/$PACKAGE_NAME/$VERSION-rn$RN_VERSION/*.pom $TARGET_AAR_DIR/$PACKAGE_NAME.pom
+                cp ~/.m2/repository/com/swmansion/$PACKAGE_NAME/$VERSION-rn$RN_VERSION/*.pom $TARGET_AAR_DIR/$PACKAGE_NAME.pom
 
+                if [ $? -ne 0 ]; then
+                    echo "Warning: AAR build failed for $PACKAGE_NAME@$VERSION. Check logs." >&2
+                fi
 
-            if [ $? -ne 0 ]; then
-                echo "Warning: AAR build failed for $PACKAGE_NAME@$VERSION. Check logs." >&2
-            fi
-
-            pushd "$TEMP_PROJECT_DIR" > /dev/null
-            npm uninstall "$PACKAGE_NAME"
-            popd > /dev/null
+                pushd "$TEMP_PROJECT_DIR" > /dev/null
+                uninstall_dependencies "$PACKAGE_NAME" "$VERSION" "$IS_EXPO_PROJECTS"
+                popd > /dev/null
+            done
         done
-    done
 
-    rm -rf "$TEMP_PROJECT_DIR"
+        rm -rf "$TEMP_PROJECT_DIR"
+    done
 done

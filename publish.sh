@@ -3,8 +3,26 @@
 trap 'exit 130' INT
 JSON_FILE="supported_versions.json"
 
+for arg in "$@"; do
+  if [[ "$arg" == "-h" || "$arg" == "--help" ]]; then
+    echo """
+    Usage: ./publish.sh
+
+    This script publishes AAR files for libs specified in the supported_versions.json file
+    to either a remote Maven repository or the local Maven repository.
+
+    OPTIONAL ENV VARIABLES:
+    MAVEN_USER         Maven repository username (required for remote publishing)
+    MAVEN_PASSWORD     Maven repository password (required for remote publishing)
+    LOCAL              If set to 'true', publishes to local Maven repository instead of remote (default: 'false')
+    """
+    exit 0
+  fi
+done
+
 MAVEN_USER=${MAVEN_USER:-"user"}
 MAVEN_PASSWORD=${MAVEN_PASSWORD:-"password"}
+LOCAL=${LOCAL:-false}
 
 if [ ! -f "$JSON_FILE" ]; then
     echo "Error: JSON file not found at $JSON_FILE" >&2
@@ -39,8 +57,13 @@ for RN_VERSION in $RN_VERSIONS; do
                 echo "Publishing $PKG_NAME@$LIB_VERSION (RN:$RN_VERSION) from $AAR_FILE"
 
                 pushd android-resources/gradle-plugin/buildle-plugin
-                MAVEN_USER="$MAVEN_USER" MAVEN_PASSWORD="$MAVEN_PASSWORD" PACKAGE_NAME="$PKG_NAME" LIB_VERSION="$LIB_VERSION" RN_VERSION="$RN_VERSION" AAR_FILEPATH="../../../$AAR_FILE" ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases
-                
+                COMMON_ENV_VARS="PACKAGE_NAME=$PKG_NAME LIB_VERSION=$LIB_VERSION RN_VERSION=$RN_VERSION AAR_FILEPATH=../../../$AAR_FILE"
+                if [[ "$LOCAL" != "true" ]]; then
+                    MAVEN_USER="$MAVEN_USER" MAVEN_PASSWORD="$MAVEN_PASSWORD" $COMMON_ENV_VARS ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases
+                else
+                    $COMMON_ENV_VARS ./gradlew publishBuildleArtefactPublicationToMavenLocal
+                fi
+
                 popd
                 if [ $? -ne 0 ]; then
                     echo "Error: Maven publishing failed for $AAR_FILE" >&2

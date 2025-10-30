@@ -150,6 +150,24 @@ allprojects {
     }
     
     try {
+      execSync(`"${gradlewPath}" :${this.gradleProjectName}:publishReleaseRNREPOPublicationToMavenLocal --no-daemon`, {
+        cwd: workingDir,
+        stdio: 'pipe',
+        encoding: 'utf8',
+        timeout: 300000 // 5 minute timeout
+      });
+    } catch (error) {
+      this.error(`POM failed: ${error.message}`);
+      if (error.stdout) {
+        console.log('POM output:', error.stdout);
+      }
+      if (error.stderr) {
+        console.error('POM errors:', error.stderr);
+      }
+      throw error;
+    }
+    
+    try {
       const result = execSync(`"${gradlewPath}" :${this.gradleProjectName}:bundleReleaseAar --no-daemon`, {
         cwd: workingDir,
         stdio: 'pipe',
