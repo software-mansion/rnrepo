@@ -235,17 +235,17 @@ class AarAutomationPlugin : Plugin<Project> {
         }
 
         val urlString = "https://repo.swmtest.xyz/releases/com/swmansion/${packageName}/${packageVersion}-rn${RNVersion}/${packageName}-${packageVersion}-rn${RNVersion}.aar"
+        var connection: HttpURLConnection? = null
         return try {
-            val url = URL(urlString)
-            val connection = url.openConnection() as HttpURLConnection
+            connection = URL(urlString).openConnection() as HttpURLConnection
             connection.requestMethod = "HEAD"
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
-            val responseCode = connection.responseCode
-            connection.disconnect()
-            return responseCode == HttpURLConnection.HTTP_OK
+            connection.responseCode == HttpURLConnection.HTTP_OK
         } catch (e: Exception) {
-            return false
+            false
+        } finally {
+            connection?.disconnect()
         }
     }
 
