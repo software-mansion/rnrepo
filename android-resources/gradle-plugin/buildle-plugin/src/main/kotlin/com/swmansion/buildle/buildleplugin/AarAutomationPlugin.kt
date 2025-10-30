@@ -297,7 +297,9 @@ class AarAutomationPlugin : Plugin<Project> {
                         println("Found supported package: $packageName version $packageVersion")
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                println("Error parsing package.json in ${packageDir.name}: ${e.message}")
+            }
         }
 
         // gesture-handler and reanimated share common interfaces, so if both are present then we need to use other aar file
