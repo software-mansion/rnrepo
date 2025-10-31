@@ -48,16 +48,17 @@ for RN_VERSION in $RN_VERSIONS; do
     PACKAGES=$(echo "$PACKAGE_OBJECT" | jq -r 'keys[]')
     
     for PKG_NAME in $PACKAGES; do
+        PACKAGE_NAME_GRADLE=$(echo "$PKG_NAME" | sed 's/@//;s/\//_/g')
         VERSION_ARRAY=$(echo "$PACKAGE_OBJECT" | jq -r --arg pkg "$PKG_NAME" '.[$pkg][]')
         
         for LIB_VERSION in $VERSION_ARRAY; do
-            AAR_FILE="AARS/$RN_VERSION/$PKG_NAME/$LIB_VERSION/$PKG_NAME.aar"
+            AAR_FILE="AARS/$RN_VERSION/$PKG_NAME/$LIB_VERSION/$PACKAGE_NAME_GRADLE.aar"
 
             if [ -f "$AAR_FILE" ]; then
                 echo "Publishing $PKG_NAME@$LIB_VERSION (RN:$RN_VERSION) from $AAR_FILE"
 
                 pushd android-resources/gradle-plugin/buildle-plugin
-                COMMON_ENV_VARS="PACKAGE_NAME=$PKG_NAME LIB_VERSION=$LIB_VERSION RN_VERSION=$RN_VERSION AAR_FILEPATH=../../../$AAR_FILE"
+                COMMON_ENV_VARS="PACKAGE_NAME=$PACKAGE_NAME_GRADLE LIB_VERSION=$LIB_VERSION RN_VERSION=$RN_VERSION AAR_FILEPATH=../../../$AAR_FILE"
                 if [[ "$LOCAL" != "true" ]]; then
                     eval "$COMMON_ENV_VARS MAVEN_USER=$MAVEN_USER MAVEN_PASSWORD=$MAVEN_PASSWORD ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases"
                 else

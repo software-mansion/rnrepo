@@ -101,17 +101,18 @@ class AarAutomationPlugin : Plugin<Project> {
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.packages.forEach { packageItem ->
-                val subproject = project.rootProject.findProject(":${packageItem.name}")
-                val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                val codegenTaskExists = subproject?.tasks?.findByName(codegenTaskName) != null
-                if (codegenTaskExists) {
-                    println("Adding dependency on task :${packageItem.name}:$codegenTaskName")
-                    project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
-                }
+                // val subproject = project.rootProject.findProject(":${packageItem.name}")
+                // val codegenTaskName = "generateCodegenArtifactsFromSchema"
+                // val codegenTaskExists = subproject?.tasks?.findByName(codegenTaskName) != null
+                // if (codegenTaskExists) {
+                //     println("Adding dependency on task :${packageItem.name}:$codegenTaskName")
+                //     project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
+                // }
 
+                // if (packageItem.name.contains("expo")) return@forEach // todo
                 // keeping this code for reference if above doesn't work as expected
-                // println("Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
-                // project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
+                println("Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
+                project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
             }
 
             // Add substitution for supported packages 
@@ -218,19 +219,19 @@ class AarAutomationPlugin : Plugin<Project> {
      *
      * This function performs a HEAD request to determine if the specified package version is present for the given React Native (RN) version.
      *
-     * @param packageName The name of the package to check.
+     * @param gradlePackageName The name of the package to check.
      * @param packageVersion The version of the package.
      * @param RNVersion The React Native version that the package is intended for.
      *
      * @return True if the package is available, false otherwise.
      */
     private fun isPackageAvailable(
-        packageName: String, 
+        gradlePackageName: String, 
         packageVersion: String, 
         RNVersion: String
     ): Boolean {
         val cachePath = System.getProperty("user.home") + "/.gradle/caches/modules-2/files-2.1"
-        val groupPath = "com.swmansion/$packageName"
+        val groupPath = "com.swmansion/$gradlePackageName"
         val artifactPath = "${packageVersion}-rn$RNVersion"
         
         // Construct the local path expected for the .aar file in cache
@@ -243,7 +244,7 @@ class AarAutomationPlugin : Plugin<Project> {
             return true
         }
 
-        val urlString = "https://repo.swmtest.xyz/releases/com/swmansion/${packageName}/${packageVersion}-rn${RNVersion}/${packageName}-${packageVersion}-rn${RNVersion}.aar"
+        val urlString = "https://repo.swmtest.xyz/releases/com/swmansion/${gradlePackageName}/${packageVersion}-rn${RNVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
         var connection: HttpURLConnection? = null
         return try {
             connection = URL(urlString).openConnection() as HttpURLConnection
@@ -255,6 +256,33 @@ class AarAutomationPlugin : Plugin<Project> {
             false
         } finally {
             connection?.disconnect()
+        }
+    }
+
+    private fun traversePackagesDir(dir: File, packagesList: MutableList<PackageItem>, extension: BuildleExtension) {
+        dir.listFiles()?.forEach { file ->
+            if (!file.isDirectory) return@forEach
+            val packageJsonFile = File(file, "package.json")
+            val androidDir = File(file, "android")
+            if (!packageJsonFile.exists() || !androidDir.exists()) {
+                traversePackagesDir(file, packagesList, extension)
+                return@forEach
+            }
+            try {
+                val json = JsonSlurper().parse(packageJsonFile) as Map<String, Any>
+                val packageName = json["name"] as? String
+                val packageVersion = json["version"] as? String
+                if (packageName != null && packageVersion != null) {
+                    val gradlePackageName = packageName.replace("@", "").replace("/", "_")
+                    if (isPackageAvailable(gradlePackageName, packageVersion, extension.reactNativeVersion) &&
+                        isPackageNotDenied(packageName, extension)) {
+                        packagesList.add(PackageItem(gradlePackageName, packageVersion))
+                        println("Found supported package: $packageName version $packageVersion")
+                    }
+                }
+            } catch (e: Exception) {
+                println("Error parsing package.json in ${file.name}: ${e.message}")
+            }
         }
     }
 
@@ -290,26 +318,7 @@ class AarAutomationPlugin : Plugin<Project> {
         }
 
         val packagesWithVersions = mutableListOf<PackageItem>()
-        node_modulesDir.listFiles()?.forEach { packageDir ->
-            if (!packageDir.isDirectory) return@forEach
-            val packageJsonFile = File(packageDir, "package.json")
-            val androidDir = File(packageDir, "android")
-            if (!packageJsonFile.exists() || !androidDir.exists()) return@forEach
-            try {
-                val json = JsonSlurper().parse(packageJsonFile) as Map<String, Any>
-                val packageName = json["name"] as? String
-                val packageVersion = json["version"] as? String
-                if (packageName != null && packageVersion != null) {
-                    if (isPackageAvailable(packageName, packageVersion, extension.reactNativeVersion) &&
-                        isPackageNotDenied(packageName, extension)) {
-                        packagesWithVersions.add(PackageItem(packageName, packageVersion))
-                        println("Found supported package: $packageName version $packageVersion")
-                    }
-                }
-            } catch (e: Exception) {
-                println("Error parsing package.json in ${packageDir.name}: ${e.message}")
-            }
-        }
+        traversePackagesDir(node_modulesDir, packagesWithVersions, extension)
 
         // gesture-handler and reanimated share common interfaces, so if both are present then we need to use other aar file
         // todo GH&svg common interfaces

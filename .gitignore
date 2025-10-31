@@ -8,3 +8,4 @@ dist
 *.aar
 *.pom
 .xcframeworks-cache
+supported_versions.json

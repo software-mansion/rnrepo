@@ -56,18 +56,6 @@ install_dependencies() {
     fi
 }
 
-uninstall_dependencies() {
-    local PACKAGE_NAME=$1
-    local VERSION=$2
-    local IS_EXPO=$3
-
-    if [ "$IS_EXPO" = true ]; then
-        npx expo uninstall "$PACKAGE_NAME"
-    else
-        npm uninstall "$PACKAGE_NAME"
-    fi
-}
-
 for IS_EXPO_PROJECTS in false true; do
     for RN_VERSION in $RN_VERSIONS; do
         echo "Processing React Native Version: $RN_VERSION"
@@ -83,6 +71,7 @@ for IS_EXPO_PROJECTS in false true; do
                 continue
             fi
             
+            PACKAGE_NAME_GRADLE=$(echo "$PACKAGE_NAME" | sed 's/@//;s/\//_/g')
             VERSION_ARRAY=$(echo "$PACKAGE_OBJECT" | jq -r --arg pkg "$PACKAGE_NAME" '.[$pkg][]')
 
             for VERSION in $VERSION_ARRAY; do
@@ -106,15 +95,8 @@ for IS_EXPO_PROJECTS in false true; do
                         sed -i '' -e "/plugins {/a\\
                         id 'maven-publish'" "node_modules/$PACKAGE_NAME/android/build.gradle"
                     else
-                        sed -i '' '/buildscript {/,/^}/ {
-                        /^}/ {
-                        a\
-                        \
-                        plugins {\
-                            id "maven-publish"\
-                        }
-                        }
-                        }' "node_modules/$PACKAGE_NAME/android/build.gradle"
+                        sed -i '' -e "/apply plugin: 'com.android.library'/a\\
+                        apply plugin: 'maven-publish'" "node_modules/$PACKAGE_NAME/android/build.gradle"
                     fi
                 fi
 
@@ -124,7 +106,7 @@ for IS_EXPO_PROJECTS in false true; do
         publications {
             releaseRNREPO(MavenPublication) {
                 groupId = 'com.swmansion'
-                artifactId = '$PACKAGE_NAME'
+                artifactId = '$PACKAGE_NAME_GRADLE'
                 version = '$VERSION-rn$RN_VERSION'
 
                 pom {
@@ -162,14 +144,14 @@ for IS_EXPO_PROJECTS in false true; do
                     --android-project "$TEMP_PROJECT_DIR" \
                     --output "$TARGET_AAR_DIR"
 
-                cp ~/.m2/repository/com/swmansion/$PACKAGE_NAME/$VERSION-rn$RN_VERSION/*.pom $TARGET_AAR_DIR/$PACKAGE_NAME.pom
+                eval "cp ~/.m2/repository/com/swmansion/$PACKAGE_NAME_GRADLE/$VERSION-rn$RN_VERSION/*.pom $TARGET_AAR_DIR/$PACKAGE_NAME_GRADLE.pom"
 
                 if [ $? -ne 0 ]; then
                     echo "Warning: AAR build failed for $PACKAGE_NAME@$VERSION. Check logs." >&2
                 fi
 
                 pushd "$TEMP_PROJECT_DIR" > /dev/null
-                uninstall_dependencies "$PACKAGE_NAME" "$VERSION" "$IS_EXPO_PROJECTS"
+                npm uninstall "$PACKAGE_NAME"
                 popd > /dev/null
             done
         done
