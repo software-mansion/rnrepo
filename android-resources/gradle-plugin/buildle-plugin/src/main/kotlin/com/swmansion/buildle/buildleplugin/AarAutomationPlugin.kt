@@ -101,8 +101,17 @@ class AarAutomationPlugin : Plugin<Project> {
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.packages.forEach { packageItem ->
-                println("Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
-                project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
+                val subproject = project.rootProject.findProject(":${packageItem.name}")
+                val codegenTaskName = "generateCodegenArtifactsFromSchema"
+                val codegenTaskExists = subproject?.tasks?.findByName(codegenTaskName) != null
+                if (codegenTaskExists) {
+                    println("Adding dependency on task :${packageItem.name}:$codegenTaskName")
+                    project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
+                }
+
+                // keeping this code for reference if above doesn't work as expected
+                // println("Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
+                // project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
             }
 
             // Add substitution for supported packages 
@@ -141,7 +150,7 @@ class AarAutomationPlugin : Plugin<Project> {
      */
     private fun shouldPluginExecute(project: Project): Boolean {
         val isBuildingCommand: Boolean = project.gradle.startParameter.taskNames.any {
-            it.contains("assemble") || it.contains("build") }
+            it.contains("assemble") || it.contains("build") || it.contains("install")}
         val isEnvEnabled: Boolean = System.getenv("DISABLE_BUILDLE")?.equals("true", ignoreCase = true)?.not() ?: true
         val isPropertyEnabled: Boolean = System.getProperty("DISABLE_BUILDLE", "false").equals("true", ignoreCase = true).not()
         // TODO(radoslawrolka): add another check for value inside rn-repo config JSON (json with allowlist/denylist etc.)
@@ -235,17 +244,17 @@ class AarAutomationPlugin : Plugin<Project> {
         }
 
         val urlString = "https://repo.swmtest.xyz/releases/com/swmansion/${packageName}/${packageVersion}-rn${RNVersion}/${packageName}-${packageVersion}-rn${RNVersion}.aar"
+        var connection: HttpURLConnection? = null
         return try {
-            val url = URL(urlString)
-            val connection = url.openConnection() as HttpURLConnection
+            connection = URL(urlString).openConnection() as HttpURLConnection
             connection.requestMethod = "HEAD"
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
-            val responseCode = connection.responseCode
-            connection.disconnect()
-            return responseCode == HttpURLConnection.HTTP_OK
+            connection.responseCode == HttpURLConnection.HTTP_OK
         } catch (e: Exception) {
-            return false
+            false
+        } finally {
+            connection?.disconnect()
         }
     }
 

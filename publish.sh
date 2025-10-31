@@ -59,9 +59,9 @@ for RN_VERSION in $RN_VERSIONS; do
                 pushd android-resources/gradle-plugin/buildle-plugin
                 COMMON_ENV_VARS="PACKAGE_NAME=$PKG_NAME LIB_VERSION=$LIB_VERSION RN_VERSION=$RN_VERSION AAR_FILEPATH=../../../$AAR_FILE"
                 if [[ "$LOCAL" != "true" ]]; then
-                    MAVEN_USER="$MAVEN_USER" MAVEN_PASSWORD="$MAVEN_PASSWORD" $COMMON_ENV_VARS ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases
+                    eval "$COMMON_ENV_VARS MAVEN_USER=$MAVEN_USER MAVEN_PASSWORD=$MAVEN_PASSWORD ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases"
                 else
-                    $COMMON_ENV_VARS ./gradlew publishBuildleArtefactPublicationToMavenLocal
+                    eval "$COMMON_ENV_VARS ./gradlew publishBuildleArtefactPublicationToMavenLocal"
                 fi
 
                 popd
