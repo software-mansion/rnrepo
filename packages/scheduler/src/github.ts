@@ -1,17 +1,19 @@
 import { Octokit } from '@octokit/rest';
+import { paginateRest } from '@octokit/plugin-paginate-rest';
 import type { Platform } from './types';
 
-// Initialize Octokit client
+// Initialize Octokit client with pagination plugin
 // GITHUB_TOKEN is provided via environment variable when running on Github Actions
+const MyOctokit = Octokit.plugin(paginateRest);
 export function createOctokit() {
-  return new Octokit({
+  return new MyOctokit({
     auth: process.env.GITHUB_TOKEN,
   });
 }
 
 // Use a getter function to allow mocking in tests
-let _octokit: Octokit | null = null;
-function getOctokit(): Octokit {
+let _octokit: InstanceType<typeof MyOctokit> | null = null;
+function getOctokit(): InstanceType<typeof MyOctokit> {
   if (!_octokit) {
     _octokit = createOctokit();
   }
@@ -19,7 +21,7 @@ function getOctokit(): Octokit {
 }
 
 // Export setter for testing
-export function setOctokit(octokit: Octokit | null) {
+export function setOctokit(octokit: InstanceType<typeof MyOctokit> | null) {
   _octokit = octokit;
 }
 
@@ -116,31 +118,31 @@ export async function hasRecentWorkflowRun(
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysBack);
 
-    // Get workflow runs from all workflows for the past daysBack days
-    // We need to fetch enough runs to cover the time period
-    // GitHub API returns most recent first, so we fetch a reasonable number
+    // Format date as YYYY-MM-DD for GitHub API
+    const cutoffDateString = cutoffDate.toISOString().split('T')[0];
+    // Use >= format to get runs from cutoffDate onwards
+    const createdFilter = `>=${cutoffDateString}`;
+
+    // Get workflow runs filtered by date and branch using pagination
+    // GitHub API will filter by creation date and main branch
+    // Use paginate to fetch all pages of results
     const client = getOctokit();
-    const response = await client.rest.actions.listWorkflowRunsForRepo({
-      owner: GITHUB_OWNER,
-      repo: GITHUB_REPO,
-      per_page: 100, // Fetch more to ensure we cover the time period
-    });
+    const runs = await client.paginate(
+      client.rest.actions.listWorkflowRunsForRepo,
+      {
+        owner: GITHUB_OWNER,
+        repo: GITHUB_REPO,
+        branch: 'main', // Only runs from main branch
+        created: createdFilter, // Only runs created on or after cutoffDate
+      }
+    );
 
-    const runs = response.data.workflow_runs;
-
-    // Filter runs to those in the past N days and check their run name
-    // Runs are sorted by most recent first, so we can break early once we pass the cutoff
+    // Check run names - GitHub API already filtered by date and branch
     // Run name format: "Build for <platform> <library_name>@<library_version> RN@<react_native_version>"
     const platformLabel = platform === 'android' ? 'Android' : 'iOS';
     const expectedRunName = `Build for ${platformLabel} ${libraryName}@${libraryVersion} RN@${reactNativeVersion}`;
 
     for (const run of runs) {
-      // Skip if run is too old - since runs are sorted by most recent first, we can break
-      const runDate = new Date(run.created_at);
-      if (runDate < cutoffDate) {
-        break; // No more runs in our time window
-      }
-
       // Check if this run has matching run name
       // Only workflow_dispatch runs will have our custom run-name format
       if (run.event !== 'workflow_dispatch') {

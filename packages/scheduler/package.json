@@ -18,6 +18,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@octokit/plugin-paginate-rest": "^14.0.0",
     "@octokit/rest": "^22.0.0",
     "semver": "^7.7.3"
   }

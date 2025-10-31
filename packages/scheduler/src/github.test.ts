@@ -31,6 +31,8 @@ test('hasRecentWorkflowRun - returns false when no runs exist', async () => {
     data: { workflow_runs: [] },
   }));
 
+  const mockPaginate = mock(() => []); // Returns empty array when paginating
+
   const mockOctokitInstance = {
     rest: {
       actions: {
@@ -38,6 +40,7 @@ test('hasRecentWorkflowRun - returns false when no runs exist', async () => {
         getWorkflowRun: mock(() => ({ data: {} })),
       },
     },
+    paginate: mockPaginate,
   };
 
   // Set the mock octokit instance
@@ -51,7 +54,16 @@ test('hasRecentWorkflowRun - returns false when no runs exist', async () => {
     3
   );
   expect(result).toBe(false);
-  expect(mockListWorkflowRunsForRepo).toHaveBeenCalledTimes(1);
+  // Verify paginate was called with the correct parameters
+  expect(mockPaginate).toHaveBeenCalledWith(
+    mockListWorkflowRunsForRepo,
+    expect.objectContaining({
+      owner: 'software-mansion',
+      repo: 'buildle',
+      branch: 'main',
+      created: expect.stringMatching(/^>=\d{4}-\d{2}-\d{2}$/),
+    })
+  );
 });
 
 test('hasRecentWorkflowRun - returns true when matching run exists', async () => {
@@ -71,6 +83,15 @@ test('hasRecentWorkflowRun - returns true when matching run exists', async () =>
     },
   }));
 
+  const mockPaginate = mock(() => [
+    {
+      id: 123,
+      name: 'Build for Android test-library@1.0.0 RN@0.79.0',
+      created_at: yesterday.toISOString(),
+      event: 'workflow_dispatch',
+    },
+  ]);
+
   const mockOctokitInstance = {
     rest: {
       actions: {
@@ -78,6 +99,7 @@ test('hasRecentWorkflowRun - returns true when matching run exists', async () =>
         getWorkflowRun: mock(() => ({ data: {} })),
       },
     },
+    paginate: mockPaginate,
   };
 
   setOctokit(mockOctokitInstance as any);
@@ -90,7 +112,16 @@ test('hasRecentWorkflowRun - returns true when matching run exists', async () =>
     3
   );
   expect(result).toBe(true);
-  expect(mockListWorkflowRunsForRepo).toHaveBeenCalledTimes(1);
+  // Verify paginate was called with the correct parameters
+  expect(mockPaginate).toHaveBeenCalledWith(
+    mockListWorkflowRunsForRepo,
+    expect.objectContaining({
+      owner: 'software-mansion',
+      repo: 'buildle',
+      branch: 'main',
+      created: expect.stringMatching(/^>=\d{4}-\d{2}-\d{2}$/),
+    })
+  );
   // Should not call getWorkflowRun anymore - we use run.name directly
   expect(
     mockOctokitInstance.rest.actions.getWorkflowRun
@@ -98,22 +129,14 @@ test('hasRecentWorkflowRun - returns true when matching run exists', async () =>
 });
 
 test('hasRecentWorkflowRun - returns false when run is too old', async () => {
-  const now = new Date();
-  const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
-
+  // When filtering by date, runs that are too old won't be returned by the API
   const mockListWorkflowRunsForRepo = mock(() => ({
     data: {
-      workflow_runs: [
-        {
-          id: 123,
-          name: 'Build for Android test-library@1.0.0 RN@0.79.0',
-          created_at: fiveDaysAgo.toISOString(),
-          event: 'workflow_dispatch',
-        },
-      ],
+      workflow_runs: [], // API returns empty because run is too old
     },
   }));
 
+  const mockPaginate = mock(() => []); // Returns empty array when paginating
   const mockOctokitInstance = {
     rest: {
       actions: {
@@ -121,6 +144,7 @@ test('hasRecentWorkflowRun - returns false when run is too old', async () => {
         getWorkflowRun: mock(() => ({ data: {} })),
       },
     },
+    paginate: mockPaginate,
   };
 
   setOctokit(mockOctokitInstance as any);
@@ -133,6 +157,16 @@ test('hasRecentWorkflowRun - returns false when run is too old', async () => {
     3
   );
   expect(result).toBe(false);
+  // Verify paginate was called with branch and created filters
+  expect(mockPaginate).toHaveBeenCalledWith(
+    mockListWorkflowRunsForRepo,
+    expect.objectContaining({
+      owner: 'software-mansion',
+      repo: 'buildle',
+      branch: 'main',
+      created: expect.stringMatching(/^>=\d{4}-\d{2}-\d{2}$/),
+    })
+  );
 });
 
 test('hasRecentWorkflowRun - returns false when React Native version does not match', async () => {
@@ -152,6 +186,14 @@ test('hasRecentWorkflowRun - returns false when React Native version does not ma
     },
   }));
 
+  const mockPaginate = mock(() => [
+    {
+      id: 123,
+      name: 'Build for Android test-library@1.0.0 RN@0.80.0', // Different RN version
+      created_at: yesterday.toISOString(),
+      event: 'workflow_dispatch',
+    },
+  ]);
   const mockOctokitInstance = {
     rest: {
       actions: {
@@ -159,6 +201,7 @@ test('hasRecentWorkflowRun - returns false when React Native version does not ma
         getWorkflowRun: mock(() => ({ data: {} })),
       },
     },
+    paginate: mockPaginate,
   };
 
   setOctokit(mockOctokitInstance as any);
@@ -178,6 +221,7 @@ test('hasRecentWorkflowRun - handles errors gracefully and returns false', async
     throw new Error('API error');
   });
 
+  const mockPaginate = mock(() => []);
   const mockOctokitInstance = {
     rest: {
       actions: {
@@ -185,6 +229,7 @@ test('hasRecentWorkflowRun - handles errors gracefully and returns false', async
         getWorkflowRun: mock(() => ({ data: {} })),
       },
     },
+    paginate: mockPaginate,
   };
 
   setOctokit(mockOctokitInstance as any);
@@ -226,6 +271,15 @@ test('hasRecentWorkflowRun - skips non-workflow_dispatch runs', async () => {
 
   const mockGetWorkflowRun = mock(() => ({ data: {} }));
 
+  const mockPaginate = mock(() => [
+    {
+      id: 123,
+      name: 'Build for Android test-library@1.0.0 RN@0.79.0',
+      created_at: yesterday.toISOString(),
+      event: 'push', // Not workflow_dispatch
+    },
+  ]);
+
   const mockOctokitInstance = {
     rest: {
       actions: {
@@ -233,6 +287,7 @@ test('hasRecentWorkflowRun - skips non-workflow_dispatch runs', async () => {
         getWorkflowRun: mockGetWorkflowRun,
       },
     },
+    paginate: mockPaginate,
   };
 
   setOctokit(mockOctokitInstance as any);
@@ -266,6 +321,14 @@ test('hasRecentWorkflowRun - returns false when platform does not match', async 
     },
   }));
 
+  const mockPaginate = mock(() => [
+    {
+      id: 123,
+      name: 'Build for iOS test-library@1.0.0 RN@0.79.0', // Different platform
+      created_at: yesterday.toISOString(),
+      event: 'workflow_dispatch',
+    },
+  ]);
   const mockOctokitInstance = {
     rest: {
       actions: {
@@ -273,6 +336,7 @@ test('hasRecentWorkflowRun - returns false when platform does not match', async 
         getWorkflowRun: mock(() => ({ data: {} })),
       },
     },
+    paginate: mockPaginate,
   };
 
   setOctokit(mockOctokitInstance as any);
@@ -285,4 +349,51 @@ test('hasRecentWorkflowRun - returns false when platform does not match', async 
     3
   );
   expect(result).toBe(false);
+  // Verify paginate was called with branch filter set to 'main'
+  expect(mockPaginate).toHaveBeenCalledWith(
+    mockListWorkflowRunsForRepo,
+    expect.objectContaining({
+      branch: 'main',
+    })
+  );
+});
+
+test('hasRecentWorkflowRun - filters by main branch only', async () => {
+  // API should only return runs from main branch due to branch filter
+  // So even if there's a matching run on another branch, it won't be returned
+  const mockListWorkflowRunsForRepo = mock(() => ({
+    data: {
+      workflow_runs: [], // No runs on main branch with matching criteria
+    },
+  }));
+
+  const mockPaginate = mock(() => []); // Returns empty array when paginating
+  const mockOctokitInstance = {
+    rest: {
+      actions: {
+        listWorkflowRunsForRepo: mockListWorkflowRunsForRepo,
+        getWorkflowRun: mock(() => ({ data: {} })),
+      },
+    },
+    paginate: mockPaginate,
+  };
+
+  setOctokit(mockOctokitInstance as any);
+
+  const result = await hasRecentWorkflowRun(
+    'test-library',
+    '1.0.0',
+    '0.79.0',
+    'android',
+    3
+  );
+  expect(result).toBe(false);
+  // Verify paginate was called with branch filter set to 'main'
+  expect(mockPaginate).toHaveBeenCalledWith(
+    mockListWorkflowRunsForRepo,
+    expect.objectContaining({
+      branch: 'main',
+      created: expect.stringMatching(/^>=\d{4}-\d{2}-\d{2}$/),
+    })
+  );
 });
