@@ -1,0 +1,19 @@
+{
+  "name": "@rnrepo/builder",
+  "version": "0.1.0",
+  "description": "Builder package for React Native libraries",
+  "type": "module",
+  "main": "./build-library-android.ts",
+  "scripts": {
+    "build-android": "bun run build-library-android.ts"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "zx": "^8.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.4",
+    "typescript": "^5.8.3"
+  }
+}
+

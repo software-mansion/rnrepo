@@ -2,15 +2,24 @@
   "compilerOptions": {
     "module": "esnext",
     "target": "es2020",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true
   },
   "include": [
-    "ios-resources"
+    "packages/**/*",
+    "ios-resources/**/*",
+    "android-resources/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "react-conf-app"
   ]
 }
