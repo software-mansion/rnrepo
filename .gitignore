@@ -6,4 +6,5 @@ build
 *.xcarchive
 dist
 *.aar
+*.pom
 .xcframeworks-cache
