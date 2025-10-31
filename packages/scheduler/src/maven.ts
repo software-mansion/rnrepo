@@ -29,10 +29,10 @@ export async function fetchMavenArtifacts(
     }
     const json = (await res.json()) as { versions?: unknown };
     // versions on Maven have combined package and RN version in a format like "4.18.1-rn0.79.0"
-    // we extract only the package version here
+    // we keep the full artifact names (package version + RN version combination)
     const versions = Array.isArray(json.versions)
       ? (json.versions as unknown[])
-          .map((v) => String(v).trim().split('-')[0])
+          .map((v) => String(v).trim())
           .filter((v) => v !== undefined)
       : [];
     const set = new Set<string>(versions);
@@ -55,6 +55,26 @@ export async function isOnMaven(
 ): Promise<boolean> {
   const artifacts = await fetchMavenArtifacts(packageName);
   if (!artifacts) return false;
-  return artifacts.has(pkgVersion);
+  // Check if any artifact starts with the package version (e.g., "4.18.1" matches "4.18.1-rn0.79.0")
+  for (const artifact of artifacts) {
+    if (artifact.startsWith(`${pkgVersion}-rn`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Checks if a specific combination of package version and React Native version exists on Maven.
+ */
+export async function isCombinationOnMaven(
+  packageName: string,
+  pkgVersion: string,
+  rnVersion: string
+): Promise<boolean> {
+  const artifacts = await fetchMavenArtifacts(packageName);
+  if (!artifacts) return false;
+  const artifactName = makeMavenArtifactName(pkgVersion, rnVersion);
+  return artifacts.has(artifactName);
 }
 

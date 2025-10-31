@@ -1,4 +1,4 @@
-# bunscript
+# RNRepo scheduler
 
 To install dependencies:
 

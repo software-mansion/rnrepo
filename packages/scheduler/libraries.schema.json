@@ -27,6 +27,11 @@
         },
         "reactNativeVersion": {
           "$ref": "#/$defs/versionPattern"
+        },
+        "publishedAfterDate": {
+          "type": "string",
+          "description": "Only consider package versions published after this date (ISO 8601 format: YYYY-MM-DD)",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
         }
       },
       "additionalProperties": false
@@ -43,6 +48,11 @@
       "reactNativeVersion": {
         "$ref": "#/$defs/versionPattern",
         "description": "Default React Native version requirement for all platforms"
+      },
+      "publishedAfterDate": {
+        "type": "string",
+        "description": "Only consider package versions published after this date (ISO 8601 format: YYYY-MM-DD). Can be overridden per platform.",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
       },
       "android": {
         "anyOf": [

@@ -1,7 +1,8 @@
 {
   "react-native-reanimated": {
-    "versionMatcher": [">=3.18"],
-    "reactNativeVersion": ">=0.73.0"
+    "versionMatcher": ["3.18.*", "4.*"],
+    "reactNativeVersion": ">=0.73.0",
+    "publishedAfterDate": "2024-01-01"
   },
   "react-native-gesture-handler": {
     "android": {

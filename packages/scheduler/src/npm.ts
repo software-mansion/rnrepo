@@ -1,7 +1,6 @@
 import semver from 'semver';
-import { isOnMaven } from './maven';
 
-interface NpmVersionInfo {
+export interface NpmVersionInfo {
   version: string;
   publishDate: Date;
 }
@@ -86,21 +85,47 @@ export async function fetchNpmPackageVersions(
   }
 }
 
-export async function findOldestMatchingVersionNotOnMaven(
+/**
+ * Finds matching NPM package versions based on version matcher and publishedAfterDate.
+ * Returns versions sorted by publish date (oldest first).
+ * Does not check Maven - that should be done separately in the scheduler.
+ */
+export async function findMatchingVersionsFromNPM(
   packageName: string,
-  versionMatcher: string | string[] | undefined
-): Promise<{ version: string; publishDate: Date } | null> {
-  if (!versionMatcher) return null;
+  versionMatcher: string | string[] | undefined,
+  publishedAfterDate?: string
+): Promise<NpmVersionInfo[]> {
+  if (!versionMatcher) return [];
   const allVersions = await fetchNpmPackageVersions(packageName);
-  const matching = allVersions
-    .filter((v) => !semver.prerelease(v.version))
-    .filter((v) => matchesVersionPattern(v.version, versionMatcher))
-    .sort((a, b) => a.publishDate.getTime() - b.publishDate.getTime());
 
-  for (const v of matching) {
-    if (!(await isOnMaven(packageName, v.version))) {
-      return v;
+  // Parse publishedAfterDate if provided
+  let minPublishDate: Date | null = null;
+  if (publishedAfterDate) {
+    const dateStr = publishedAfterDate.trim();
+    // Parse YYYY-MM-DD format
+    const dateParts = dateStr.split('-').map(Number);
+    if (dateParts.length === 3) {
+      minPublishDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+      // Set to start of day for accurate comparison
+      minPublishDate.setHours(0, 0, 0, 0);
+    } else {
+      console.warn(
+        `Invalid publishedAfterDate format: ${publishedAfterDate}, expected YYYY-MM-DD`
+      );
     }
   }
-  return null;
+
+  return allVersions
+    .filter((v) => !semver.prerelease(v.version))
+    .filter((v) => matchesVersionPattern(v.version, versionMatcher))
+    .filter((v) => {
+      // Filter by publishedAfterDate if provided
+      if (minPublishDate) {
+        const publishDate = new Date(v.publishDate);
+        publishDate.setHours(0, 0, 0, 0);
+        return publishDate >= minPublishDate;
+      }
+      return true;
+    })
+    .sort((a, b) => a.publishDate.getTime() - b.publishDate.getTime());
 }
