@@ -1,0 +1,7 @@
+[install]
+# Bun workspace configuration
+# Workspaces are automatically detected from package.json
+
+[install.scopes]
+# Scope-specific configurations can go here
+
