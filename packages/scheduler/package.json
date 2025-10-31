@@ -1,19 +1,24 @@
 {
   "name": "@rnrepo/scheduler",
-  "version": "0.1.0",
   "description": "Scheduler package for build orchestration",
   "type": "module",
   "main": "./index.ts",
+  "private": true,
   "scripts": {
-    "start": "bun run index.ts"
-  },
-  "dependencies": {
-    "commander": "^13.1.0",
-    "zx": "^8.6.0"
+    "validate": "bun run validate-schema.ts",
+    "test": "bun test"
   },
   "devDependencies": {
-    "@types/node": "^24.0.4",
-    "typescript": "^5.8.3"
+    "@types/bun": "latest",
+    "@types/semver": "^7.7.1",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@octokit/rest": "^22.0.0",
+    "semver": "^7.7.3"
   }
 }
-
