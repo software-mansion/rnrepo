@@ -1,51 +1,19 @@
 package com.swmansion.buildle.buildleplugin
 
 import org.gradle.api.*
-import org.gradle.api.tasks.*
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.Paths
-import groovy.json.JsonSlurper
 import org.gradle.api.artifacts.*
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import org.gradle.kotlin.dsl.* // Import DSL extensions for dependencies and properties
-import java.net.URI
-import org.gradle.api.artifacts.Configuration
-import java.net.HttpURLConnection
-import java.net.URL
+import org.gradle.api.tasks.*
+import groovy.json.JsonSlurper
+import org.gradle.kotlin.dsl.*
+import java.io.File
+import java.net.*
+import java.nio.file.*
 import java.util.concurrent.TimeUnit
-import com.android.build.gradle.AppExtension
-import com.android.build.gradle.BaseExtension 
+import com.android.build.gradle.*
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 
-class PackageItem(val name: String, val version: String, var module: String = "") {
-    init { 
-        if (module.isEmpty()) {
-            module = name
-        }
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is PackageItem) return false
-
-        if (name != other.name) return false
-        if (version != other.version) return false
-        if (module != other.module) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = name.hashCode()
-        result = 31 * result + version.hashCode()
-        result = 31 * result + module.hashCode()
-        return result
-    }
-}
-
+data class PackageItem(val name: String, val version: String, var module: String = name)
 
 open class BuildleExtension {
     var packages: List<PackageItem> = listOf()
@@ -54,7 +22,12 @@ open class BuildleExtension {
 }
 
 class AarAutomationPlugin : Plugin<Project> {
+    // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
+    // remote repo URL with AARs
+    private val REMOTE_REPO_NAME = "reposiliteRepositoryReleases"
+    private val REMOTE_REPO_URL = "https://repo.swmtest.xyz/releases"
+
 
     override fun apply(project: Project) {
         if (shouldPluginExecute(project)) {
@@ -64,8 +37,8 @@ class AarAutomationPlugin : Plugin<Project> {
             // Add SWM Maven repository with AAR artifacts
             project.repositories.apply {
                 maven { repo ->
-                    repo.name = "reposiliteRepositoryReleases"
-                    repo.url = URI("https://repo.swmtest.xyz/releases")
+                    repo.name = REMOTE_REPO_NAME
+                    repo.url = URI(REMOTE_REPO_URL)
                 }
             }
 
@@ -109,7 +82,7 @@ class AarAutomationPlugin : Plugin<Project> {
                 //     project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
                 // }
 
-                // if (packageItem.name.contains("expo")) return@forEach // todo
+                // if (packageItem.name.contains("expo")) return@forEach // todo - investigate or drop expo packages
                 // keeping this code for reference if above doesn't work as expected
                 println("Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
                 project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
@@ -154,7 +127,6 @@ class AarAutomationPlugin : Plugin<Project> {
             it.contains("assemble") || it.contains("build") || it.contains("install")}
         val isEnvEnabled: Boolean = System.getenv("DISABLE_BUILDLE")?.equals("true", ignoreCase = true)?.not() ?: true
         val isPropertyEnabled: Boolean = System.getProperty("DISABLE_BUILDLE", "false").equals("true", ignoreCase = true).not()
-        // TODO(radoslawrolka): add another check for value inside rn-repo config JSON (json with allowlist/denylist etc.)
         return isBuildingCommand && isEnvEnabled && isPropertyEnabled
     }
 
