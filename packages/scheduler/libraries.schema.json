@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "description": "Schema for libraries configuration file",
+  "$defs": {
+    "versionPattern": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Single version pattern"
+        },
+        {
+          "type": "array",
+          "description": "Array of version patterns (any match passes)",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      ]
+    },
+    "platformConfig": {
+      "type": "object",
+      "properties": {
+        "versionMatcher": {
+          "$ref": "#/$defs/versionPattern"
+        },
+        "reactNativeVersion": {
+          "$ref": "#/$defs/versionPattern"
+        },
+        "publishedAfterDate": {
+          "type": "string",
+          "description": "Only consider package versions published after this date (ISO 8601 format: YYYY-MM-DD)",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": {
+    "type": "object",
+    "description": "Library configuration",
+    "properties": {
+      "versionMatcher": {
+        "$ref": "#/$defs/versionPattern",
+        "description": "Default version matcher for all platforms"
+      },
+      "reactNativeVersion": {
+        "$ref": "#/$defs/versionPattern",
+        "description": "Default React Native version requirement for all platforms"
+      },
+      "publishedAfterDate": {
+        "type": "string",
+        "description": "Only consider package versions published after this date (ISO 8601 format: YYYY-MM-DD). Can be overridden per platform.",
+        "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+      },
+      "android": {
+        "anyOf": [
+          {
+            "type": "boolean",
+            "const": false,
+            "description": "Disable Android builds"
+          },
+          {
+            "$ref": "#/$defs/platformConfig",
+            "description": "Android platform configuration (overrides library-level defaults)"
+          }
+        ]
+      },
+      "ios": {
+        "anyOf": [
+          {
+            "type": "boolean",
+            "const": false,
+            "description": "Disable iOS builds"
+          },
+          {
+            "$ref": "#/$defs/platformConfig",
+            "description": "iOS platform configuration (overrides library-level defaults)"
+          }
+        ]
+      }
+    },
+    "additionalProperties": false
+  }
+}
