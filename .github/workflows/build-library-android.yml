@@ -1,0 +1,54 @@
+name: Build React Native Library for Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      library_name:
+        description: 'Library name (from NPM)'
+        required: true
+        type: string
+      library_version:
+        description: 'Library version (from NPM)'
+        required: true
+        type: string
+      react_native_version:
+        description: 'React Native version'
+        required: true
+        type: string
+
+jobs:
+  build-library-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 📱 Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 33
+          build-tools: 33.0.0
+          components: platform-tools,android-33,build-tools-33.0.0
+
+      - name: ✅ Accept Android Licenses
+        run: |
+          yes | sdkmanager --licenses || true
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔨 Build library for Android
+        run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}"
+
