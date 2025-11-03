@@ -7,11 +7,7 @@ import {
   type NpmVersionInfo,
 } from './npm';
 import { isCombinationOnMaven } from './maven';
-import {
-  dispatchWorkflow,
-  getWorkflowFile,
-  hasRecentWorkflowRun,
-} from './github';
+import { scheduleLibraryBuild, hasRecentWorkflowRun } from './github';
 
 function getVersionMatcherForPlatform(
   libraryName: string,
@@ -21,7 +17,6 @@ function getVersionMatcherForPlatform(
   const platformConfig = config[platform];
 
   if (platformConfig === false) {
-    // Platform is disabled
     return undefined;
   }
 
@@ -29,11 +24,9 @@ function getVersionMatcherForPlatform(
     typeof platformConfig === 'object' &&
     platformConfig.versionMatcher !== undefined
   ) {
-    // Platform-specific override
     return platformConfig.versionMatcher;
   }
 
-  // Fall back to library-level versionMatcher
   return config.versionMatcher;
 }
 
@@ -62,25 +55,27 @@ function getPublishedAfterDateForPlatform(
     typeof platformConfig === 'object' &&
     platformConfig.publishedAfterDate !== undefined
   ) {
-    // Platform-specific override
     return platformConfig.publishedAfterDate;
   }
-  // Fall back to library-level publishedAfterDate
   return config.publishedAfterDate;
 }
 
-async function processLibrary(libraryName: string, config: LibraryConfig) {
+export async function processLibrary(
+  libraryName: string,
+  config: LibraryConfig,
+  rnVersionsOverride?: string[],
+  limit?: number,
+  currentCount: number = 0
+): Promise<number> {
   console.log(`\n📦 Processing: ${libraryName}`);
 
   const platforms: Platform[] = ['android', 'ios'];
-  const rnVersions = reactNativeVersions as string[];
-  let scheduledCount = 0;
+  const rnVersions = (rnVersionsOverride ?? reactNativeVersions) as string[];
+  let scheduledCount = currentCount;
 
   for (const platform of platforms) {
-    // Skip disabled platforms
     if (config[platform] === false) continue;
 
-    // Resolve package version matcher for this platform
     const pkgMatcher = getVersionMatcherForPlatform(
       libraryName,
       config,
@@ -88,128 +83,107 @@ async function processLibrary(libraryName: string, config: LibraryConfig) {
     );
     if (!pkgMatcher) continue;
 
-    // Resolve React Native version matcher for this platform
     const reactNativeMatcher = getReactNativeMatcherForPlatform(
       config,
       platform
     );
     if (!reactNativeMatcher) continue;
 
-    // Resolve publishedAfterDate for this platform
     const publishedAfterDate = getPublishedAfterDateForPlatform(
       config,
       platform
     );
 
-    // Find matching NPM package versions
     const matchingVersions = await findMatchingVersionsFromNPM(
       libraryName,
       pkgMatcher,
       publishedAfterDate
     );
 
-    // Enumerate all combinations of package version and RN version
     for (const pkgVersionInfo of matchingVersions) {
       const pkgVersion = pkgVersionInfo.version;
 
       for (const rnVersion of rnVersions) {
-        // Skip if RN version doesn't match the pattern
         if (!matchesVersionPattern(rnVersion, reactNativeMatcher)) {
           continue;
         }
 
-        // Check if this combination is already on Maven
         const isOnMaven = await isCombinationOnMaven(
           libraryName,
           pkgVersion,
           rnVersion
         );
         if (isOnMaven) {
-          continue; // Skip this combination
+          continue;
         }
 
-        // Try to schedule this combination
-        const scheduled = await scheduleLibraryBuild(
+        const hasRecentRun = await hasRecentWorkflowRun(
+          libraryName,
+          pkgVersion,
+          rnVersion,
+          platform,
+          5
+        );
+        if (hasRecentRun) {
+          const platformPrefix =
+            platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
+          console.log(
+            platformPrefix,
+            '⏭️  Skipping',
+            libraryName,
+            pkgVersion,
+            'with React Native',
+            rnVersion,
+            '- already scheduled in the past 5 days'
+          );
+          continue;
+        }
+
+        if (limit !== undefined && scheduledCount >= limit) {
+          console.log(`\n⏸️  Reached scheduling limit of ${limit}. Stopping.`);
+          return scheduledCount;
+        }
+
+        await scheduleLibraryBuild(
           libraryName,
           pkgVersion,
           platform,
           rnVersion
         );
-
-        if (scheduled) {
-          scheduledCount++;
-        }
+        scheduledCount++;
       }
     }
   }
 
-  if (scheduledCount === 0) {
+  if (scheduledCount === currentCount) {
     console.log(' ℹ️  No builds to schedule for', libraryName);
   }
+
+  return scheduledCount;
 }
 
-async function scheduleLibraryBuild(
-  npmPackageName: string,
-  npmPackageVersion: string,
-  platform: Platform,
-  reactNativeVersion: string
-): Promise<boolean> {
-  const platformPrefix = platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
-
-  // Check if this exact combination was already scheduled in the past 3 days
-  const hasRecentRun = await hasRecentWorkflowRun(
-    npmPackageName,
-    npmPackageVersion,
-    reactNativeVersion,
-    platform,
-    3
-  );
-
-  if (hasRecentRun) {
-    console.log(
-      platformPrefix,
-      '⏭️  Skipping',
-      npmPackageName,
-      npmPackageVersion,
-      'with React Native',
-      reactNativeVersion,
-      '- already scheduled in the past 3 days'
-    );
-    return false;
-  }
-
-  console.log(
-    platformPrefix,
-    'Scheduling build for',
-    npmPackageName,
-    npmPackageVersion,
-    'with React Native',
-    reactNativeVersion
-  );
-
-  // Dispatch a workflow with inputs (no platform parameter needed - workflow file is platform-specific)
-  try {
-    await dispatchWorkflow(getWorkflowFile(platform), {
-      library_name: npmPackageName,
-      library_version: npmPackageVersion,
-      react_native_version: reactNativeVersion,
-    });
-    console.log(`  ✅ Workflow dispatched successfully`);
-    return true;
-  } catch (error) {
-    console.error(`  ❌ Failed to dispatch workflow:`, error);
-    throw error;
-  }
-}
-
-async function main() {
+export async function runScheduler(limit?: number) {
   const librariesConfig = libraries as Record<string, LibraryConfig>;
+  let totalScheduled = 0;
+
+  if (limit !== undefined) {
+    console.log(`\n📊 Scheduling limit set to: ${limit}`);
+  }
 
   for (const [libraryName, config] of Object.entries(librariesConfig)) {
-    await processLibrary(libraryName, config);
+    const count = await processLibrary(
+      libraryName,
+      config,
+      undefined,
+      limit,
+      totalScheduled
+    );
+    totalScheduled = count;
+
+    if (limit !== undefined && totalScheduled >= limit) {
+      break;
+    }
   }
 
-  console.log('\n✅ Done!');
+  console.log(`\n✅ Done! Scheduled ${totalScheduled} build(s).`);
 }
-
-main().catch(console.error);

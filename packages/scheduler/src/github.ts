@@ -1,17 +1,19 @@
 import { Octokit } from '@octokit/rest';
+import { paginateRest } from '@octokit/plugin-paginate-rest';
 import type { Platform } from './types';
 
-// Initialize Octokit client
+// Initialize Octokit client with pagination plugin
 // GITHUB_TOKEN is provided via environment variable when running on Github Actions
+const MyOctokit = Octokit.plugin(paginateRest);
 export function createOctokit() {
-  return new Octokit({
+  return new MyOctokit({
     auth: process.env.GITHUB_TOKEN,
   });
 }
 
 // Use a getter function to allow mocking in tests
-let _octokit: Octokit | null = null;
-function getOctokit(): Octokit {
+let _octokit: InstanceType<typeof MyOctokit> | null = null;
+function getOctokit(): InstanceType<typeof MyOctokit> {
   if (!_octokit) {
     _octokit = createOctokit();
   }
@@ -19,11 +21,9 @@ function getOctokit(): Octokit {
 }
 
 // Export setter for testing
-export function setOctokit(octokit: Octokit | null) {
+export function setOctokit(octokit: InstanceType<typeof MyOctokit> | null) {
   _octokit = octokit;
 }
-
-const octokit = getOctokit();
 
 const GITHUB_OWNER = 'software-mansion';
 const GITHUB_REPO = 'buildle';
@@ -77,22 +77,40 @@ export async function listWorkflowRuns(
   }
 }
 
-export async function dispatchWorkflow(
-  workflowId: string | number,
-  inputs?: Record<string, string>,
+export async function scheduleLibraryBuild(
+  libraryName: string,
+  libraryVersion: string,
+  platform: Platform,
+  reactNativeVersion: string,
   ref: string = 'main'
-) {
+): Promise<void> {
+  const platformPrefix = platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
+
+  console.log(
+    platformPrefix,
+    'Scheduling build for',
+    libraryName,
+    libraryVersion,
+    'with React Native',
+    reactNativeVersion
+  );
+
   try {
+    const workflowId = getWorkflowFile(platform);
     await getOctokit().rest.actions.createWorkflowDispatch({
       owner: GITHUB_OWNER,
       repo: GITHUB_REPO,
       workflow_id: workflowId,
       ref,
-      inputs,
+      inputs: {
+        library_name: libraryName,
+        library_version: libraryVersion,
+        react_native_version: reactNativeVersion,
+      },
     });
-    return true;
+    console.log(`  ✅ Workflow dispatched successfully`);
   } catch (error) {
-    console.error('Error dispatching workflow:', error);
+    console.error(`  ❌ Failed to dispatch workflow:`, error);
     throw error;
   }
 }
@@ -101,9 +119,61 @@ export function getWorkflowFile(platform: Platform): string {
   return WORKFLOW_FILES[platform];
 }
 
+interface WorkflowRunCache {
+  runs: Awaited<ReturnType<InstanceType<typeof MyOctokit>['paginate']>>;
+  cachedAt: Date;
+}
+
+const workflowRunsCache: Map<string, WorkflowRunCache> = new Map();
+
+function getCacheKey(daysBack: number, branch: string = 'main'): string {
+  return `${daysBack}-${branch}`;
+}
+
+export function clearWorkflowRunsCache() {
+  workflowRunsCache.clear();
+}
+
+async function getWorkflowRuns(
+  daysBack: number,
+  branch: string = 'main'
+): Promise<Awaited<ReturnType<InstanceType<typeof MyOctokit>['paginate']>>> {
+  const cacheKey = getCacheKey(daysBack, branch);
+  const cached = workflowRunsCache.get(cacheKey);
+
+  if (cached) {
+    return cached.runs;
+  }
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+
+  const cutoffDateString = cutoffDate.toISOString().split('T')[0];
+  const createdFilter = `>=${cutoffDateString}`;
+
+  const client = getOctokit();
+  const runs = await client.paginate(
+    client.rest.actions.listWorkflowRunsForRepo,
+    {
+      owner: GITHUB_OWNER,
+      repo: GITHUB_REPO,
+      branch,
+      created: createdFilter,
+    }
+  );
+
+  workflowRunsCache.set(cacheKey, {
+    runs,
+    cachedAt: new Date(),
+  });
+
+  return runs;
+}
+
 /**
  * Checks if a workflow run exists for the given library name, version, React Native version, and platform in the past N days.
  * Returns true if a matching workflow run is found, false otherwise.
+ * Workflow runs are cached to avoid repeated API calls for the same date range.
  */
 export async function hasRecentWorkflowRun(
   libraryName: string,
@@ -113,51 +183,24 @@ export async function hasRecentWorkflowRun(
   daysBack: number = 3
 ): Promise<boolean> {
   try {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+    const runs = await getWorkflowRuns(daysBack, 'main');
 
-    // Get workflow runs from all workflows for the past daysBack days
-    // We need to fetch enough runs to cover the time period
-    // GitHub API returns most recent first, so we fetch a reasonable number
-    const client = getOctokit();
-    const response = await client.rest.actions.listWorkflowRunsForRepo({
-      owner: GITHUB_OWNER,
-      repo: GITHUB_REPO,
-      per_page: 100, // Fetch more to ensure we cover the time period
-    });
-
-    const runs = response.data.workflow_runs;
-
-    // Filter runs to those in the past N days and check their run name
-    // Runs are sorted by most recent first, so we can break early once we pass the cutoff
-    // Run name format: "Build for <platform> <library_name>@<library_version> RN@<react_native_version>"
     const platformLabel = platform === 'android' ? 'Android' : 'iOS';
     const expectedRunName = `Build for ${platformLabel} ${libraryName}@${libraryVersion} RN@${reactNativeVersion}`;
 
     for (const run of runs) {
-      // Skip if run is too old - since runs are sorted by most recent first, we can break
-      const runDate = new Date(run.created_at);
-      if (runDate < cutoffDate) {
-        break; // No more runs in our time window
-      }
-
-      // Check if this run has matching run name
-      // Only workflow_dispatch runs will have our custom run-name format
       if (run.event !== 'workflow_dispatch') {
         continue;
       }
 
-      // Check if run name matches expected format
-      // Run name format: "Build for <platform> <library_name>@<library_version> RN@<react_native_version>"
       if (run.name === expectedRunName) {
-        return true; // Found a matching run
+        return true;
       }
     }
 
-    return false; // No matching run found
+    return false;
   } catch (error) {
     console.error('Error checking recent workflow runs:', error);
-    // On error, return false to allow scheduling (fail open)
     return false;
   }
 }
