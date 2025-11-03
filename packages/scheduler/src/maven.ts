@@ -28,8 +28,6 @@ export async function fetchMavenArtifacts(
       );
     }
     const json = (await res.json()) as { versions?: unknown };
-    // versions on Maven have combined package and RN version in a format like "4.18.1-rn0.79.0"
-    // we keep the full artifact names (package version + RN version combination)
     const versions = Array.isArray(json.versions)
       ? (json.versions as unknown[])
           .map((v) => String(v).trim())
@@ -45,7 +43,10 @@ export async function fetchMavenArtifacts(
   }
 }
 
-export function makeMavenArtifactName(pkgVersion: string, rnVersion: string): string {
+export function makeMavenArtifactName(
+  pkgVersion: string,
+  rnVersion: string
+): string {
   return `${pkgVersion}-rn${rnVersion}`;
 }
 
@@ -55,7 +56,6 @@ export async function isOnMaven(
 ): Promise<boolean> {
   const artifacts = await fetchMavenArtifacts(packageName);
   if (!artifacts) return false;
-  // Check if any artifact starts with the package version (e.g., "4.18.1" matches "4.18.1-rn0.79.0")
   for (const artifact of artifacts) {
     if (artifact.startsWith(`${pkgVersion}-rn`)) {
       return true;
@@ -77,4 +77,3 @@ export async function isCombinationOnMaven(
   const artifactName = makeMavenArtifactName(pkgVersion, rnVersion);
   return artifacts.has(artifactName);
 }
-

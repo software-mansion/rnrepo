@@ -62,14 +62,11 @@ export async function fetchNpmPackageVersions(
     const data = (await response.json()) as NpmRegistryResponse;
     const versions: NpmVersionInfo[] = [];
 
-    // Extract version and publish date from the time object
     for (const [key, timeString] of Object.entries(data.time)) {
-      // Skip metadata fields
       if (key === 'created' || key === 'modified') {
         continue;
       }
 
-      // Validate that it's a semver version
       if (semver.valid(key)) {
         versions.push({
           version: key,
@@ -98,15 +95,12 @@ export async function findMatchingVersionsFromNPM(
   if (!versionMatcher) return [];
   const allVersions = await fetchNpmPackageVersions(packageName);
 
-  // Parse publishedAfterDate if provided
   let minPublishDate: Date | null = null;
   if (publishedAfterDate) {
     const dateStr = publishedAfterDate.trim();
-    // Parse YYYY-MM-DD format
     const dateParts = dateStr.split('-').map(Number);
     if (dateParts.length === 3) {
       minPublishDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-      // Set to start of day for accurate comparison
       minPublishDate.setHours(0, 0, 0, 0);
     } else {
       console.warn(
@@ -119,7 +113,6 @@ export async function findMatchingVersionsFromNPM(
     .filter((v) => !semver.prerelease(v.version))
     .filter((v) => matchesVersionPattern(v.version, versionMatcher))
     .filter((v) => {
-      // Filter by publishedAfterDate if provided
       if (minPublishDate) {
         const publishDate = new Date(v.publishDate);
         publishDate.setHours(0, 0, 0, 0);

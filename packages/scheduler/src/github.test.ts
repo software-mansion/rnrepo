@@ -4,17 +4,20 @@ import {
   getWorkflowFile,
   setOctokit,
   createOctokit,
+  clearWorkflowRunsCache,
 } from './github';
 import type { Platform } from './types';
 
 beforeEach(() => {
-  // Reset octokit before each test
+  // Reset octokit and cache before each test
   setOctokit(null);
+  clearWorkflowRunsCache();
 });
 
 afterEach(() => {
   // Clean up after each test
   setOctokit(null);
+  clearWorkflowRunsCache();
 });
 
 test('getWorkflowFile - returns correct workflow file for platform', () => {
@@ -396,4 +399,79 @@ test('hasRecentWorkflowRun - filters by main branch only', async () => {
       created: expect.stringMatching(/^>=\d{4}-\d{2}-\d{2}$/),
     })
   );
+});
+
+test('hasRecentWorkflowRun - caches workflow runs for same date range', async () => {
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  const mockRuns = [
+    {
+      id: 123,
+      name: 'Build for Android test-library@1.0.0 RN@0.79.0',
+      created_at: yesterday.toISOString(),
+      event: 'workflow_dispatch',
+    },
+  ];
+
+  const mockListWorkflowRunsForRepo = mock(() => ({
+    data: { workflow_runs: mockRuns },
+  }));
+
+  const mockPaginate = mock(() => mockRuns);
+  const mockOctokitInstance = {
+    rest: {
+      actions: {
+        listWorkflowRunsForRepo: mockListWorkflowRunsForRepo,
+        getWorkflowRun: mock(() => ({ data: {} })),
+      },
+    },
+    paginate: mockPaginate,
+  };
+
+  setOctokit(mockOctokitInstance as any);
+
+  // First call - should fetch from API
+  const result1 = await hasRecentWorkflowRun(
+    'test-library',
+    '1.0.0',
+    '0.79.0',
+    'android',
+    3
+  );
+  expect(result1).toBe(true);
+  expect(mockPaginate).toHaveBeenCalledTimes(1);
+
+  // Second call with same daysBack - should use cache
+  const result2 = await hasRecentWorkflowRun(
+    'test-library',
+    '1.0.0',
+    '0.79.0',
+    'android',
+    3
+  );
+  expect(result2).toBe(true);
+  expect(mockPaginate).toHaveBeenCalledTimes(1); // Still only 1 call
+
+  // Third call with different library - should still use cache
+  const result3 = await hasRecentWorkflowRun(
+    'other-library',
+    '2.0.0',
+    '0.80.0',
+    'ios',
+    3
+  );
+  expect(result3).toBe(false);
+  expect(mockPaginate).toHaveBeenCalledTimes(1); // Still only 1 call
+
+  // Call with different daysBack - should fetch from API again
+  const result4 = await hasRecentWorkflowRun(
+    'test-library',
+    '1.0.0',
+    '0.79.0',
+    'android',
+    7
+  );
+  expect(result4).toBe(true);
+  expect(mockPaginate).toHaveBeenCalledTimes(2); // Now 2 calls
 });

@@ -1,3 +1,3 @@
-// Entry point - imports scheduler which runs main() automatically
-import './src/scheduler';
+import { runScheduler } from './src/scheduler';
 
+runScheduler().catch(console.error);
