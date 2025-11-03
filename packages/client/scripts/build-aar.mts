@@ -38,10 +38,10 @@ if (!isDirectory(androidProjectPath)) {
 }
 
 const packages = options.packages.split(',').map((p: string) => p.trim());
-const buildAarScript = path.join(__dirname, 'build-aar-core.js');
+const buildAarScript = path.join(__dirname, 'build-aar-core.cjs');
 
 if (!fs.existsSync(buildAarScript)) {
-  throw new Error(`build-aar-core.js script not found at: ${buildAarScript}`);
+  throw new Error(`build-aar-core.cjs script not found at: ${buildAarScript}`);
 }
 
 console.log(`Building AARs for packages: ${packages.join(', ')}`);
