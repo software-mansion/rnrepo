@@ -63,13 +63,15 @@ function getPublishedAfterDateForPlatform(
 export async function processLibrary(
   libraryName: string,
   config: LibraryConfig,
-  rnVersionsOverride?: string[]
-) {
+  rnVersionsOverride?: string[],
+  limit?: number,
+  currentCount: number = 0
+): Promise<number> {
   console.log(`\n📦 Processing: ${libraryName}`);
 
   const platforms: Platform[] = ['android', 'ios'];
   const rnVersions = (rnVersionsOverride ?? reactNativeVersions) as string[];
-  let scheduledCount = 0;
+  let scheduledCount = currentCount;
 
   for (const platform of platforms) {
     if (config[platform] === false) continue;
@@ -120,7 +122,7 @@ export async function processLibrary(
           pkgVersion,
           rnVersion,
           platform,
-          3
+          5
         );
         if (hasRecentRun) {
           const platformPrefix =
@@ -132,9 +134,14 @@ export async function processLibrary(
             pkgVersion,
             'with React Native',
             rnVersion,
-            '- already scheduled in the past 3 days'
+            '- already scheduled in the past 5 days'
           );
           continue;
+        }
+
+        if (limit !== undefined && scheduledCount >= limit) {
+          console.log(`\n⏸️  Reached scheduling limit of ${limit}. Stopping.`);
+          return scheduledCount;
         }
 
         await scheduleLibraryBuild(
@@ -148,17 +155,35 @@ export async function processLibrary(
     }
   }
 
-  if (scheduledCount === 0) {
+  if (scheduledCount === currentCount) {
     console.log(' ℹ️  No builds to schedule for', libraryName);
   }
+
+  return scheduledCount;
 }
 
-export async function runScheduler() {
+export async function runScheduler(limit?: number) {
   const librariesConfig = libraries as Record<string, LibraryConfig>;
+  let totalScheduled = 0;
 
-  for (const [libraryName, config] of Object.entries(librariesConfig)) {
-    await processLibrary(libraryName, config);
+  if (limit !== undefined) {
+    console.log(`\n📊 Scheduling limit set to: ${limit}`);
   }
 
-  console.log('\n✅ Done!');
+  for (const [libraryName, config] of Object.entries(librariesConfig)) {
+    const count = await processLibrary(
+      libraryName,
+      config,
+      undefined,
+      limit,
+      totalScheduled
+    );
+    totalScheduled = count;
+
+    if (limit !== undefined && totalScheduled >= limit) {
+      break;
+    }
+  }
+
+  console.log(`\n✅ Done! Scheduled ${totalScheduled} build(s).`);
 }

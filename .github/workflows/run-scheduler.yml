@@ -1,0 +1,35 @@
+name: Run Scheduler
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Maximum number of jobs to schedule (defaults to 1 if not provided)'
+        required: false
+        type: number
+
+jobs:
+  run-scheduler:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔄 Run scheduler
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SCHEDULER_LIMIT: ${{ inputs.limit || 1 }}
+        run: bun run scheduler
+

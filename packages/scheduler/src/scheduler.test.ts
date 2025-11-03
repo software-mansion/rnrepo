@@ -155,7 +155,7 @@ test('processLibrary - skips disabled platforms', async () => {
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.79.0');
 
   const { processLibrary } = await import('./scheduler');
-  await processLibrary(libraryName, config);
+  await processLibrary(libraryName, config, mockReactNativeVersions);
 
   // Should only schedule for iOS, not Android
   expect(mockScheduleLibraryBuild).toHaveBeenCalledTimes(4); // 1 version * 4 matching RN versions
@@ -243,7 +243,7 @@ test('processLibrary - skips combinations with recent workflow runs', async () =
 
   try {
     const { processLibrary } = await import('./scheduler');
-    await processLibrary(libraryName, config);
+    await processLibrary(libraryName, config, mockReactNativeVersions);
 
   // Should not schedule anything since all have recent runs
   // 2 platforms (android, ios) * 1 version * 4 matching RN versions = 8 checks
@@ -306,7 +306,7 @@ test('processLibrary - uses platform-specific versionMatcher', async () => {
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.79.0');
 
   const { processLibrary } = await import('./scheduler');
-  await processLibrary(libraryName, config);
+  await processLibrary(libraryName, config, mockReactNativeVersions);
 
   // Should schedule for both platforms
   expect(mockScheduleLibraryBuild).toHaveBeenCalledTimes(8); // 4 RN versions for each platform
