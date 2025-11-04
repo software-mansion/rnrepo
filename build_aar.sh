@@ -28,13 +28,14 @@ create_temp_rn_project() {
     local RN_VERSION=$1
     local TEMP_DIR=$2
     local IS_EXPO=$3
+    rm -rf "$TEMP_DIR" 2>/dev/null
 
     if [ "$IS_EXPO" = true ]; then
-        npx create-expo-app@latest "$TEMP_DIR"
+        npx create-expo-app@latest "$TEMP_DIR" > /dev/null 2>&1
         ( cd "$TEMP_DIR" && npx expo install react-native@"$RN_VERSION" )
         ( cd "$TEMP_DIR" && npx expo prebuild -p android )
     else
-        npx @react-native-community/cli@latest init "$TEMP_DIR" --version "$RN_VERSION" --skip-install
+        npx @react-native-community/cli@latest init "$TEMP_DIR" --version "$RN_VERSION" --skip-install > /dev/null 2>&1
     fi
 
     if [ $? -ne 0 ]; then
@@ -86,6 +87,19 @@ for IS_EXPO_PROJECTS in false true; do
                 pushd "$TEMP_PROJECT_DIR" > /dev/null
                 install_dependencies "$PACKAGE_NAME" "$VERSION" "$IS_EXPO_PROJECTS"
 
+                # Copy LICENSE file if exists
+                LICENSE_PATH="node_modules/$PACKAGE_NAME/$(ls "node_modules/$PACKAGE_NAME" | grep -i 'License*')"
+                TARGET_LICENSE_DIR="node_modules/$PACKAGE_NAME/android/src/main/licenses"
+                if [[ -f "$LICENSE_PATH" ]]; then
+                    mkdir -p $TARGET_LICENSE_DIR
+                    cp "$LICENSE_PATH" "$TARGET_LICENSE_DIR"
+                else
+                    echo "Warning: LICENSE file not found for $PACKAGE_NAME@$VERSION in $LICENSE_PATH"
+                    npm uninstall "$PACKAGE_NAME"
+                    popd > /dev/null
+                    continue
+                fi
+
                 # change all 'implementation' to 'api' in node_module/$PACKAGE_NAME/android/build.gradle
                 sed -i '' 's/implementation/api/g' "node_modules/$PACKAGE_NAME/android/build.gradle"
 
@@ -98,6 +112,16 @@ for IS_EXPO_PROJECTS in false true; do
                         sed -i '' -e "/apply plugin: 'com.android.library'/a\\
                         apply plugin: 'maven-publish'" "node_modules/$PACKAGE_NAME/android/build.gradle"
                     fi
+                fi
+
+                # Add license to aar
+                LICENSE_FILE_NAME=$(basename "$LICENSE_PATH")
+                if ! grep -q "$LICENSE_FILE_NAME" "node_modules/$PACKAGE_NAME/android/build.gradle"; then
+                    sed -i '' -e "/android {/a\\
+        packagingOptions {\\
+            merge \"**/$LICENSE_FILE_NAME\"\\
+        }\\
+        " "node_modules/$PACKAGE_NAME/android/build.gradle"
                 fi
 
                 # add publishing block
@@ -113,7 +137,7 @@ for IS_EXPO_PROJECTS in false true; do
                     packaging 'aar'
                     withXml {
                         def dependenciesNode = asNode().appendNode('dependencies')
-                        project.configurations.api.allDependencies.each { dependency ->
+                        project.configurations.implementation.allDependencies.each { dependency ->
                             def dependencyNode = dependenciesNode.appendNode('dependency')
                             dependencyNode.appendNode('groupId', dependency.group)
                             dependencyNode.appendNode('artifactId', dependency.name)
