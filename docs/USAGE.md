@@ -16,7 +16,7 @@ cd packages/client/gradle-plugin/buildle-plugin
 REMOTE
 ```
 cd packages/client/gradle-plugin/buildle-plugin
-MAVEN_USER=<> MAVEN_PASSWORD=<> PACKAGE_NAME=<react-native-reanimated> LIB_VERSION=<4.1.3> RN_VERSION=<0.81.4> AAR_FILEPATH=<AARS/0.81.4/react-native-reanimated/4.1.3/react-native-reanimated.aar> ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases
+MAVEN_USER=<> MAVEN_PASSWORD=<> SIGNING_KEY=<> SIGNING_PASSWORD=<> PACKAGE_NAME=<react-native-reanimated> LIB_VERSION=<4.1.3> RN_VERSION=<0.81.4> AAR_FILEPATH=<AARS/0.81.4/react-native-reanimated/4.1.3/react-native-reanimated.aar> ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases
 ```
 LOCAL
 ```

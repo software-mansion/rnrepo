@@ -2,6 +2,7 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.8.22'
     id 'maven-publish'
     id 'java-gradle-plugin'
+    id 'signing'
 }
 
 group = 'com.swmansion'
@@ -80,4 +81,9 @@ publishing {
             }
         }
     }
+}
+
+signing {
+    useInMemoryPgpKeys(System.getenv("SIGNING_KEY"), System.getenv("SIGNING_PASSWORD"))
+    sign publishing.publications["buildleArtefact"]
 }
