@@ -1,0 +1,62 @@
+allprojects { project ->
+    if (!project.plugins.hasPlugin("maven-publish")) {
+        project.plugins.apply("maven-publish")
+    }
+
+    // Configure android.publishing.singleVariant before projects are evaluated
+    // This needs to happen after the Android plugin is applied but before evaluation completes
+    project.afterEvaluate { proj ->
+        if (proj.plugins.hasPlugin("com.android.library")) {
+            try {
+                if (proj.hasProperty('android')) {
+                    def android = proj.android
+                    if (android.hasProperty('publishing')) {
+                        android.publishing {
+                            singleVariant("release")
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                println "Warning: Could not configure singleVariant for ${proj.name}: ${e.message}"
+            }
+        }
+    }
+}
+
+gradle.projectsEvaluated {
+    allprojects { project ->
+
+        // Target only Android library modules
+        if (project.plugins.hasPlugin("com.android.library")) {
+            // Configure maven-publish publications
+            // components.release should now be available after singleVariant is configured
+            try {
+                publishing {
+                    publications {
+                        release(MavenPublication) {
+                            from project.components.release
+
+                            groupId = 'org.rnrepo.public'
+                            artifactId = project.findProperty('rnrepoArtifactId')
+                            version = project.findProperty('rnrepoPublishVersion')
+
+                            pom {
+                                licenses {
+                                    license {
+                                        name = project.findProperty('rnrepoLicenseName')
+                                        url = project.findProperty('rnrepoLicenseUrl')
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    repositories {
+                        mavenLocal()
+                    }
+                }
+            } catch (Exception e) {
+                println "Warning: Could not configure publishing for ${project.name}: ${e.message}"
+            }
+        }
+    }
+}

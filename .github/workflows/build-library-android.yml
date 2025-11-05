@@ -52,5 +52,5 @@ jobs:
         run: bun install
 
       - name: 🔨 Build library for Android
-        run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}"
+        run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}"
 
