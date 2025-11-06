@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       build_run_id:
-        description: 'Build workflow run ID to download artifacts from'
+        description: 'Build workflow run ID (for testing)'
         required: true
         type: string
   # TODO: eventually this action will run as a response to a workflow_run event
@@ -56,5 +56,8 @@ jobs:
         run: bun install
 
       - name: 📤 Publish library
-        run: bun run packages/publisher/publish-library-android.ts
+        run: bun run packages/publisher/publish-library-android.ts -- "${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.build_run_id }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
 
