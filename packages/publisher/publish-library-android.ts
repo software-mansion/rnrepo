@@ -20,10 +20,20 @@ if (!buildRunId) {
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY;
+const MAVEN_USERNAME = process.env.MAVEN_USERNAME;
+const MAVEN_PASSWORD = process.env.MAVEN_PASSWORD;
+const MAVEN_REPOSITORY_URL = process.env.MAVEN_REPOSITORY_URL;
 
 if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) {
   console.error(
     'Error: GITHUB_TOKEN and GITHUB_REPOSITORY environment variables are required'
+  );
+  process.exit(1);
+}
+
+if (!MAVEN_USERNAME || !MAVEN_PASSWORD || !MAVEN_REPOSITORY_URL) {
+  console.error(
+    'Error: MAVEN_USERNAME, MAVEN_PASSWORD and MAVEN_REPOSITORY_URL environment variables are required'
   );
   process.exit(1);
 }
@@ -105,9 +115,8 @@ async function main() {
     const aarFile = join(artifactsBasePath, `${baseFileName}.aar`);
     const moduleFile = join(artifactsBasePath, `${baseFileName}.module`);
 
-    const repositoryUrl = 'https://packages.rnrepo.org/snapshots';
-
     // Deploy directly from downloaded artifacts (not from .m2/repository)
+    // Pass username and password directly to mvn command
     await $`mvn deploy:deploy-file \
         -Dfile=${aarFile} \
         -DpomFile=${pomFile} \
@@ -116,8 +125,9 @@ async function main() {
         -DartifactId=${mavenLibraryName} \
         -Dversion=${mavenVersionString} \
         -Dpackaging=aar \
-        -DrepositoryId=RNRepo \
-        -Durl=${repositoryUrl}`;
+        -Durl=${MAVEN_REPOSITORY_URL} \
+        -Dusername=${MAVEN_USERNAME} \
+        -Dpassword=${MAVEN_PASSWORD}`;
 
     console.log(
       `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
