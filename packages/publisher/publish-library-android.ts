@@ -73,7 +73,7 @@ async function main() {
       'rnrepo',
       'public',
       libraryName,
-      libraryVersion
+      `${libraryVersion}-rn${reactNativeVersion}`
     );
 
     if (!existsSync(mavenLocalLibraryLocationPath)) {
