@@ -17,7 +17,8 @@
     "include-aar": "node android-resources/scripts/include-aar.mjs",
     "npm-build-aar": "node --loader ts-node/esm android-resources/scripts/build-aar-from-npm.mts",
     "builder": "bun run packages/builder",
-    "scheduler": "bun run packages/scheduler"
+    "scheduler": "bun run packages/scheduler",
+    "publisher": "bun run packages/publisher"
   },
   "author": "",
   "license": "ISC",
