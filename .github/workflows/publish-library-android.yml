@@ -52,8 +52,8 @@ jobs:
             <servers>
               <server>
                 <id>RNRepo</id>
-                <username>rnrepo-swm-publisher</username>
-                <password>${{ secrets.RNREPO_SWM_PUBLISHER_TEST_SECRET }}</password>
+                <username>${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}</username>
+                <password>${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}</password>
               </server>
             </servers>
           </settings>
