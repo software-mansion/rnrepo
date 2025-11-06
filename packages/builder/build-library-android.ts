@@ -1,3 +1,16 @@
+import { $ } from 'bun';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  copyFileSync,
+  statSync,
+  chmodSync,
+} from 'fs';
+import { join } from 'path';
+
 /**
  * Build Library Android Script
  *
@@ -6,25 +19,223 @@
  * @param libraryName - Name of the library from NPM
  * @param libraryVersion - Version of the library from NPM
  * @param reactNativeVersion - React Native version to use for building
+ * @param workDir - Working directory where "app" (RN project) and "outputs" (AAR files) will be created
  */
 
-const [libraryName, libraryVersion, reactNativeVersion] = process.argv.slice(2);
+const [libraryName, libraryVersion, reactNativeVersion, workDir] =
+  process.argv.slice(2);
 
-if (!libraryName || !libraryVersion || !reactNativeVersion) {
-  console.error('Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version>');
+if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
+  console.error(
+    'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir>'
+  );
   process.exit(1);
 }
 
+type AllowedLicense = 'MIT' | 'Apache-2.0' | 'BSD-3-Clause' | 'BSD-2-Clause';
+
+const ALLOWED_LICENSES: AllowedLicense[] = [
+  'MIT',
+  'Apache-2.0',
+  'BSD-3-Clause',
+  'BSD-2-Clause',
+];
+
+// Main execution
 console.log('📦 Building Android library:');
 console.log(`   Library: ${libraryName}@${libraryVersion}`);
 console.log(`   React Native: ${reactNativeVersion}`);
+console.log('');
 
-// TODO: Implement the build logic
-console.log('\n⚠️  This is a stub script. Build logic will be implemented here.');
+try {
+  await buildLibrary();
+  process.exit(0);
+} catch (error) {
+  console.error('❌ Build failed:', error);
+  process.exit(1);
+}
 
-// The actual implementation will:
-// 1. Set up the build environment with the specified React Native version
-// 2. Install the library from NPM with the specified version
-// 3. Build the Android AAR file
-// 4. Handle any errors and provide appropriate output
+async function installWorkletsIfNeeded(appDir: string) {
+  if (libraryName === 'react-native-reanimated') {
+    if (libraryVersion.startsWith('4.0.')) {
+      console.log('📦 Installing react-native-worklets@0.4.0...');
+      await $`npm install react-native-worklets@0.4.0 --save-exact`
+        .cwd(appDir)
+        .quiet();
+    } else if (libraryVersion.startsWith('4.1.')) {
+      console.log('📦 Installing react-native-worklets@0.5.0...');
+      await $`npm install react-native-worklets@0.5.0 --save-exact`
+        .cwd(appDir)
+        .quiet();
+    }
+  }
+}
 
+function convertToGradleProjectName(packageName: string): string {
+  // Convert npm package name to Gradle project name following React Native's pattern
+  // @react-native-community/slider -> react-native-community_slider
+  return packageName.replace(/^@/, '').replace(/\//g, '_');
+}
+
+async function buildAAR(appDir: string, license: AllowedLicense) {
+  const gradleProjectName = convertToGradleProjectName(libraryName);
+  const packagePath = join(appDir, 'node_modules', libraryName);
+  const androidPath = join(appDir, 'android');
+  const settingsPath = join(androidPath, 'settings.gradle');
+
+  // Validate that package exists
+  if (!existsSync(packagePath)) {
+    throw new Error(
+      `Package not found: ${libraryName}. Make sure it's installed in node_modules.`
+    );
+  }
+
+  const packageAndroidPath = join(packagePath, 'android');
+  if (!existsSync(packageAndroidPath)) {
+    throw new Error(
+      `Package ${libraryName} does not have an Android implementation`
+    );
+  }
+
+  // Temporarily add the package to settings.gradle if not already there
+  const originalSettings = readFileSync(settingsPath, 'utf-8');
+  const packageInclude = `include ':${gradleProjectName}'`;
+  const packageProject = `project(':${gradleProjectName}').projectDir = new File('${packagePath}/android')`;
+
+  if (!originalSettings.includes(packageInclude)) {
+    const updatedSettings = `${originalSettings}\n${packageInclude}\n${packageProject}\n`;
+    writeFileSync(settingsPath, updatedSettings);
+    console.log(
+      `✓ Added ${libraryName} as :${gradleProjectName} to settings.gradle`
+    );
+  }
+
+  const addPublishingGradleScriptPath = join(
+    __dirname,
+    'add-publishing.gradle'
+  );
+
+  const publishVersionString = `${libraryVersion}-rn${reactNativeVersion}`;
+  const mavenLocalLibraryLocationPath = join(
+    process.env.HOME || process.env.USERPROFILE || '',
+    '.m2',
+    'repository',
+    'org',
+    'rnrepo',
+    'public',
+    libraryName,
+    publishVersionString
+  );
+
+  if (existsSync(mavenLocalLibraryLocationPath)) {
+    throw new Error(
+      `Library ${libraryName}@${libraryVersion}-rn${reactNativeVersion} is already published to Maven Local`
+    );
+  }
+
+  try {
+    await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
+      --no-daemon \
+      --init-script ${addPublishingGradleScriptPath} \
+      -PrnrepoArtifactId=${gradleProjectName} \
+      -PrnrepoPublishVersion=${publishVersionString} \
+      -PrnrepoLicenseName=${license} \
+      -PrnrepoLicenseUrl=https://opensource.org/license/${license}
+    `.cwd(androidPath);
+
+    // verify that the .aar and .pom files are present aftre the publish command completes
+    const aarPath = join(
+      mavenLocalLibraryLocationPath,
+      `${libraryName}-${publishVersionString}.aar`
+    );
+    const pomPath = join(
+      mavenLocalLibraryLocationPath,
+      `${libraryName}-${publishVersionString}.pom`
+    );
+    if (!existsSync(aarPath)) {
+      throw new Error(`AAR file not found at ${aarPath}`);
+    }
+    if (!existsSync(pomPath)) {
+      throw new Error(`POM file not found at ${pomPath}`);
+    }
+
+    console.log('✓ Published to Maven Local successfully');
+  } catch (error) {
+    console.error(`❌ Build failed:`, error);
+    throw error;
+  }
+}
+
+function extractAndVerifyLicense(appDir: string): AllowedLicense {
+  const packageJsonPath = join(
+    appDir,
+    'node_modules',
+    libraryName,
+    'package.json'
+  );
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+  const licenseName = packageJson.license;
+  if (!ALLOWED_LICENSES.includes(licenseName as AllowedLicense)) {
+    throw new Error(
+      `License ${licenseName} is not allowed. Allowed licenses are: ${ALLOWED_LICENSES.join(
+        ', '
+      )}`
+    );
+  }
+  return licenseName as AllowedLicense;
+}
+
+async function buildLibrary() {
+  const appDir = join(workDir, 'rnrepo_build_app');
+
+  // Create work directory if it doesn't exist
+  mkdirSync(workDir, { recursive: true });
+
+  // Check that app and outputs directories don't exist yet
+  if (existsSync(appDir)) {
+    throw new Error(`App directory ${appDir} already exists.`);
+  }
+
+  console.log(
+    `🔨 Building AAR for ${libraryName}@${libraryVersion} with RN ${reactNativeVersion}...`
+  );
+
+  try {
+    // Create RN project in the work directory
+    console.log(
+      `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
+    );
+
+    $.cwd(workDir);
+    await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`.quiet();
+    $.cwd(appDir);
+
+    // Install the library
+    console.log(`📦 Installing ${libraryName}@${libraryVersion}...`);
+    await $`npm install ${libraryName}@${libraryVersion} --save-exact`.quiet();
+
+    // Extract license name from the library's package.json
+    const license = extractAndVerifyLicense(appDir);
+
+    // Install worklets if needed for reanimated
+    await installWorkletsIfNeeded(appDir);
+
+    // Install all dependencies
+    console.log('📦 Installing all dependencies...');
+    await $`npm install`.quiet();
+
+    // Build AAR
+    console.log('🔨 Building AAR...');
+    await buildAAR(appDir, license);
+
+    console.log(
+      `✅ Successfully built AAR for ${libraryName}@${libraryVersion} with RN ${reactNativeVersion}`
+    );
+  } catch (error) {
+    console.error(
+      `❌ Error building AAR for ${libraryName}@${libraryVersion}:`,
+      error
+    );
+    throw error;
+  }
+}
