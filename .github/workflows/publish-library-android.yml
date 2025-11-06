@@ -48,6 +48,25 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install
 
+      - name: 🔐 Generate Maven settings.xml
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0
+                    http://maven.apache.org/xsd/settings-1.2.0.xsd">
+            <servers>
+              <server>
+                <id>RNRepo</id>
+                <username>${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}</username>
+                <password><![CDATA[${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}]]></password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
       - name: 📤 Publish library
         run: bun run packages/publisher/publish-library-android.ts -- "${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.build_run_id }}"
         env:

@@ -125,9 +125,8 @@ async function main() {
         -DartifactId=${mavenLibraryName} \
         -Dversion=${mavenVersionString} \
         -Dpackaging=aar \
-        -Durl=${MAVEN_REPOSITORY_URL} \
-        -Dusername=${MAVEN_USERNAME} \
-        -Dpassword=${MAVEN_PASSWORD}`;
+        -DrepositoryId=RNRepo \
+        -Durl=${MAVEN_REPOSITORY_URL}`;
 
     console.log(
       `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
