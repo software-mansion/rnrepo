@@ -55,5 +55,5 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           MAVEN_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}
-          MAVEN_REPOSITORY_URL: https://packages.rnrepo.org/snapshots
+          MAVEN_REPOSITORY_URL: https://packages.swmtest.xyz/releases
 
