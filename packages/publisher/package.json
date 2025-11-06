@@ -1,0 +1,19 @@
+{
+  "name": "@rnrepo/publisher",
+  "version": "0.1.0",
+  "description": "Publisher package for React Native libraries",
+  "type": "module",
+  "main": "./publish-library.ts",
+  "scripts": {
+    "publish": "bun run publish-library.ts"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "zx": "^8.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.4",
+    "typescript": "^5.8.3"
+  }
+}
+

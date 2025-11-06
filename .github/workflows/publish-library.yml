@@ -1,0 +1,41 @@
+name: Publish React Native Library
+
+run-name: Publish library from build workflow
+
+on:
+  workflow_run:
+    workflows: ["Build React Native Library for Android"]
+    types:
+      - completed
+
+jobs:
+  publish-library:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 📥 Download Maven artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ~/.m2/repository/org/rnrepo/public
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 📤 Publish library
+        run: bun run packages/publisher/publish-library.ts
+        env:
+          MAVEN_ARTIFACTS_PATH: maven-artifacts
+

@@ -25,6 +25,18 @@
         "typescript": "^5.8.3",
       },
     },
+    "packages/publisher": {
+      "name": "@rnrepo/publisher",
+      "version": "0.1.0",
+      "dependencies": {
+        "commander": "^13.1.0",
+        "zx": "^8.6.0",
+      },
+      "devDependencies": {
+        "@types/node": "^24.0.4",
+        "typescript": "^5.8.3",
+      },
+    },
     "packages/scheduler": {
       "name": "@rnrepo/scheduler",
       "dependencies": {
@@ -77,6 +89,8 @@
     "@octokit/types": ["@octokit/types@16.0.0", "", { "dependencies": { "@octokit/openapi-types": "^27.0.0" } }, "sha512-sKq+9r1Mm4efXW1FCk7hFSeJo4QKreL/tTbR0rz/qx/r1Oa2VV83LTA/H/MuCOX7uCIJmQVRKBcbmWoySjAnSg=="],
 
     "@rnrepo/builder": ["@rnrepo/builder@workspace:packages/builder"],
+
+    "@rnrepo/publisher": ["@rnrepo/publisher@workspace:packages/publisher"],
 
     "@rnrepo/scheduler": ["@rnrepo/scheduler@workspace:packages/scheduler"],
 
