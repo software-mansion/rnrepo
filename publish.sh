@@ -14,6 +14,8 @@ for arg in "$@"; do
     OPTIONAL ENV VARIABLES:
     MAVEN_USER         Maven repository username (required for remote publishing)
     MAVEN_PASSWORD     Maven repository password (required for remote publishing)
+    SIGNING_KEY        PGP signing key (required for remote publishing)
+    SIGNING_PASSWORD   PGP signing password (required for remote publishing)
     LOCAL              If set to 'true', publishes to local Maven repository instead of remote (default: 'false')
     """
     exit 0
@@ -22,6 +24,8 @@ done
 
 MAVEN_USER=${MAVEN_USER:-"user"}
 MAVEN_PASSWORD=${MAVEN_PASSWORD:-"password"}
+SIGNING_KEY=${SIGNING_KEY:-"signing_key"}
+SIGNING_PASSWORD=${SIGNING_PASSWORD:-"signing_password"}
 LOCAL=${LOCAL:-false}
 
 if [ ! -f "$JSON_FILE" ]; then
@@ -48,18 +52,19 @@ for RN_VERSION in $RN_VERSIONS; do
     PACKAGES=$(echo "$PACKAGE_OBJECT" | jq -r 'keys[]')
     
     for PKG_NAME in $PACKAGES; do
+        PACKAGE_NAME_GRADLE=$(echo "$PKG_NAME" | sed 's/@//;s/\//_/g')
         VERSION_ARRAY=$(echo "$PACKAGE_OBJECT" | jq -r --arg pkg "$PKG_NAME" '.[$pkg][]')
         
         for LIB_VERSION in $VERSION_ARRAY; do
-            AAR_FILE="AARS/$RN_VERSION/$PKG_NAME/$LIB_VERSION/$PKG_NAME.aar"
+            AAR_FILE="AARS/$RN_VERSION/$PKG_NAME/$LIB_VERSION/$PACKAGE_NAME_GRADLE.aar"
 
             if [ -f "$AAR_FILE" ]; then
                 echo "Publishing $PKG_NAME@$LIB_VERSION (RN:$RN_VERSION) from $AAR_FILE"
 
-                pushd android-resources/gradle-plugin/buildle-plugin
-                COMMON_ENV_VARS="PACKAGE_NAME=$PKG_NAME LIB_VERSION=$LIB_VERSION RN_VERSION=$RN_VERSION AAR_FILEPATH=../../../$AAR_FILE"
+                pushd packages/client/gradle-plugin/buildle-plugin
+                COMMON_ENV_VARS="PACKAGE_NAME=$PACKAGE_NAME_GRADLE LIB_VERSION=$LIB_VERSION RN_VERSION=$RN_VERSION AAR_FILEPATH=../../../../$AAR_FILE"
                 if [[ "$LOCAL" != "true" ]]; then
-                    eval "$COMMON_ENV_VARS MAVEN_USER=$MAVEN_USER MAVEN_PASSWORD=$MAVEN_PASSWORD ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases"
+                    eval "$COMMON_ENV_VARS MAVEN_USER=$MAVEN_USER MAVEN_PASSWORD=$MAVEN_PASSWORD SIGNING_KEY=$SIGNING_KEY SIGNING_PASSWORD=$SIGNING_PASSWORD ./gradlew publishBuildleArtefactPublicationToreposiliteRepositoryReleases"
                 else
                     eval "$COMMON_ENV_VARS ./gradlew publishBuildleArtefactPublicationToMavenLocal"
                 fi

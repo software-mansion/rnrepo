@@ -1,4 +1,3 @@
 {
-    "disableRnRepo": false,
     "denyList": ["react-native-reanimated", "react-native-svg"]
 }

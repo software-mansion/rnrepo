@@ -13,9 +13,8 @@
     "npm-build-xcf": "node --loader ts-node/esm ios-resources/scripts/build-xcf-from-npm.mts",
     "upload-xcf": "node --loader ts-node/esm ios-resources/scripts/upload-xcframework.mts",
     "test-ios": "node --loader ts-node/esm ios-resources/scripts/test-ios-app.mts",
-    "build-aar": "node --loader ts-node/esm android-resources/scripts/build-aar.mts",
-    "include-aar": "node android-resources/scripts/include-aar.mjs",
-    "npm-build-aar": "node --loader ts-node/esm android-resources/scripts/build-aar-from-npm.mts",
+    "build-aar": "node --loader ts-node/esm packages/client/scripts/build-aar.mts",
+    "npm-build-aar": "node --loader ts-node/esm packages/client/scripts/build-aar-from-npm.mts",
     "builder": "bun run packages/builder",
     "scheduler": "bun run packages/scheduler",
     "publisher": "bun run packages/publisher"

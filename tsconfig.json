@@ -15,7 +15,6 @@
   "include": [
     "packages/**/*",
     "ios-resources/**/*",
-    "android-resources/**/*"
   ],
   "exclude": [
     "node_modules",

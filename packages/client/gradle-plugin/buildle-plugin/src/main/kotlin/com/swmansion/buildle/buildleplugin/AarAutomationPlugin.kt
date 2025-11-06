@@ -1,51 +1,21 @@
 package com.swmansion.buildle.buildleplugin
 
 import org.gradle.api.*
-import org.gradle.api.tasks.*
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.Paths
-import groovy.json.JsonSlurper
 import org.gradle.api.artifacts.*
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import org.gradle.kotlin.dsl.* // Import DSL extensions for dependencies and properties
-import java.net.URI
-import org.gradle.api.artifacts.Configuration
-import java.net.HttpURLConnection
-import java.net.URL
+import org.gradle.api.tasks.*
+import groovy.json.JsonSlurper
+import org.gradle.kotlin.dsl.*
+import java.io.File
+import java.net.*
+import java.nio.file.*
 import java.util.concurrent.TimeUnit
-import com.android.build.gradle.AppExtension
-import com.android.build.gradle.BaseExtension 
+import com.android.build.gradle.*
 import com.android.build.gradle.internal.tasks.factory.dependsOn
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 
-class PackageItem(val name: String, val version: String, var module: String = "") {
-    init { 
-        if (module.isEmpty()) {
-            module = name
-        }
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is PackageItem) return false
-
-        if (name != other.name) return false
-        if (version != other.version) return false
-        if (module != other.module) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = name.hashCode()
-        result = 31 * result + version.hashCode()
-        result = 31 * result + module.hashCode()
-        return result
-    }
-}
-
+data class PackageItem(val name: String, val version: String, var module: String = name)
 
 open class BuildleExtension {
     var packages: List<PackageItem> = listOf()
@@ -54,18 +24,24 @@ open class BuildleExtension {
 }
 
 class AarAutomationPlugin : Plugin<Project> {
+    private val logger: Logger = Logging.getLogger("AarAutomationPlugin")
+    // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
+    // remote repo URL with AARs
+    private val REMOTE_REPO_NAME = "reposiliteRepositoryReleases"
+    private val REMOTE_REPO_URL = "https://repo.swmtest.xyz/releases"
+
 
     override fun apply(project: Project) {
         if (shouldPluginExecute(project)) {
             val extension = project.extensions.create("buildle", BuildleExtension::class.java)
-            println("Start BUILDLE ")
+            println("RNRepo Plugin has been applied to project!")
             
             // Add SWM Maven repository with AAR artifacts
             project.repositories.apply {
                 maven { repo ->
-                    repo.name = "reposiliteRepositoryReleases"
-                    repo.url = URI("https://repo.swmtest.xyz/releases")
+                    repo.name = REMOTE_REPO_NAME
+                    repo.url = URI(REMOTE_REPO_URL)
                 }
             }
 
@@ -75,7 +51,7 @@ class AarAutomationPlugin : Plugin<Project> {
 
             // Add dependencies for supported packages 
             extension.packages.forEach { packageItem ->
-                println("RAD Adding dependency for ${packageItem.name} version ${packageItem.version}")
+                project.logger.info("[RNRepo] Adding dependency for ${packageItem.name} version ${packageItem.version}")
                 project.dependencies.add("implementation", "com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}")
             }
 
@@ -101,27 +77,29 @@ class AarAutomationPlugin : Plugin<Project> {
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.packages.forEach { packageItem ->
-                val subproject = project.rootProject.findProject(":${packageItem.name}")
-                val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                val codegenTaskExists = subproject?.tasks?.findByName(codegenTaskName) != null
-                if (codegenTaskExists) {
-                    println("Adding dependency on task :${packageItem.name}:$codegenTaskName")
-                    project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
-                }
+                // val subproject = project.rootProject.findProject(":${packageItem.name}")
+                // val codegenTaskName = "generateCodegenArtifactsFromSchema"
+                // val codegenTaskExists = subproject?.tasks?.findByName(codegenTaskName) != null
+                // if (codegenTaskExists) {
+                //     project.logger.info("Adding dependency on task :${packageItem.name}:$codegenTaskName")
+                //     project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
+                // }
 
+                // if (packageItem.name.contains("expo")) return@forEach // todo - investigate or drop expo packages
                 // keeping this code for reference if above doesn't work as expected
-                // println("Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
-                // project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
+                project.logger.info("[RNRepo] Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
+                project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
             }
 
             // Add substitution for supported packages 
             project.afterEvaluate {
                 extension.packages.forEach { packageItem ->
-                    println("Adding substitution for ${packageItem.name}")
+                    val module = "com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}"
+                    project.logger.info("[RNRepo] Adding substitution for ${packageItem.name} using $module")
                     project.configurations.all { config ->
                         config.resolutionStrategy.dependencySubstitution {
                             it.substitute(it.project(":${packageItem.name}"))
-                                .using(it.module("com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}"))
+                                .using(it.module(module))
                         }
                     }
                 }
@@ -153,7 +131,7 @@ class AarAutomationPlugin : Plugin<Project> {
             it.contains("assemble") || it.contains("build") || it.contains("install")}
         val isEnvEnabled: Boolean = System.getenv("DISABLE_BUILDLE")?.equals("true", ignoreCase = true)?.not() ?: true
         val isPropertyEnabled: Boolean = System.getProperty("DISABLE_BUILDLE", "false").equals("true", ignoreCase = true).not()
-        // TODO(radoslawrolka): add another check for value inside rn-repo config JSON (json with allowlist/denylist etc.)
+        project.logger.debug("[RNRepo] Building command: $isBuildingCommand, Env enabled: $isEnvEnabled, Property enabled: $isPropertyEnabled")
         return isBuildingCommand && isEnvEnabled && isPropertyEnabled
     }
 
@@ -177,20 +155,20 @@ class AarAutomationPlugin : Plugin<Project> {
         val reactNativeRoot = getReactNativeRoot(project.rootProject)
         val configFile = File(reactNativeRoot, CONFIG_FILE_NAME)
         if (!configFile.exists()) {
-            println("Config file $CONFIG_FILE_NAME not found in React Native root: ${reactNativeRoot.absolutePath}. Using empty deny list.")
+            project.logger.info("[RNRepo] Config file $CONFIG_FILE_NAME not found in React Native root: ${reactNativeRoot.absolutePath}. Using empty deny list.")
             return
         }
         try {
             val json = JsonSlurper().parse(configFile) as Map<String, Any>
             val denyList = json["denyList"] as? List<String>
             if (denyList != null) {
-                println("Loaded deny list from config: $denyList")
+                project.logger.info("[RNRepo] Loaded deny list from config: $denyList")
                 extension.denyList = denyList.toSet()
             } else {
-                println("No denyList found in config file. Using empty deny list.")
+                project.logger.info("[RNRepo] No denyList found in config file. Using empty deny list.")
             }
         } catch (e: Exception) {
-            println("Error parsing $CONFIG_FILE_NAME: ${e.message}. Using empty deny list.")
+            project.logger.error("[RNRepo] Error parsing $CONFIG_FILE_NAME: ${e.message}. Using empty deny list.")
         }
     }
     
@@ -207,7 +185,7 @@ class AarAutomationPlugin : Plugin<Project> {
         extension: BuildleExtension
     ): Boolean {
         if (extension.denyList.contains(packageName)) {
-            println("Package $packageName is in deny list, skipping in RN-Repo.")
+            logger.info("[RNRepo] Package $packageName is in deny list, skipping in RNRepo.")
             return false
         }
         return true
@@ -218,19 +196,19 @@ class AarAutomationPlugin : Plugin<Project> {
      *
      * This function performs a HEAD request to determine if the specified package version is present for the given React Native (RN) version.
      *
-     * @param packageName The name of the package to check.
+     * @param gradlePackageName The name of the package to check.
      * @param packageVersion The version of the package.
      * @param RNVersion The React Native version that the package is intended for.
      *
      * @return True if the package is available, false otherwise.
      */
     private fun isPackageAvailable(
-        packageName: String, 
+        gradlePackageName: String, 
         packageVersion: String, 
         RNVersion: String
     ): Boolean {
         val cachePath = System.getProperty("user.home") + "/.gradle/caches/modules-2/files-2.1"
-        val groupPath = "com.swmansion/$packageName"
+        val groupPath = "com.swmansion/$gradlePackageName"
         val artifactPath = "${packageVersion}-rn$RNVersion"
         
         // Construct the local path expected for the .aar file in cache
@@ -238,23 +216,52 @@ class AarAutomationPlugin : Plugin<Project> {
         val cacheFile = File(filePathInCache)
         // Check if the directory for this package and version exists in the cache
         if (cacheFile.exists() && cacheFile.isDirectory) {
- 
-            // If the directory exists, we presume the AAR is cached correctly (could extend to check for file)
+            logger.info("[RNRepo] Package $gradlePackageName version $packageVersion is cached in Gradle cache.")
             return true
         }
 
-        val urlString = "https://repo.swmtest.xyz/releases/com/swmansion/${packageName}/${packageVersion}-rn${RNVersion}/${packageName}-${packageVersion}-rn${RNVersion}.aar"
+        val urlString = "https://repo.swmtest.xyz/releases/com/swmansion/${gradlePackageName}/${packageVersion}-rn${RNVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
         var connection: HttpURLConnection? = null
         return try {
             connection = URL(urlString).openConnection() as HttpURLConnection
             connection.requestMethod = "HEAD"
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
+            logger.info("[RNRepo] Checking availability of package $gradlePackageName version $packageVersion at $urlString")
             connection.responseCode == HttpURLConnection.HTTP_OK
         } catch (e: Exception) {
+            logger.error("[RNRepo] Error checking package availability for $gradlePackageName version $packageVersion: ${e.message}")
             false
         } finally {
             connection?.disconnect()
+        }
+    }
+
+    private fun traversePackagesDir(dir: File, packagesList: MutableList<PackageItem>, extension: BuildleExtension) {
+        dir.listFiles()?.forEach { file ->
+            if (!file.isDirectory) return@forEach
+            val packageJsonFile = File(file, "package.json")
+            val androidDir = File(file, "android")
+            if (!packageJsonFile.exists() || !androidDir.exists()) {
+                traversePackagesDir(file, packagesList, extension)
+                return@forEach
+            }
+            try {
+                logger.info("[RNRepo] Found package.json in ${file.name}")
+                val json = JsonSlurper().parse(packageJsonFile) as Map<String, Any>
+                val packageName = json["name"] as? String
+                val packageVersion = json["version"] as? String
+                if (packageName != null && packageVersion != null) {
+                    val gradlePackageName = packageName.replace("@", "").replace("/", "_")
+                    if (isPackageAvailable(gradlePackageName, packageVersion, extension.reactNativeVersion) &&
+                        isPackageNotDenied(packageName, extension)) {
+                        packagesList.add(PackageItem(gradlePackageName, packageVersion))
+                        logger.info("[RNRepo] Found supported package: $packageName version $packageVersion")
+                    }
+                }
+            } catch (e: Exception) {
+                logger.error("[RNRepo] Error parsing package.json in ${file.name}: ${e.message}")
+            }
         }
     }
 
@@ -264,14 +271,14 @@ class AarAutomationPlugin : Plugin<Project> {
         // iter over node_modules/<package>/package.json
         val node_modulesDir = File(reactNativeRoot, "node_modules")
         if (!node_modulesDir.exists()) {
-            println("node_modules directory not found: ${node_modulesDir.absolutePath}. Run your command from YourProjectDir or YourProjectDir/android")
+            logger.error("[RNRepo] node_modules directory not found: ${node_modulesDir.absolutePath}. Run your command from YourProjectDir or YourProjectDir/android")
             return
         }
 
         // find react-native version
         val rnPackageJsonFile = File(node_modulesDir, "react-native/package.json")
         if (!rnPackageJsonFile.exists()) {
-            println("react-native package.json not found in node_modules/react-native")
+            logger.error("[RNRepo] react-native package.json not found in node_modules/react-native")
             return
         }
         try {
@@ -279,37 +286,18 @@ class AarAutomationPlugin : Plugin<Project> {
             val rnVersion = json["version"] as? String
             if (rnVersion != null) {
                 extension.reactNativeVersion = rnVersion
-                println("Detected React Native version: $rnVersion")
+                logger.info("[RNRepo] Detected React Native version: $rnVersion")
             } else {
-                println("Could not find version field in react-native package.json")
+                logger.error("[RNRepo] Could not find version field in react-native package.json")
                 return
             }
         } catch (e: Exception) {
-            println("Error parsing react-native package.json: ${e.message}")
+            logger.error("[RNRepo] Error parsing react-native package.json: ${e.message}")
             return
         }
 
         val packagesWithVersions = mutableListOf<PackageItem>()
-        node_modulesDir.listFiles()?.forEach { packageDir ->
-            if (!packageDir.isDirectory) return@forEach
-            val packageJsonFile = File(packageDir, "package.json")
-            val androidDir = File(packageDir, "android")
-            if (!packageJsonFile.exists() || !androidDir.exists()) return@forEach
-            try {
-                val json = JsonSlurper().parse(packageJsonFile) as Map<String, Any>
-                val packageName = json["name"] as? String
-                val packageVersion = json["version"] as? String
-                if (packageName != null && packageVersion != null) {
-                    if (isPackageAvailable(packageName, packageVersion, extension.reactNativeVersion) &&
-                        isPackageNotDenied(packageName, extension)) {
-                        packagesWithVersions.add(PackageItem(packageName, packageVersion))
-                        println("Found supported package: $packageName version $packageVersion")
-                    }
-                }
-            } catch (e: Exception) {
-                println("Error parsing package.json in ${packageDir.name}: ${e.message}")
-            }
-        }
+        traversePackagesDir(node_modulesDir, packagesWithVersions, extension)
 
         // gesture-handler and reanimated share common interfaces, so if both are present then we need to use other aar file
         // todo GH&svg common interfaces

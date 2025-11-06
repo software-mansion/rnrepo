@@ -8,3 +8,5 @@ dist
 *.aar
 *.pom
 .xcframeworks-cache
+supported_versions.json
+TEMPORARY_RN_PROJECT
