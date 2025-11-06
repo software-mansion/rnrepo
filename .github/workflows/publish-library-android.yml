@@ -1,6 +1,6 @@
-name: Publish React Native Library
+name: Publish React Native Library for Android
 
-run-name: Publish library from build workflow
+run-name: Publish library for Android from build workflow
 
 on:
   workflow_dispatch:
