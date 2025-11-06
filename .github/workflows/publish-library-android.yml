@@ -51,5 +51,5 @@ jobs:
         run: bun install
 
       - name: 📤 Publish library
-        run: bun run packages/publisher/publish-library.ts
+        run: bun run packages/publisher/publish-library-android.ts
 

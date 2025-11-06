@@ -1,5 +1,5 @@
 /**
- * Publish Library Script
+ * Publish Library Android Script
  *
  * This script publishes a React Native library to a repository.
  *
@@ -13,7 +13,7 @@ const [libraryName, libraryVersion, reactNativeVersion] =
 
 if (!libraryName || !libraryVersion || !reactNativeVersion) {
   console.error(
-    'Usage: bun run publish-library.ts <library-name> <library-version> <react-native-version>'
+    'Usage: bun run publish-library-android.ts <library-name> <library-version> <react-native-version>'
   );
   process.exit(1);
 }

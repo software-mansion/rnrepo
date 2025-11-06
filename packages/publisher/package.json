@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "description": "Publisher package for React Native libraries",
   "type": "module",
-  "main": "./publish-library.ts",
+  "main": "./publish-library-android.ts",
   "scripts": {
-    "publish": "bun run publish-library.ts"
+    "publish": "bun run publish-library-android.ts"
   },
   "dependencies": {
     "commander": "^13.1.0",
