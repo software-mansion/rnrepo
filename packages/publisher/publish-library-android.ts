@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { $ } from 'bun';
 
 /**
  * Publish Library Android Script
@@ -37,6 +38,12 @@ function createOctokit() {
 
 const octokit = createOctokit();
 
+function convertToGradleProjectName(packageName: string): string {
+  // Convert npm package name to Gradle project name following React Native's pattern
+  // @react-native-community/slider -> react-native-community_slider
+  return packageName.replace(/^@/, '').replace(/\//g, '_');
+}
+
 async function main() {
   try {
     console.log(`📥 Fetching build workflow run ${buildRunId}...`);
@@ -65,6 +72,9 @@ async function main() {
     console.log(`   React Native: ${reactNativeVersion}`);
     console.log('');
 
+    const mavenLibraryName = convertToGradleProjectName(libraryName);
+    const mavenVersionString = `${libraryVersion}-rn${reactNativeVersion}`;
+
     const mavenLocalLibraryLocationPath = join(
       process.env.HOME || process.env.USERPROFILE || '',
       '.m2',
@@ -72,8 +82,8 @@ async function main() {
       'org',
       'rnrepo',
       'public',
-      libraryName,
-      `${libraryVersion}-rn${reactNativeVersion}`
+      mavenLibraryName,
+      mavenVersionString
     );
 
     if (!existsSync(mavenLocalLibraryLocationPath)) {
@@ -82,8 +92,30 @@ async function main() {
       );
     }
 
+    // publish all the files from the mavenLocalLibraryLocationPath to the remote Maven repository
+    const baseFileName = `${mavenLibraryName}-${mavenVersionString}`;
+    const pomFile = join(mavenLocalLibraryLocationPath, `${baseFileName}.pom`);
+    const aarFile = join(mavenLocalLibraryLocationPath, `${baseFileName}.aar`);
+    const moduleFile = join(
+      mavenLocalLibraryLocationPath,
+      `${baseFileName}.module`
+    );
+
+    const repositoryUrl = 'https://packages.rnrepo.org/snapshots';
+
+    await $`mvn deploy:deploy-file \
+      -Dfile=${aarFile} \
+      -DpomFile=${pomFile} \
+      -DmoduleFile=${moduleFile} \
+      -DgroupId=org.rnrepo.public \
+      -DartifactId=${mavenLibraryName} \
+      -Dversion=${mavenVersionString} \
+      -Dpackaging=aar \
+      -DrepositoryId=RNRepo \
+      -Durl=${repositoryUrl}`;
+
     console.log(
-      `📂 Found library in Maven Local: ${mavenLocalLibraryLocationPath}`
+      `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
     );
     process.exit(0);
   } catch (error) {

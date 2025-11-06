@@ -47,6 +47,25 @@ jobs:
           mv maven-artifacts-*/* ~/.m2/repository/org/rnrepo/public/
           ls -R ~/.m2/repository/org/rnrepo/
 
+      - name: 🔐 Generate Maven settings.xml
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0
+                    http://maven.apache.org/xsd/settings-1.2.0.xsd">
+            <servers>
+              <server>
+                <id>RNRepo</id>
+                <username>rnrepo-swm-publisher</username>
+                <password>${{ secrets.RNREPO_SWM_PUBLISHER_TEST_SECRET }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
