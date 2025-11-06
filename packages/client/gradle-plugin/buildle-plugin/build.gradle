@@ -30,41 +30,21 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     }
 }
 
-gradlePlugin {
-    plugins {
-        buildle {
-            id = 'com.swmansion.buildle'
-            implementationClass = 'com.swmansion.buildle.buildleplugin.AarAutomationPlugin'
-            displayName = 'Buildle Plugin'
-            description = 'Automates React Native AAR integration for faster builds'
-        }
-    }
-}
-
 publishing {
     publications {
-        buildleArtefact(MavenPublication) {
-            groupId = group
-            artifactId = System.getenv("PACKAGE_NAME")
-            version = "${System.getenv("LIB_VERSION")}-rn${System.getenv("RN_VERSION")}"
-            artifact(file("${System.getenv("AAR_FILEPATH")}")) {
-                extension 'aar' 
-            }
+        RNRepoPluginPublication(MavenPublication) {
+            from components.java
             pom {
-                withXml {
-                    def pomPath = System.getenv("AAR_FILEPATH").replace('.aar', '.pom')
-                    def pomFile = file(pomPath) 
-                    def existingPom = new XmlParser().parse(pomFile)
-                    def rootNode = asNode()
-                    existingPom.dependencies.dependency.each { dep ->
-                        def dependenciesNode = rootNode.children().find { it.name() == 'dependencies' }
-                        if (dependenciesNode == null) {
-                            dependenciesNode = rootNode.appendNode('dependencies')
-                        }
-                        def dependencyNode = dependenciesNode.appendNode('dependency')
-                        dependencyNode.appendNode('groupId', dep.groupId.text())
-                        dependencyNode.appendNode('artifactId', dep.artifactId.text())
-                        dependencyNode.appendNode('version', dep.version.text())
+                name = "RNRepo Gradle Plugin"
+                description = "A Gradle plugin to automate React Native AAR prebuilds integration for faster builds"
+                url = "" // todo(rolkrado): add url
+                licenses {
+                    license {
+                        def packageJsonFile = file("../../../../package.json")
+                        def packageJson = new groovy.json.JsonSlurper().parseText(packageJsonFile.text)
+                        def LICENSE = packageJson.license ?: { throw new GradleException("License not defined in package.json") }()
+                        name = "$LICENSE"
+                        url = "https://opensource.org/licenses/$LICENSE"
                     }
                 }
             }
@@ -73,17 +53,20 @@ publishing {
     repositories {
         mavenLocal()
         maven { 
-            name "reposiliteRepositoryReleases" 
-            url "https://repo.swmtest.xyz/releases" 
+            name "reposiliteRepositoryReleases" // todo(rolkrado): change name when changing URL
+            url "https://repo.swmtest.xyz/releases" // todo(rolkrado): change to production URL
             credentials {
-                username = project.properties["mavenUser"] ?: System.getenv("MAVEN_USER")
-                password = project.properties["mavenPassword"] ?: System.getenv("MAVEN_PASSWORD")
+                username = project.properties["mavenUser"]
+                password = project.properties["mavenPassword"]
             }
         }
     }
 }
 
+// Signing is required only when publishing to remote repository
 signing {
-    useInMemoryPgpKeys(System.getenv("SIGNING_KEY"), System.getenv("SIGNING_PASSWORD"))
-    sign publishing.publications["buildleArtefact"]
+    def publishingToMavenLocal = project.gradle.startParameter.taskNames.any { it.contains("MavenLocal") }
+    setRequired(!publishingToMavenLocal)
+    useInMemoryPgpKeys(project.findProperty("signingKey"), project.findProperty("signingPassword"))
+    sign publishing.publications.RNRepoPluginPublication
 }
