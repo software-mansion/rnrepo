@@ -25,6 +25,7 @@ open class PackagesManager {
 
 class AarAutomationPlugin : Plugin<Project> {
     private val logger: Logger = Logging.getLogger("AarAutomationPlugin")
+    private var REACT_NATIVE_ROOT_DIR: File? = null
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
     // remote repo URL with AARs
@@ -46,6 +47,7 @@ class AarAutomationPlugin : Plugin<Project> {
             }
 
             // Check what packages are in project and which are we supporting
+            REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project.rootProject)
             loadDenyList(project.rootProject, extension)
             findPackagesWithVersions(project, extension)
 
@@ -138,11 +140,30 @@ class AarAutomationPlugin : Plugin<Project> {
     /**
      * Retrieves the root directory of the React Native project.
      *
+     * This function first checks for a custom property "reactNativeRootDir" in the Gradle root project.
+     * If the property is not set, it traverses up the directory hierarchy starting from the
+     * root project directory to find the React Native root.
+     * The React Native root is identified by the presence of the "node_modules/react-native" directory.
+     * If the React Native root cannot be found, an exception is thrown.
+     *
      * @param rootProject The Gradle root project context, usually named ':'.
      * @return The root directory of the React Native project as a [File] object.
      */
     private fun getReactNativeRoot(rootProject: Project): File {
-        return if (rootProject.rootDir.name == "android") rootProject.rootDir.parentFile else rootProject.rootDir
+        if (rootProject.findProperty("reactNativeRootDir") != null) {
+            val path = rootProject.property("reactNativeRootDir").toString()
+            logger.lifecycle("[RNRepo] Using reactNativeRootDir from gradle property: $path")
+            return File(path)
+        }
+        var currentDirName = rootProject.rootDir
+        while (currentDirName != null) {
+            if (File(currentDirName, "node_modules/react-native").exists()) {
+                logger.lifecycle("[RNRepo] Found React Native root directory at: ${currentDirName.absolutePath}")
+                return currentDirName
+            }
+            currentDirName = currentDirName.parentFile
+        }
+        throw GradleException("[RNRepo] Could not find React Native root directory from project root: ${rootProject.rootDir.absolutePath}. Please set 'reactNativeRootDir' in gradle.properties.")
     }
 
     /**
@@ -152,10 +173,9 @@ class AarAutomationPlugin : Plugin<Project> {
      * @param extension The PackagesManager instance where the deny list will be stored.
      */
     private fun loadDenyList(project: Project, extension: PackagesManager) {
-        val reactNativeRoot = getReactNativeRoot(project.rootProject)
-        val configFile = File(reactNativeRoot, CONFIG_FILE_NAME)
+        val configFile = File(REACT_NATIVE_ROOT_DIR, CONFIG_FILE_NAME)
         if (!configFile.exists()) {
-            project.logger.info("[RNRepo] Config file $CONFIG_FILE_NAME not found in React Native root: ${reactNativeRoot.absolutePath}. Using empty deny list.")
+            project.logger.info("[RNRepo] Config file $CONFIG_FILE_NAME not found in React Native root: ${REACT_NATIVE_ROOT_DIR?.absolutePath}. Using empty deny list.")
             return
         }
         try {
@@ -237,39 +257,34 @@ class AarAutomationPlugin : Plugin<Project> {
         }
     }
 
-    private fun traversePackagesDir(dir: File, packagesList: MutableList<PackageItem>, extension: PackagesManager) {
-        dir.listFiles()?.forEach { file ->
-            if (!file.isDirectory) return@forEach
-            val packageJsonFile = File(file, "package.json")
-            val androidDir = File(file, "android")
-            if (!packageJsonFile.exists() || !androidDir.exists()) {
-                traversePackagesDir(file, packagesList, extension)
-                return@forEach
-            }
-            try {
-                logger.info("[RNRepo] Found package.json in ${file.name}")
-                val json = JsonSlurper().parse(packageJsonFile) as Map<String, Any>
-                val packageName = json["name"] as? String
-                val packageVersion = json["version"] as? String
-                if (packageName != null && packageVersion != null) {
-                    val gradlePackageName = packageName.replace("@", "").replace("/", "_")
-                    if (isPackageAvailable(gradlePackageName, packageVersion, extension.reactNativeVersion) &&
-                        isPackageNotDenied(packageName, extension)) {
-                        packagesList.add(PackageItem(gradlePackageName, packageVersion))
-                        logger.lifecycle("[RNRepo] Found supported package: $packageName version $packageVersion")
-                    }
+    private fun checkPackageDir(dir: File, packagesList: MutableList<PackageItem>, extension: PackagesManager) {
+        val packageJsonFile = File(dir, "package.json")
+        val androidDir = File(dir, "android")
+        if (!packageJsonFile.exists() || !androidDir.exists()) {
+            logger.info("[RNRepo] No package.json or android directory in ${dir.name}, skipping.")
+            return
+        }
+        try {
+            logger.info("[RNRepo] Found package.json in ${dir.name}")
+            val json = JsonSlurper().parse(packageJsonFile) as Map<String, Any>
+            val packageName = json["name"] as? String
+            val packageVersion = json["version"] as? String
+            if (packageName != null && packageVersion != null) {
+                val gradlePackageName = packageName.replace("@", "").replace("/", "_")
+                if (isPackageAvailable(gradlePackageName, packageVersion, extension.reactNativeVersion) &&
+                    isPackageNotDenied(packageName, extension)) {
+                    packagesList.add(PackageItem(gradlePackageName, packageVersion))
+                    logger.lifecycle("[RNRepo] Found supported package: $packageName version $packageVersion")
                 }
-            } catch (e: Exception) {
-                logger.error("[RNRepo] Error parsing package.json in ${file.name}: ${e.message}")
             }
+        } catch (e: Exception) {
+            logger.error("[RNRepo] Error parsing package.json in ${dir.name}: ${e.message}")
         }
     }
 
     private fun findPackagesWithVersions(rootProject: Project, extension: PackagesManager) {
-        val reactNativeRoot = getReactNativeRoot(rootProject)
-
         // iter over node_modules/<package>/package.json
-        val node_modulesDir = File(reactNativeRoot, "node_modules")
+        val node_modulesDir = File(REACT_NATIVE_ROOT_DIR, "node_modules")
         if (!node_modulesDir.exists()) {
             logger.error("[RNRepo] node_modules directory not found: ${node_modulesDir.absolutePath}. Run your command from YourProjectDir or YourProjectDir/android")
             return
@@ -297,7 +312,21 @@ class AarAutomationPlugin : Plugin<Project> {
         }
 
         val packagesWithVersions = mutableListOf<PackageItem>()
-        traversePackagesDir(node_modulesDir, packagesWithVersions, extension)
+
+        // get all projects paths that contain node_modules in path
+        val projectNodeModulesPaths = rootProject.rootProject.allprojects.mapNotNull { proj ->
+            val relPath = proj.projectDir.absolutePath.replace("/android", "")
+            if (relPath.contains("/node_modules/") || relPath.contains("node_modules/")) {
+                logger.info("[RNRepo] Project in build: ${proj.name} at $relPath")
+                relPath
+            } else {
+                null
+            }
+        }.toSet()
+
+        projectNodeModulesPaths.forEach { path ->
+            checkPackageDir(File(path), packagesWithVersions, extension)
+        }
 
         // gesture-handler and reanimated share common interfaces, so if both are present then we need to use other aar file
         // todo GH&svg common interfaces
