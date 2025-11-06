@@ -87,19 +87,6 @@ for IS_EXPO_PROJECTS in false true; do
                 pushd "$TEMP_PROJECT_DIR" > /dev/null
                 install_dependencies "$PACKAGE_NAME" "$VERSION" "$IS_EXPO_PROJECTS"
 
-                # Copy LICENSE file if exists
-                LICENSE_PATH="node_modules/$PACKAGE_NAME/$(ls "node_modules/$PACKAGE_NAME" | grep -i 'License*')"
-                TARGET_LICENSE_DIR="node_modules/$PACKAGE_NAME/android/src/main/licenses"
-                if [[ -f "$LICENSE_PATH" ]]; then
-                    mkdir -p $TARGET_LICENSE_DIR
-                    cp "$LICENSE_PATH" "$TARGET_LICENSE_DIR"
-                else
-                    echo "Warning: LICENSE file not found for $PACKAGE_NAME@$VERSION in $LICENSE_PATH"
-                    npm uninstall "$PACKAGE_NAME"
-                    popd > /dev/null
-                    continue
-                fi
-
                 # change all 'implementation' to 'api' in node_module/$PACKAGE_NAME/android/build.gradle
                 sed -i '' 's/implementation/api/g' "node_modules/$PACKAGE_NAME/android/build.gradle"
 
@@ -112,16 +99,6 @@ for IS_EXPO_PROJECTS in false true; do
                         sed -i '' -e "/apply plugin: 'com.android.library'/a\\
                         apply plugin: 'maven-publish'" "node_modules/$PACKAGE_NAME/android/build.gradle"
                     fi
-                fi
-
-                # Add license to aar
-                LICENSE_FILE_NAME=$(basename "$LICENSE_PATH")
-                if ! grep -q "$LICENSE_FILE_NAME" "node_modules/$PACKAGE_NAME/android/build.gradle"; then
-                    sed -i '' -e "/android {/a\\
-        packagingOptions {\\
-            merge \"**/$LICENSE_FILE_NAME\"\\
-        }\\
-        " "node_modules/$PACKAGE_NAME/android/build.gradle"
                 fi
 
                 # add publishing block

@@ -7,7 +7,6 @@ build
 dist
 *.aar
 *.pom
-AARS/
 .xcframeworks-cache
 supported_versions.json
 TEMPORARY_RN_PROJECT

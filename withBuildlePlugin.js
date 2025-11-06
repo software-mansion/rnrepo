@@ -1,7 +1,7 @@
 const { withProjectBuildGradle, withAppBuildGradle } = require('@expo/config-plugins');
 
 const classpathRegex = /(classpath.*)/;
-const buildleClasspath = 'classpath("com.swmansion:buildle-plugin:1.0.6")';
+const buildleClasspath = 'classpath("com.swmansion:buildle-plugin:+")';
 const mavenCentralRepository = `mavenCentral()`;
 const mavenRepositoryBlock = `
     maven {
