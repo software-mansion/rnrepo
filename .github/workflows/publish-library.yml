@@ -3,10 +3,17 @@ name: Publish React Native Library
 run-name: Publish library from build workflow
 
 on:
-  workflow_run:
-    workflows: ["Build React Native Library for Android"]
-    types:
-      - completed
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: 'Build workflow run ID to download artifacts from'
+        required: true
+        type: string
+  # TODO: eventually this action will run as a response to a workflow_run event
+  # workflow_run:
+  #   workflows: ["Build React Native Library for Android"]
+  #   types:
+  #     - completed
 
 jobs:
   publish-library:
@@ -19,12 +26,21 @@ jobs:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 📥 Download Maven artifacts
+      - name: 📥 Download Maven artifacts (from workflow_run)
+        if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
           path: ~/.m2/repository/org/rnrepo/public
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
+
+      - name: 📥 Download Maven artifacts (from workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/download-artifact@v4
+        with:
+          path: ~/.m2/repository/org/rnrepo/public
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.build_run_id }}
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -36,6 +52,4 @@ jobs:
 
       - name: 📤 Publish library
         run: bun run packages/publisher/publish-library.ts
-        env:
-          MAVEN_ARTIFACTS_PATH: maven-artifacts
 
