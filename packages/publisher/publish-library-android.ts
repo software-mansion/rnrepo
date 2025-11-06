@@ -1,7 +1,7 @@
 import { Octokit } from '@octokit/rest';
-import { existsSync } from 'fs';
+import { existsSync, statSync } from 'fs';
 import { join } from 'path';
-import { $ } from 'bun';
+import { $, Glob } from 'bun';
 
 /**
  * Publish Library Android Script
@@ -44,6 +44,17 @@ function convertToGradleProjectName(packageName: string): string {
   return packageName.replace(/^@/, '').replace(/\//g, '_');
 }
 
+async function findArtifactDir(cwd: string) {
+  const glob = new Glob('maven-artifacts-*/');
+  for await (const file of glob.scan({ cwd, onlyFiles: false })) {
+    const fullPath = join(cwd, file.replace(/\/$/, ''));
+    if (existsSync(fullPath) && statSync(fullPath).isDirectory()) {
+      return file.replace(/\/$/, ''); // Remove trailing slash
+    }
+  }
+  throw new Error(`No maven-artifacts-* directory found in ${cwd}`);
+}
+
 async function main() {
   try {
     console.log(`📥 Fetching build workflow run ${buildRunId}...`);
@@ -75,10 +86,13 @@ async function main() {
     const mavenLibraryName = convertToGradleProjectName(libraryName);
     const mavenVersionString = `${libraryVersion}-rn${reactNativeVersion}`;
 
-    const mavenLocalLibraryLocationPath = join(
-      process.env.HOME || process.env.USERPROFILE || '',
-      '.m2',
-      'repository',
+    // Find the downloaded artifact directory (starts with maven-artifacts-)
+    const cwd = process.cwd();
+    const artifactDir = await findArtifactDir(cwd);
+
+    const artifactsBasePath = join(
+      cwd,
+      artifactDir,
       'org',
       'rnrepo',
       'public',
@@ -86,33 +100,30 @@ async function main() {
       mavenVersionString
     );
 
-    if (!existsSync(mavenLocalLibraryLocationPath)) {
+    if (!existsSync(artifactsBasePath)) {
       throw new Error(
-        `Library ${libraryName}@${libraryVersion} not found in Maven Local`
+        `Library ${libraryName}@${libraryVersion} not found in downloaded artifacts at ${artifactsBasePath}`
       );
     }
 
-    // publish all the files from the mavenLocalLibraryLocationPath to the remote Maven repository
     const baseFileName = `${mavenLibraryName}-${mavenVersionString}`;
-    const pomFile = join(mavenLocalLibraryLocationPath, `${baseFileName}.pom`);
-    const aarFile = join(mavenLocalLibraryLocationPath, `${baseFileName}.aar`);
-    const moduleFile = join(
-      mavenLocalLibraryLocationPath,
-      `${baseFileName}.module`
-    );
+    const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
+    const aarFile = join(artifactsBasePath, `${baseFileName}.aar`);
+    const moduleFile = join(artifactsBasePath, `${baseFileName}.module`);
 
     const repositoryUrl = 'https://packages.rnrepo.org/snapshots';
 
+    // Deploy directly from downloaded artifacts (not from .m2/repository)
     await $`mvn deploy:deploy-file \
-      -Dfile=${aarFile} \
-      -DpomFile=${pomFile} \
-      -DmoduleFile=${moduleFile} \
-      -DgroupId=org.rnrepo.public \
-      -DartifactId=${mavenLibraryName} \
-      -Dversion=${mavenVersionString} \
-      -Dpackaging=aar \
-      -DrepositoryId=RNRepo \
-      -Durl=${repositoryUrl}`;
+        -Dfile=${aarFile} \
+        -DpomFile=${pomFile} \
+        -DmoduleFile=${moduleFile} \
+        -DgroupId=org.rnrepo.public \
+        -DartifactId=${mavenLibraryName} \
+        -Dversion=${mavenVersionString} \
+        -Dpackaging=aar \
+        -DrepositoryId=RNRepo \
+        -Durl=${repositoryUrl}`;
 
     console.log(
       `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
