@@ -49,7 +49,7 @@ async function findArtifactDir(cwd: string) {
   for await (const file of glob.scan({ cwd, onlyFiles: false })) {
     const fullPath = join(cwd, file.replace(/\/$/, ''));
     if (existsSync(fullPath) && statSync(fullPath).isDirectory()) {
-      return file.replace(/\/$/, ''); // Remove trailing slash
+      return fullPath;
     }
   }
   throw new Error(`No maven-artifacts-* directory found in ${cwd}`);
@@ -87,15 +87,9 @@ async function main() {
     const mavenVersionString = `${libraryVersion}-rn${reactNativeVersion}`;
 
     // Find the downloaded artifact directory (starts with maven-artifacts-)
-    const cwd = process.cwd();
-    const artifactDir = await findArtifactDir(cwd);
-
+    const artifactDir = await findArtifactDir(process.cwd());
     const artifactsBasePath = join(
-      cwd,
       artifactDir,
-      'org',
-      'rnrepo',
-      'public',
       mavenLibraryName,
       mavenVersionString
     );
