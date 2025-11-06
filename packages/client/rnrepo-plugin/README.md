@@ -3,17 +3,17 @@
 ## Publishing new version of plugin
 - Remote
 ```
-cd packages/client/gradle-plugin/buildle-plugin
+cd packages/client/rnrepo-plugin
 
 ./gradlew publishRNRepoPluginPublicationPublicationToReposiliteRepositoryReleasesRepository \
 -PmavenUser=<> \
 -PmavenPassword=<> \
 -PsigningKey=<> \
--PsigningPassword=<> \
+-PsigningPassword=<>
 ```
 - Local
 ```
-cd packages/client/gradle-plugin/buildle-plugin
+cd packages/client/rnrepo-plugin
 
 ./gradlew publishRNRepoPluginPublicationPublicationToMavenLocalRepository
 ```

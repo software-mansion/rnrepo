@@ -1,4 +1,4 @@
-package com.swmansion.buildle.buildleplugin
+package org.rnrepo.prebuilds.rnrepoplugin
 
 import org.gradle.api.*
 import org.gradle.api.artifacts.*
@@ -17,7 +17,7 @@ import org.gradle.api.logging.Logging
 
 data class PackageItem(val name: String, val version: String, var module: String = name)
 
-open class BuildleExtension {
+open class PackagesManager {
     var packages: List<PackageItem> = listOf()
     var reactNativeVersion: String = ""
     var denyList: Set<String> = setOf()
@@ -34,8 +34,8 @@ class AarAutomationPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
         if (shouldPluginExecute(project)) {
-            val extension = project.extensions.create("buildle", BuildleExtension::class.java)
-            println("RNRepo Plugin has been applied to project!")
+            val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
+            logger.lifecycle("RNRepo Plugin has been applied to project!")
             
             // Add SWM Maven repository with AAR artifacts
             project.repositories.apply {
@@ -52,7 +52,7 @@ class AarAutomationPlugin : Plugin<Project> {
             // Add dependencies for supported packages 
             extension.packages.forEach { packageItem ->
                 project.logger.info("[RNRepo] Adding dependency for ${packageItem.name} version ${packageItem.version}")
-                project.dependencies.add("implementation", "com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}")
+                project.dependencies.add("implementation", "org.rnrepo.public:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}")
             }
 
             // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
@@ -94,7 +94,7 @@ class AarAutomationPlugin : Plugin<Project> {
             // Add substitution for supported packages 
             project.afterEvaluate {
                 extension.packages.forEach { packageItem ->
-                    val module = "com.swmansion:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}"
+                    val module = "org.rnrepo.public:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}"
                     project.logger.info("[RNRepo] Adding substitution for ${packageItem.name} using $module")
                     project.configurations.all { config ->
                         config.resolutionStrategy.dependencySubstitution {
@@ -115,12 +115,12 @@ class AarAutomationPlugin : Plugin<Project> {
      * 1. **Task command check**: Checks if the current task command includes "assemble" or "build".
      *    This looks at the task names passed to Gradle at runtime to see if any involve building or assembling the project.
      *
-     * 2. **Environment Variable check**: Inspects the "DISABLE_BUILDLE" environment variable.
-     *    The plugin execution will be enabled unless the environment variable "DISABLE_BUILDLE" is explicitly set to "true" (ignoring case).
-     *    If "DISABLE_BUILDLE" is set to "true", the plugin execution will be disabled; if it's unset or set to any other value, the execution will proceed.
+     * 2. **Environment Variable check**: Inspects the "DISABLE_RNREPO" environment variable.
+     *    The plugin execution will be enabled unless the environment variable "DISABLE_RNREPO" is explicitly set to "true" (ignoring case).
+     *    If "DISABLE_RNREPO" is set to "true", the plugin execution will be disabled; if it's unset or set to any other value, the execution will proceed.
      *
-     * 3. **System Property check**: Looks at the "DISABLE_BUILDLE" system property.
-     *    Similar to the environment variable, if the system property "DISABLE_BUILDLE" is set to "true" (case insensitive), the plugin will not execute.
+     * 3. **System Property check**: Looks at the "DISABLE_RNREPO" system property.
+     *    Similar to the environment variable, if the system property "DISABLE_RNREPO" is set to "true" (case insensitive), the plugin will not execute.
      *    By default, if this property is not set, it defaults to "false", thereby enabling the plugin execution.
      *
      * @param project The Gradle project context providing access to configuration and execution parameters.
@@ -129,9 +129,9 @@ class AarAutomationPlugin : Plugin<Project> {
     private fun shouldPluginExecute(project: Project): Boolean {
         val isBuildingCommand: Boolean = project.gradle.startParameter.taskNames.any {
             it.contains("assemble") || it.contains("build") || it.contains("install")}
-        val isEnvEnabled: Boolean = System.getenv("DISABLE_BUILDLE")?.equals("true", ignoreCase = true)?.not() ?: true
-        val isPropertyEnabled: Boolean = System.getProperty("DISABLE_BUILDLE", "false").equals("true", ignoreCase = true).not()
-        project.logger.debug("[RNRepo] Building command: $isBuildingCommand, Env enabled: $isEnvEnabled, Property enabled: $isPropertyEnabled")
+        val isEnvEnabled: Boolean = System.getenv("DISABLE_RNREPO")?.equals("true", ignoreCase = true)?.not() ?: true
+        val isPropertyEnabled: Boolean = System.getProperty("DISABLE_RNREPO", "false").equals("true", ignoreCase = true).not()
+        project.logger.info("[RNRepo] Building command: $isBuildingCommand, Env enabled: $isEnvEnabled, Property enabled: $isPropertyEnabled")
         return isBuildingCommand && isEnvEnabled && isPropertyEnabled
     }
 
@@ -149,9 +149,9 @@ class AarAutomationPlugin : Plugin<Project> {
      * Loads the deny list from the configuration file located in the React Native root directory.
      *
      * @param project The Gradle project context.
-     * @param extension The BuildleExtension instance where the deny list will be stored.
+     * @param extension The PackagesManager instance where the deny list will be stored.
      */
-    private fun loadDenyList(project: Project, extension: BuildleExtension) {
+    private fun loadDenyList(project: Project, extension: PackagesManager) {
         val reactNativeRoot = getReactNativeRoot(project.rootProject)
         val configFile = File(reactNativeRoot, CONFIG_FILE_NAME)
         if (!configFile.exists()) {
@@ -162,7 +162,7 @@ class AarAutomationPlugin : Plugin<Project> {
             val json = JsonSlurper().parse(configFile) as Map<String, Any>
             val denyList = json["denyList"] as? List<String>
             if (denyList != null) {
-                project.logger.info("[RNRepo] Loaded deny list from config: $denyList")
+                project.logger.lifecycle("[RNRepo] Loaded deny list from config: $denyList")
                 extension.denyList = denyList.toSet()
             } else {
                 project.logger.info("[RNRepo] No denyList found in config file. Using empty deny list.")
@@ -176,13 +176,13 @@ class AarAutomationPlugin : Plugin<Project> {
      * Checks if a specific package is not in the deny list.
      *
      * @param packageName The name of the package to check.
-     * @param extension The BuildleExtension instance containing the deny list.
+     * @param extension The PackagesManager instance containing the deny list.
      *
      * @return True if the package is not denied, false otherwise.
      */
     private fun isPackageNotDenied(
         packageName: String,
-        extension: BuildleExtension
+        extension: PackagesManager
     ): Boolean {
         if (extension.denyList.contains(packageName)) {
             logger.info("[RNRepo] Package $packageName is in deny list, skipping in RNRepo.")
@@ -208,7 +208,7 @@ class AarAutomationPlugin : Plugin<Project> {
         RNVersion: String
     ): Boolean {
         val cachePath = System.getProperty("user.home") + "/.gradle/caches/modules-2/files-2.1"
-        val groupPath = "com.swmansion/$gradlePackageName"
+        val groupPath = "org.rnrepo.public/$gradlePackageName"
         val artifactPath = "${packageVersion}-rn$RNVersion"
         
         // Construct the local path expected for the .aar file in cache
@@ -220,7 +220,7 @@ class AarAutomationPlugin : Plugin<Project> {
             return true
         }
 
-        val urlString = "https://repo.swmtest.xyz/releases/com/swmansion/${gradlePackageName}/${packageVersion}-rn${RNVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
+        val urlString = "https://repo.swmtest.xyz/releases/org/rnrepo/public/${gradlePackageName}/${packageVersion}-rn${RNVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
         var connection: HttpURLConnection? = null
         return try {
             connection = URL(urlString).openConnection() as HttpURLConnection
@@ -237,7 +237,7 @@ class AarAutomationPlugin : Plugin<Project> {
         }
     }
 
-    private fun traversePackagesDir(dir: File, packagesList: MutableList<PackageItem>, extension: BuildleExtension) {
+    private fun traversePackagesDir(dir: File, packagesList: MutableList<PackageItem>, extension: PackagesManager) {
         dir.listFiles()?.forEach { file ->
             if (!file.isDirectory) return@forEach
             val packageJsonFile = File(file, "package.json")
@@ -256,7 +256,7 @@ class AarAutomationPlugin : Plugin<Project> {
                     if (isPackageAvailable(gradlePackageName, packageVersion, extension.reactNativeVersion) &&
                         isPackageNotDenied(packageName, extension)) {
                         packagesList.add(PackageItem(gradlePackageName, packageVersion))
-                        logger.info("[RNRepo] Found supported package: $packageName version $packageVersion")
+                        logger.lifecycle("[RNRepo] Found supported package: $packageName version $packageVersion")
                     }
                 }
             } catch (e: Exception) {
@@ -265,7 +265,7 @@ class AarAutomationPlugin : Plugin<Project> {
         }
     }
 
-    private fun findPackagesWithVersions(rootProject: Project, extension: BuildleExtension) {
+    private fun findPackagesWithVersions(rootProject: Project, extension: PackagesManager) {
         val reactNativeRoot = getReactNativeRoot(rootProject)
 
         // iter over node_modules/<package>/package.json

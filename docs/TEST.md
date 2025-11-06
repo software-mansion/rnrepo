@@ -2,21 +2,21 @@
 
 ## Repo setup
 
-- Create new `react-native@0.81.4` project
+- Create new `react-native@0.81.4` project (if you don't already have one)
 ```bash
-# might be required
+# might be required to uninstall global cli first
 # npm uninstall -g react-native-cli @react-native-community/cli 
 npx @react-native-community/cli@latest init AwesomeProject --version 0.81.4
 cd AwesomeProject
 ```
 
-- add `buildle` plugin to `AwesomeProject/android/build.gradle`
+- add `rnrepo` plugin to `AwesomeProject/android/build.gradle`
 ```diff
 buildscript {
   ...
   dependencies {
     ...
-+    classpath("com.swmansion:buildle-plugin:1.0.6")
++    classpath("org.rnrepo.prebuilds:rnrepo-plugin:+")
   }
 }
 apply plugin: "com.facebook.react.rootproject"
@@ -29,12 +29,12 @@ apply plugin: "com.facebook.react.rootproject"
 + }
 ```
 
-- Add `buildle` plugin to `AwesomeProject/android/app/build.gradle`
+- Add `rnrepo` plugin to `AwesomeProject/android/app/build.gradle`
 ```diff
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-+ apply plugin: "com.swmansion.buildle"
++ apply plugin: "org.rnrepo.prebuilds.rnrepo-plugin"
 ```
 
 ## Build app

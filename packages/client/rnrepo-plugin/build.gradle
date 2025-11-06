@@ -5,8 +5,8 @@ plugins {
     id 'signing'
 }
 
-group = 'com.swmansion'
-version = '1.0.6'
+group = 'org.rnrepo.prebuilds'
+version = '1.0.0'
 
 repositories {
     mavenCentral()
@@ -30,6 +30,15 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     }
 }
 
+gradlePlugin {
+    plugins {
+        rnrepoPlugin {
+            id = "org.rnrepo.prebuilds.rnrepo-plugin"
+            implementationClass = "org.rnrepo.prebuilds.rnrepoplugin.AarAutomationPlugin"
+        }
+    }
+}
+
 publishing {
     publications {
         RNRepoPluginPublication(MavenPublication) {
@@ -40,11 +49,8 @@ publishing {
                 url = "" // todo(rolkrado): add url
                 licenses {
                     license {
-                        def packageJsonFile = file("../../../../package.json")
-                        def packageJson = new groovy.json.JsonSlurper().parseText(packageJsonFile.text)
-                        def LICENSE = packageJson.license ?: { throw new GradleException("License not defined in package.json") }()
-                        name = "$LICENSE"
-                        url = "https://opensource.org/licenses/$LICENSE"
+                        name = "ISC"
+                        url = "https://opensource.org/licenses/ISC"
                     }
                 }
             }
