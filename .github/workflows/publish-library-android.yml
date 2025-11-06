@@ -30,7 +30,6 @@ jobs:
         if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
-          path: ~/.m2/repository/org/rnrepo/public
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
 
@@ -38,9 +37,15 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: actions/download-artifact@v4
         with:
-          path: ~/.m2/repository/org/rnrepo/public
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.build_run_id }}
+
+      - name: 📦 Move artifacts to Maven repository location
+        run: |
+          mkdir -p ~/.m2/repository/org/rnrepo/public
+          # we expect a single artifact to be downloaded with name starting with maven-artifacts-
+          mv maven-artifacts-*/* ~/.m2/repository/org/rnrepo/public/
+          ls -R ~/.m2/repository/org/rnrepo/
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
