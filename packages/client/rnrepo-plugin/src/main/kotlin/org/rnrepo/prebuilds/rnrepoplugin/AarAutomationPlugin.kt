@@ -29,8 +29,10 @@ class AarAutomationPlugin : Plugin<Project> {
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
     // remote repo URL with AARs
-    private val REMOTE_REPO_NAME = "reposiliteRepositoryReleases"
-    private val REMOTE_REPO_URL = "https://repo.swmtest.xyz/releases"
+    private val REMOTE_REPO_NAME_PROD = "RNRepoMavenRepository"
+    private val REMOTE_REPO_URL_PROD = "https://packages.rnrepo.org/releases"
+    private val REMOTE_REPO_NAME_DEV = "RNRepoMavenRepositoryDev"
+    private val REMOTE_REPO_URL_DEV = "https://repo.swmtest.xyz/releases"
 
 
     override fun apply(project: Project) {
@@ -41,8 +43,15 @@ class AarAutomationPlugin : Plugin<Project> {
             // Add SWM Maven repository with AAR artifacts
             project.repositories.apply {
                 maven { repo ->
-                    repo.name = REMOTE_REPO_NAME
-                    repo.url = URI(REMOTE_REPO_URL)
+                    if (project.hasProperty("RNREPO_USE_DEV_REPO") &&
+                        project.property("RNREPO_USE_DEV_REPO").toString().toBoolean()) {
+                        repo.name = REMOTE_REPO_NAME_DEV
+                        repo.url = URI(REMOTE_REPO_URL_DEV)
+                        project.logger.lifecycle("[RNRepo] Using DEV remote repository: $REMOTE_REPO_URL_DEV")
+                    } else {
+                        repo.name = REMOTE_REPO_NAME_PROD
+                        repo.url = URI(REMOTE_REPO_URL_PROD)
+                    }
                 }
             }
 
@@ -54,7 +63,7 @@ class AarAutomationPlugin : Plugin<Project> {
             // Add dependencies for supported packages 
             extension.packages.forEach { packageItem ->
                 project.logger.info("[RNRepo] Adding dependency for ${packageItem.name} version ${packageItem.version}")
-                project.dependencies.add("implementation", "org.rnrepo.public:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}")
+                project.dependencies.add("implementation", "org.rnrepo.public:${packageItem.module}:${packageItem.version}:rn${extension.reactNativeVersion}@aar")
             }
 
             // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
@@ -240,7 +249,7 @@ class AarAutomationPlugin : Plugin<Project> {
             return true
         }
 
-        val urlString = "https://repo.swmtest.xyz/releases/org/rnrepo/public/${gradlePackageName}/${packageVersion}-rn${RNVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
+        val urlString = "https://packages.rnrepo.org/releases/org/rnrepo/public/${gradlePackageName}/${packageVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
         var connection: HttpURLConnection? = null
         return try {
             connection = URL(urlString).openConnection() as HttpURLConnection

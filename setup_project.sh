@@ -23,8 +23,8 @@ sed -i '' "/org.jetbrains.kotlin:kotlin-gradle-plugin/a\\
 
 sed -i '' "/mavenCentral()/a\\
         maven {\\
-            name \"reposiliteRepositoryReleases\"\\
-            url \"https://repo.swmtest.xyz/releases\"\\
+            name \"RNRepoMavenRepository\"\\
+            url \"https://packages.rnrepo.org/releases\"\\
         }\\
 " android/build.gradle
 
