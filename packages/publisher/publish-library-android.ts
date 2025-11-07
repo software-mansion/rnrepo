@@ -38,9 +38,8 @@ if (!MAVEN_USERNAME || !MAVEN_PASSWORD || !MAVEN_REPOSITORY_URL) {
   process.exit(1);
 }
 
-const GPG_KEY_ID = process.env.GPG_KEY_ID;
-if (!GPG_KEY_ID) {
-  console.error('Error: GPG_KEY_ID environment variable is required');
+if (!process.env.MAVEN_GPG_KEY) {
+  console.error('Error: MAVEN_GPG_KEY environment variable is required');
   process.exit(1);
 }
 
