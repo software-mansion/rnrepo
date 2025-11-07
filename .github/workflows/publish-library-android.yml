@@ -42,6 +42,9 @@ jobs:
           run-id: ${{ inputs.build_run_id }}
           name: maven-artifacts
 
+      - name: 📋 List downloaded artifacts
+        run: ls -R
+
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
