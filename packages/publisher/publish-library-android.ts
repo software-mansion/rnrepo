@@ -158,6 +158,7 @@ async function main() {
         -DartifactId=${mavenLibraryName} \
         -Dversion=${libraryVersion} \
         -Dpackaging=aar \
+        -Dclassifier=rn${reactNativeVersion} \
         -DgeneratePom=false \
         -DrepositoryId=RNRepo \
         -Durl=${MAVEN_REPOSITORY_URL}`;
@@ -169,7 +170,8 @@ async function main() {
         -DgroupId=org.rnrepo.public \
         -DartifactId=${mavenLibraryName} \
         -Dversion=${libraryVersion} \
-        -Dpackaging=asc \
+        -Dclassifier=rn${reactNativeVersion} \
+        -Dpackaging=aar.asc \
         -DgeneratePom=false \
         -DrepositoryId=RNRepo \
         -Durl=${MAVEN_REPOSITORY_URL}`;
