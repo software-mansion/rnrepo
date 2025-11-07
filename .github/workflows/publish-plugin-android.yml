@@ -1,0 +1,35 @@
+name: Build RNRepo Gradle Plugin for Android
+
+run-name: Build RNRepo Gradle Plugin for Android {{ inputs.plugin }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      plugin_version:
+        description: 'Plugin version'
+        required: true
+        type: string
+  # release:
+  #  types: [published]
+  
+jobs:
+  build-rnrepo-plugin-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 🔨 Build RNRepo Gradle Plugin for Android
+        run: ./gradlew build
+        working-directory: ./packages/client
+
+      - name: 📦 Publish RNRepo Gradle Plugin for Android
+        run: echo "will be added soon..."
+        working-directory: ./packages/client
