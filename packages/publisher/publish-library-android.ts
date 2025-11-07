@@ -171,7 +171,8 @@ async function main() {
         -DartifactId=${mavenLibraryName} \
         -Dversion=${libraryVersion} \
         -Dclassifier=rn${reactNativeVersion} \
-        -Dpackaging=aar.asc \
+        -Dpackaging=asc \
+        -Dextension=aar.asc \
         -DgeneratePom=false \
         -DrepositoryId=RNRepo \
         -Durl=${MAVEN_REPOSITORY_URL}`;
