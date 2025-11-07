@@ -14,11 +14,11 @@ cd "$PROJECT_PATH"
 # setup plugin
 # TODO: check if sed changed anything, if not then throw
 sed -i '' "/apply plugin: \"com.facebook.react\"/a\\
-apply plugin: \"com.swmansion.buildle\"
+apply plugin: \"org.rnrepo.prebuilds.rnrepo-plugin\"
 " android/app/build.gradle
 
 sed -i '' "/org.jetbrains.kotlin:kotlin-gradle-plugin/a\\
-    classpath(\"com.swmansion:buildle-plugin:1.0.6\")
+    classpath(\"org.rnrepo.prebuilds:rnrepo-plugin:+\")
 " android/build.gradle
 
 sed -i '' "/mavenCentral()/a\\

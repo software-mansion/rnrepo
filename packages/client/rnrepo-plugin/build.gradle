@@ -1,0 +1,78 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.8.22'
+    id 'maven-publish'
+    id 'java-gradle-plugin'
+    id 'signing'
+}
+
+group = 'org.rnrepo.prebuilds'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    google()
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation 'com.android.tools.build:gradle:8.1.0'
+    implementation 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+}
+
+gradlePlugin {
+    plugins {
+        rnrepoPlugin {
+            id = "org.rnrepo.prebuilds.rnrepo-plugin"
+            implementationClass = "org.rnrepo.prebuilds.rnrepoplugin.AarAutomationPlugin"
+        }
+    }
+}
+
+publishing {
+    publications {
+        RNRepoPluginPublication(MavenPublication) {
+            from components.java
+            pom {
+                name = "RNRepo Gradle Plugin"
+                description = "A Gradle plugin to automate React Native AAR prebuilds integration for faster builds"
+                url = "" // todo(rolkrado): add url
+                licenses {
+                    license {
+                        name = "ISC"
+                        url = "https://opensource.org/licenses/ISC"
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        mavenLocal()
+        maven { 
+            name "reposiliteRepositoryReleases" // todo(rolkrado): change name when changing URL
+            url "https://repo.swmtest.xyz/releases" // todo(rolkrado): change to production URL
+            credentials {
+                username = project.properties["mavenUser"]
+                password = project.properties["mavenPassword"]
+            }
+        }
+    }
+}
+
+// Signing is required only when publishing to remote repository
+signing {
+    def publishingToMavenLocal = project.gradle.startParameter.taskNames.any { it.contains("MavenLocal") }
+    setRequired(!publishingToMavenLocal)
+    useInMemoryPgpKeys(project.findProperty("signingKey"), project.findProperty("signingPassword"))
+    sign publishing.publications.RNRepoPluginPublication
+}

@@ -1,21 +1,21 @@
 const { withProjectBuildGradle, withAppBuildGradle } = require('@expo/config-plugins');
 
 const classpathRegex = /(classpath.*)/;
-const buildleClasspath = 'classpath("com.swmansion:buildle-plugin:+")';
+const rnrepoClasspath = 'classpath("org.rnrepo.prebuilds:rnrepo-plugin:+")';
 const mavenCentralRepository = `mavenCentral()`;
 const mavenRepositoryBlock = `
     maven {
         name "reposiliteRepositoryReleases"
         url "https://repo.swmtest.xyz/releases"
     }`;
-const applyPluginBuildle = 'apply plugin: "com.swmansion.buildle"';
+const applyPluginrnrepo = 'apply plugin: "org.rnrepo.prebuilds.rnrepo-plugin"';
 const applyPluginFacebook = 'apply plugin: "com.facebook.react"';
 
 
 function withClasspathDependency(config) {
     return withProjectBuildGradle(config, config => {
-        if (!config.modResults.contents.includes(buildleClasspath)) {
-            config.modResults.contents = config.modResults.contents.replace(classpathRegex, `$1\n${buildleClasspath}`);
+        if (!config.modResults.contents.includes(rnrepoClasspath)) {
+            config.modResults.contents = config.modResults.contents.replace(classpathRegex, `$1\n${rnrepoClasspath}`);
         }
         return config;
     });
@@ -33,12 +33,12 @@ function withMavenRepository(config) {
     });
 }
 
-function withBuildlePluginApplication(config) {
+function withRnrepoPluginApplication(config) {
     return withAppBuildGradle(config, config => {
-        if (!config.modResults.contents.includes(applyPluginBuildle)) {
+        if (!config.modResults.contents.includes(applyPluginrnrepo)) {
             config.modResults.contents = config.modResults.contents.replace(
                 applyPluginFacebook,
-                `${applyPluginFacebook}\n${applyPluginBuildle}`
+                `${applyPluginFacebook}\n${applyPluginrnrepo}`
             );
         }
         return config;
@@ -48,7 +48,7 @@ function withBuildlePluginApplication(config) {
 const withCustomBuildSettings = config => {
     config = withClasspathDependency(config);
     config = withMavenRepository(config);
-    config = withBuildlePluginApplication(config);
+    config = withRnrepoPluginApplication(config);
     return config;
 };
 
