@@ -111,15 +111,20 @@ async function main() {
       `${baseFileName}-rn${reactNativeVersion}.aar`
     );
 
-    // Sign artifacts using GPG (Maven deploy:deploy-file will automatically upload .asc files)
+    // Sign artifacts using GPG
     const gpgPassphrase = process.env.GPG_PASSPHRASE;
     const passphraseArgs = gpgPassphrase ? `--passphrase ${gpgPassphrase}` : '';
 
     await $`gpg --batch --yes ${passphraseArgs} --sign --armor --detach-sign --local-user ${GPG_KEY_ID} ${aarFile}`;
-    await $`gpg --batch --yes ${passphraseArgs} --sign --armor --detach-sign --local-user ${GPG_KEY_ID} ${pomFile}`;
 
-    // Deploy directly from downloaded artifacts (not from .m2/repository)
-    // deploy:deploy-file will automatically upload .asc signature files if they exist
+    const aarAscFile = `${aarFile}.asc`;
+
+    // Verify signature files were created
+    if (!existsSync(aarAscFile)) {
+      throw new Error('Failed to create GPG signature files');
+    }
+
+    // Deploy artifacts and their signatures
     await $`mvn deploy:deploy-file \
         -Dfile=${aarFile} \
         -DpomFile=${pomFile} \
@@ -127,6 +132,16 @@ async function main() {
         -DartifactId=${mavenLibraryName} \
         -Dversion=${libraryVersion} \
         -Dpackaging=aar \
+        -DrepositoryId=RNRepo \
+        -Durl=${MAVEN_REPOSITORY_URL}`;
+
+    // Deploy signature files explicitly (deploy:deploy-file doesn't auto-upload .asc files)
+    await $`mvn deploy:deploy-file \
+        -Dfile=${aarAscFile} \
+        -DgroupId=org.rnrepo.public \
+        -DartifactId=${mavenLibraryName} \
+        -Dversion=${libraryVersion} \
+        -Dpackaging=asc \
         -DrepositoryId=RNRepo \
         -Durl=${MAVEN_REPOSITORY_URL}`;
 
