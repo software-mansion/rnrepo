@@ -1,35 +1,161 @@
+import { Octokit } from '@octokit/rest';
+import { existsSync, statSync } from 'fs';
+import { join } from 'path';
+import { $ } from 'bun';
+
 /**
  * Publish Library Android Script
  *
  * This script publishes a React Native library to a repository.
  *
- * @param libraryName - Name of the library from NPM
- * @param libraryVersion - Version of the library from NPM
- * @param reactNativeVersion - React Native version used for building
+ * @param buildRunId - ID of the build workflow run
  */
 
-const [libraryName, libraryVersion, reactNativeVersion] =
-  process.argv.slice(2);
+const [buildRunId] = process.argv.slice(2);
 
-if (!libraryName || !libraryVersion || !reactNativeVersion) {
+if (!buildRunId) {
+  console.error('Usage: bun run publish-library-android.ts <build-run-id>');
+  process.exit(1);
+}
+
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY;
+const MAVEN_USERNAME = process.env.MAVEN_USERNAME;
+const MAVEN_PASSWORD = process.env.MAVEN_PASSWORD;
+const MAVEN_REPOSITORY_URL = process.env.MAVEN_REPOSITORY_URL;
+
+if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) {
   console.error(
-    'Usage: bun run publish-library-android.ts <library-name> <library-version> <react-native-version>'
+    'Error: GITHUB_TOKEN and GITHUB_REPOSITORY environment variables are required'
   );
   process.exit(1);
 }
 
-// Main execution
-console.log('📤 Publishing library:');
-console.log(`   Library: ${libraryName}@${libraryVersion}`);
-console.log(`   React Native: ${reactNativeVersion}`);
-console.log('');
-
-try {
-  // TODO: Implement publishing logic
-  console.log('✅ Publishing logic will be implemented here');
-  process.exit(0);
-} catch (error) {
-  console.error('❌ Publish failed:', error);
+if (!MAVEN_USERNAME || !MAVEN_PASSWORD || !MAVEN_REPOSITORY_URL) {
+  console.error(
+    'Error: MAVEN_USERNAME, MAVEN_PASSWORD and MAVEN_REPOSITORY_URL environment variables are required'
+  );
   process.exit(1);
 }
 
+if (!process.env.MAVEN_GPG_KEY) {
+  console.error('Error: MAVEN_GPG_KEY environment variable is required');
+  process.exit(1);
+}
+
+const [owner, repo] = GITHUB_REPOSITORY.split('/');
+
+function createOctokit() {
+  return new Octokit({
+    auth: process.env.GITHUB_TOKEN,
+  });
+}
+
+const octokit = createOctokit();
+
+function convertToGradleProjectName(packageName: string): string {
+  // Convert npm package name to Gradle project name following React Native's pattern
+  // @react-native-community/slider -> react-native-community_slider
+  return packageName.replace(/^@/, '').replace(/\//g, '_');
+}
+
+async function main() {
+  try {
+    console.log(`📥 Fetching build workflow run ${buildRunId}...`);
+    const { data: run } = await octokit.rest.actions.getWorkflowRun({
+      owner,
+      repo,
+      run_id: parseInt(buildRunId, 10),
+    });
+    const buildRunName = run.display_title || run.name || '';
+
+    if (!buildRunName) {
+      throw new Error('Could not get build workflow run name');
+    }
+
+    // Format: "Build for Android {library_name}@{library_version} RN@{react_native_version}"
+    const match = buildRunName.match(/Build for Android (.+?)@(.+?) RN@(.+?)$/);
+    if (!match) {
+      throw new Error(`Could not parse workflow run name: ${buildRunName}`);
+    }
+
+    const [, libraryName, libraryVersion, reactNativeVersion] = match;
+
+    console.log('📤 Publishing library:');
+    console.log(`   Build Run: ${buildRunName}`);
+    console.log(`   Library: ${libraryName}@${libraryVersion}`);
+    console.log(`   React Native: ${reactNativeVersion}`);
+    console.log('');
+
+    const mavenLibraryName = convertToGradleProjectName(libraryName);
+
+    // Find the downloaded artifact directory (starts with maven-artifacts-)
+    const artifactDir = join(process.cwd(), 'maven-artifacts');
+    const artifactsBasePath = join(
+      artifactDir,
+      mavenLibraryName,
+      libraryVersion
+    );
+
+    if (!existsSync(artifactsBasePath)) {
+      throw new Error(
+        `Library ${libraryName}@${libraryVersion} not found in downloaded artifacts at ${artifactsBasePath}`
+      );
+    }
+
+    const baseFileName = `${mavenLibraryName}-${libraryVersion}`;
+    const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
+    const aarFile = join(
+      artifactsBasePath,
+      `${baseFileName}-rn${reactNativeVersion}.aar`
+    );
+
+    // Deploy POM separately (may return 409 if already published, which is acceptable)
+    try {
+      await $`mvn deploy:deploy-file \
+          -Dfile=${pomFile} \
+          -DgroupId=org.rnrepo.public \
+          -DartifactId=${mavenLibraryName} \
+          -Dversion=${libraryVersion} \
+          -Dpackaging=pom \
+          -DrepositoryId=RNRepo \
+          -Durl=${MAVEN_REPOSITORY_URL}`;
+      console.log('✓ POM deployed successfully');
+    } catch (error: any) {
+      // 409 Conflict is acceptable - POM may already exist (shared across versions)
+      if (
+        error?.stdout?.includes(
+          'status code: 409, reason phrase: Conflict (409)'
+        )
+      ) {
+        console.log('⚠ POM already exists (409 conflict) - continuing...');
+      } else {
+        throw error;
+      }
+    }
+
+    // Sign and deploy AAR using gpg:sign-and-deploy-file (signs and deploys in one step)
+    // The task uses MAVEN_GPG_KEY and MAVEN_GPG_PASSPHRASE environment variables to sign the artifact
+    await $`mvn gpg:sign-and-deploy-file \
+        -Dfile=${aarFile} \
+        -DgroupId=org.rnrepo.public \
+        -DartifactId=${mavenLibraryName} \
+        -Dversion=${libraryVersion} \
+        -Dpackaging=aar \
+        -Dclassifier=rn${reactNativeVersion} \
+        -DgeneratePom=false \
+        -DrepositoryId=RNRepo \
+        -Durl=${MAVEN_REPOSITORY_URL}`;
+    console.log('✓ AAR signed and deployed successfully');
+
+    console.log(
+      `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
+    );
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Publish failed:', error);
+    process.exit(1);
+  }
+}
+
+main();

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       build_run_id:
-        description: 'Build workflow run ID to download artifacts from'
+        description: 'Build workflow run ID (for testing)'
         required: true
         type: string
   # TODO: eventually this action will run as a response to a workflow_run event
@@ -30,17 +30,19 @@ jobs:
         if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
-          path: ~/.m2/repository/org/rnrepo/public
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
+          name: maven-artifacts
+          path: maven-artifacts
 
       - name: 📥 Download Maven artifacts (from workflow_dispatch)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/download-artifact@v4
         with:
-          path: ~/.m2/repository/org/rnrepo/public
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.build_run_id }}
+          name: maven-artifacts
+          path: maven-artifacts
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -50,6 +52,38 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install
 
+      - name: 🔐 Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+
+      - name: 🔐 Generate Maven settings.xml
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0
+                    http://maven.apache.org/xsd/settings-1.2.0.xsd">
+            <servers>
+              <server>
+                <id>RNRepo</id>
+                <username>${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}</username>
+                <password><![CDATA[${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}]]></password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
       - name: 📤 Publish library
-        run: bun run packages/publisher/publish-library-android.ts
+        run: bun run packages/publisher/publish-library-android.ts -- "${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.build_run_id }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          MAVEN_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}
+          MAVEN_REPOSITORY_URL: ${{ secrets.RNREPO_SWM_REPOSITORY_URL }}
+          MAVEN_GPG_KEY: ${{ secrets.GPG_KEY_ID }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 

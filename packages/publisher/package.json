@@ -8,6 +8,7 @@
     "publish": "bun run publish-library-android.ts"
   },
   "dependencies": {
+    "@octokit/rest": "^22.0.0",
     "commander": "^13.1.0",
     "zx": "^8.6.0"
   },
