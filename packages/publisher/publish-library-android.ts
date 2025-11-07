@@ -38,6 +38,12 @@ if (!MAVEN_USERNAME || !MAVEN_PASSWORD || !MAVEN_REPOSITORY_URL) {
   process.exit(1);
 }
 
+const GPG_KEY_ID = process.env.GPG_KEY_ID;
+if (!GPG_KEY_ID) {
+  console.error('Error: GPG_KEY_ID environment variable is required');
+  process.exit(1);
+}
+
 const [owner, repo] = GITHUB_REPOSITORY.split('/');
 
 function createOctokit() {
@@ -105,7 +111,15 @@ async function main() {
       `${baseFileName}-rn${reactNativeVersion}.aar`
     );
 
+    // Sign artifacts using GPG (Maven deploy:deploy-file will automatically upload .asc files)
+    const gpgPassphrase = process.env.GPG_PASSPHRASE;
+    const passphraseArgs = gpgPassphrase ? `--passphrase ${gpgPassphrase}` : '';
+
+    await $`gpg --batch --yes ${passphraseArgs} --sign --armor --detach-sign --local-user ${GPG_KEY_ID} ${aarFile}`;
+    await $`gpg --batch --yes ${passphraseArgs} --sign --armor --detach-sign --local-user ${GPG_KEY_ID} ${pomFile}`;
+
     // Deploy directly from downloaded artifacts (not from .m2/repository)
+    // deploy:deploy-file will automatically upload .asc signature files if they exist
     await $`mvn deploy:deploy-file \
         -Dfile=${aarFile} \
         -DpomFile=${pomFile} \

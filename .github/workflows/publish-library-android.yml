@@ -44,9 +44,6 @@ jobs:
           name: maven-artifacts
           path: maven-artifacts
 
-      - name: 📋 List downloaded artifacts
-        run: ls -R
-
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
@@ -54,6 +51,11 @@ jobs:
 
       - name: 📦 Install dependencies
         run: bun install
+
+      - name: 🔐 Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
 
       - name: 🔐 Generate Maven settings.xml
         run: |
@@ -82,4 +84,6 @@ jobs:
           MAVEN_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}
           MAVEN_REPOSITORY_URL: ${{ secrets.RNREPO_SWM_REPOSITORY_URL }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
