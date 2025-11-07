@@ -124,16 +124,44 @@ async function main() {
       throw new Error('Failed to create GPG signature files');
     }
 
-    // Deploy artifacts and their signatures
+    // Deploy POM separately (may return 409 if already published, which is acceptable)
+    try {
+      await $`mvn deploy:deploy-file \
+          -Dfile=${pomFile} \
+          -DgroupId=org.rnrepo.public \
+          -DartifactId=${mavenLibraryName} \
+          -Dversion=${libraryVersion} \
+          -Dpackaging=pom \
+          -DrepositoryId=RNRepo \
+          -Durl=${MAVEN_REPOSITORY_URL}`;
+      console.log('✓ POM deployed successfully');
+    } catch (error: any) {
+      // 409 Conflict is acceptable - POM may already exist (shared across versions)
+      const errorOutput = (
+        error?.stderr ||
+        error?.stdout ||
+        String(error)
+      ).toLowerCase();
+      if (
+        errorOutput.includes('status code: 409, reason phrase: Conflict (409)')
+      ) {
+        console.log('⚠ POM already exists (409 conflict) - continuing...');
+      } else {
+        throw error;
+      }
+    }
+
+    // Deploy AAR separately (without POM - already uploaded separately)
     await $`mvn deploy:deploy-file \
         -Dfile=${aarFile} \
-        -DpomFile=${pomFile} \
         -DgroupId=org.rnrepo.public \
         -DartifactId=${mavenLibraryName} \
         -Dversion=${libraryVersion} \
         -Dpackaging=aar \
+        -DgeneratePom=false \
         -DrepositoryId=RNRepo \
         -Durl=${MAVEN_REPOSITORY_URL}`;
+    console.log('✓ AAR deployed successfully');
 
     // Deploy signature files explicitly (deploy:deploy-file doesn't auto-upload .asc files)
     await $`mvn deploy:deploy-file \
@@ -142,8 +170,10 @@ async function main() {
         -DartifactId=${mavenLibraryName} \
         -Dversion=${libraryVersion} \
         -Dpackaging=asc \
+        -DgeneratePom=false \
         -DrepositoryId=RNRepo \
         -Durl=${MAVEN_REPOSITORY_URL}`;
+    console.log('✓ AAR signature deployed successfully');
 
     console.log(
       `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
