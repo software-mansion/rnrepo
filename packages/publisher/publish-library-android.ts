@@ -111,19 +111,6 @@ async function main() {
       `${baseFileName}-rn${reactNativeVersion}.aar`
     );
 
-    // Sign artifacts using GPG
-    const gpgPassphrase = process.env.GPG_PASSPHRASE;
-    const passphraseArgs = gpgPassphrase ? `--passphrase ${gpgPassphrase}` : '';
-
-    await $`gpg --batch --yes ${passphraseArgs} --sign --armor --detach-sign --local-user ${GPG_KEY_ID} ${aarFile}`;
-
-    const aarAscFile = `${aarFile}.asc`;
-
-    // Verify signature files were created
-    if (!existsSync(aarAscFile)) {
-      throw new Error('Failed to create GPG signature files');
-    }
-
     // Deploy POM separately (may return 409 if already published, which is acceptable)
     try {
       await $`mvn deploy:deploy-file \
@@ -151,8 +138,9 @@ async function main() {
       }
     }
 
-    // Deploy AAR separately (without POM - already uploaded separately)
-    await $`mvn deploy:deploy-file \
+    // Sign and deploy AAR using gpg:sign-and-deploy-file (signs and deploys in one step)
+    // The task uses MAVEN_GPG_KEY and MAVEN_GPG_PASSPHRASE environment variables to sign the artifact
+    await $`mvn gpg:sign-and-deploy-file \
         -Dfile=${aarFile} \
         -DgroupId=org.rnrepo.public \
         -DartifactId=${mavenLibraryName} \
@@ -162,21 +150,7 @@ async function main() {
         -DgeneratePom=false \
         -DrepositoryId=RNRepo \
         -Durl=${MAVEN_REPOSITORY_URL}`;
-    console.log('✓ AAR deployed successfully');
-
-    // Deploy signature files explicitly (deploy:deploy-file doesn't auto-upload .asc files)
-    await $`mvn deploy:deploy-file \
-        -Dfile=${aarAscFile} \
-        -DgroupId=org.rnrepo.public \
-        -DartifactId=${mavenLibraryName} \
-        -Dversion=${libraryVersion} \
-        -Dclassifier=rn${reactNativeVersion} \
-        -Dpackaging=asc \
-        -Dextension=aar.asc \
-        -DgeneratePom=false \
-        -DrepositoryId=RNRepo \
-        -Durl=${MAVEN_REPOSITORY_URL}`;
-    console.log('✓ AAR signature deployed successfully');
+    console.log('✓ AAR signed and deployed successfully');
 
     console.log(
       `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
