@@ -123,13 +123,10 @@ async function main() {
       console.log('✓ POM deployed successfully');
     } catch (error: any) {
       // 409 Conflict is acceptable - POM may already exist (shared across versions)
-      const errorOutput = (
-        error?.stderr ||
-        error?.stdout ||
-        String(error)
-      ).toLowerCase();
       if (
-        errorOutput.includes('status code: 409, reason phrase: Conflict (409)')
+        error?.stderr?.includes(
+          'status code: 409, reason phrase: Conflict (409)'
+        )
       ) {
         console.log('⚠ POM already exists (409 conflict) - continuing...');
       } else {
