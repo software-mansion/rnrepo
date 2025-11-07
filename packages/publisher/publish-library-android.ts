@@ -124,7 +124,7 @@ async function main() {
     } catch (error: any) {
       // 409 Conflict is acceptable - POM may already exist (shared across versions)
       if (
-        error?.stderr?.includes(
+        error?.stdout?.includes(
           'status code: 409, reason phrase: Conflict (409)'
         )
       ) {
