@@ -32,6 +32,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
+          name: maven-artifacts
 
       - name: 📥 Download Maven artifacts (from workflow_dispatch)
         if: github.event_name == 'workflow_dispatch'
@@ -39,6 +40,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ inputs.build_run_id }}
+          name: maven-artifacts
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1

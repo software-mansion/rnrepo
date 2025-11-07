@@ -34,13 +34,47 @@ gradle.projectsEvaluated {
                 publishing {
                     publications {
                         release(MavenPublication) {
+                            // This is needed for dependencies to be automatically populated in the POM
                             from project.components.release
 
                             groupId = 'org.rnrepo.public'
                             artifactId = project.findProperty('rnrepoArtifactId')
                             version = project.findProperty('rnrepoPublishVersion')
 
+                            // We re-add the AAR artifacts here in order to have the classifier specified
+                            artifacts.removeAll { it.classifier == null }
+                            def aarTask = project.tasks.findByName('bundleReleaseAar')
+                            if (aarTask) {
+                                artifact(aarTask.outputs.files.singleFile) {
+                                    classifier = project.findProperty('rnrepoClassifier')
+                                    extension = 'aar'
+                                }
+                            }
+
                             pom {
+                                withXml {
+                                    def rootNode = asNode()
+                                    def propertiesNode = rootNode.children().find { it.name() == 'properties' }
+                                    if (!propertiesNode) {
+                                        propertiesNode = rootNode.appendNode('properties')
+                                    }
+
+                                    def buildDurationSeconds = project.hasProperty('rnrepoBuildDurationSeconds') ? project.property('rnrepoBuildDurationSeconds') : null
+
+                                    if (buildDurationSeconds != null) {
+                                        propertiesNode.appendNode('rnrepo.buildDurationSeconds', String.format("%.3f", buildDurationSeconds))
+                                    }
+
+                                    def cpuInfo = project.findProperty('rnrepoCpuInfo')
+                                    if (cpuInfo != null) {
+                                        propertiesNode.appendNode('rnrepo.cpuinfo', cpuInfo)
+                                    }
+
+                                    def buildUrl = project.findProperty('rnrepoBuildUrl')
+                                    if (buildUrl != null) {
+                                        propertiesNode.appendNode('rnrepo.buildUrl', buildUrl)
+                                    }
+                                }
                                 licenses {
                                     license {
                                         name = project.findProperty('rnrepoLicenseName')
@@ -52,6 +86,26 @@ gradle.projectsEvaluated {
                     }
                     repositories {
                         mavenLocal()
+                    }
+                }
+
+                // Disable Gradle Module Metadata generation
+                tasks.matching { it.name.startsWith('generateMetadataFileFor') }.configureEach {
+                    enabled = false
+                }
+
+                // Print execution time for bundleReleaseAar task (including dependencies) and expose as metadata
+                def bundleReleaseAarTask = project.tasks.findByName('bundleReleaseAar')
+                if (bundleReleaseAarTask) {
+                    def startTime = System.currentTimeMillis()
+                    project.extensions.extraProperties.set('rnrepoBuildDurationSeconds', null)
+
+                    bundleReleaseAarTask.doLast {
+                        def endTime = System.currentTimeMillis()
+                        def duration = endTime - startTime
+                        def seconds = duration / 1000.0
+                        project.extensions.extraProperties.set('rnrepoBuildDurationSeconds', seconds)
+                        println "⏱️  bundleReleaseAar (wall clock, deps included) completed in ${String.format('%.3f', seconds)} seconds"
                     }
                 }
             } catch (Exception e) {

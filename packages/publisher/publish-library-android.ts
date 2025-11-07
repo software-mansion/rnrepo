@@ -1,7 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { existsSync, statSync } from 'fs';
 import { join } from 'path';
-import { $, Glob } from 'bun';
+import { $ } from 'bun';
 
 /**
  * Publish Library Android Script
@@ -54,17 +54,6 @@ function convertToGradleProjectName(packageName: string): string {
   return packageName.replace(/^@/, '').replace(/\//g, '_');
 }
 
-async function findArtifactDir(cwd: string) {
-  const glob = new Glob('maven-artifacts-*/');
-  for await (const file of glob.scan({ cwd, onlyFiles: false })) {
-    const fullPath = join(cwd, file.replace(/\/$/, ''));
-    if (existsSync(fullPath) && statSync(fullPath).isDirectory()) {
-      return fullPath;
-    }
-  }
-  throw new Error(`No maven-artifacts-* directory found in ${cwd}`);
-}
-
 async function main() {
   try {
     console.log(`📥 Fetching build workflow run ${buildRunId}...`);
@@ -94,14 +83,13 @@ async function main() {
     console.log('');
 
     const mavenLibraryName = convertToGradleProjectName(libraryName);
-    const mavenVersionString = `${libraryVersion}-rn${reactNativeVersion}`;
 
     // Find the downloaded artifact directory (starts with maven-artifacts-)
-    const artifactDir = await findArtifactDir(process.cwd());
+    const artifactDir = join(process.cwd(), 'maven-artifacts');
     const artifactsBasePath = join(
       artifactDir,
       mavenLibraryName,
-      mavenVersionString
+      libraryVersion
     );
 
     if (!existsSync(artifactsBasePath)) {
@@ -110,20 +98,20 @@ async function main() {
       );
     }
 
-    const baseFileName = `${mavenLibraryName}-${mavenVersionString}`;
+    const baseFileName = `${mavenLibraryName}-${libraryVersion}`;
     const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
-    const aarFile = join(artifactsBasePath, `${baseFileName}.aar`);
-    const moduleFile = join(artifactsBasePath, `${baseFileName}.module`);
+    const aarFile = join(
+      artifactsBasePath,
+      `${baseFileName}-rn${reactNativeVersion}.aar`
+    );
 
     // Deploy directly from downloaded artifacts (not from .m2/repository)
-    // Pass username and password directly to mvn command
     await $`mvn deploy:deploy-file \
         -Dfile=${aarFile} \
         -DpomFile=${pomFile} \
-        -DmoduleFile=${moduleFile} \
         -DgroupId=org.rnrepo.public \
         -DartifactId=${mavenLibraryName} \
-        -Dversion=${mavenVersionString} \
+        -Dversion=${libraryVersion} \
         -Dpackaging=aar \
         -DrepositoryId=RNRepo \
         -Durl=${MAVEN_REPOSITORY_URL}`;
