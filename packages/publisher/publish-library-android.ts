@@ -117,7 +117,7 @@ async function main() {
           -DgroupId=org.rnrepo.public \
           -DartifactId=${mavenLibraryName} \
           -Dversion=${libraryVersion} \
-          -Dpackaging=pom \
+          -Dpackaging=aar \
           -DrepositoryId=RNRepo \
           -Durl=${MAVEN_REPOSITORY_URL}`;
       console.log('✓ POM deployed successfully');
