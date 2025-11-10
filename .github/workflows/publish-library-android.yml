@@ -10,10 +10,10 @@ on:
         required: true
         type: string
   # TODO: eventually this action will run as a response to a workflow_run event
-  # workflow_run:
-  #   workflows: ["Build React Native Library for Android"]
-  #   types:
-  #     - completed
+  workflow_run:
+    workflows: ["Build React Native Library for Android"]
+    types:
+      - completed
 
 jobs:
   publish-library:
