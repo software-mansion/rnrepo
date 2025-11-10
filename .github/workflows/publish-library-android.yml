@@ -4,11 +4,8 @@ run-name: Publish library for Android from build workflow
 
 on:
   workflow_run:
-    workflows: ["Build React Native Library for Android"]
-    types:
-      - completed
-    branches:
-      - main
+    workflows: [Build]
+    types: [completed]
 
 jobs:
   handle-build-completion:
