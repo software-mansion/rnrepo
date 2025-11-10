@@ -2,8 +2,6 @@ import { $ } from 'bun';
 import type { PostInstallScript } from './post-install-interface';
 
 export const postInstallSetup: PostInstallScript = async (
-    appDir: string,
-    workDir: string,
     libraryName: string,
     libraryVersion: string,
     reactNativeVersion: string
@@ -15,7 +13,7 @@ export const postInstallSetup: PostInstallScript = async (
         return;
     }
     try {
-        await installWorklets(appDir, workletsVersion);
+        await installWorklets(workletsVersion);
     } catch (error) {
         console.error(`❌ Failed to install worklets for ${libraryName}:`, error);
         throw error;
@@ -25,9 +23,9 @@ export const postInstallSetup: PostInstallScript = async (
 
 function getWorkletsVersion(libraryVersion: string): string | null {
     const [major, minor, patch] = libraryVersion.split('.').map(Number);
-    console.log(`Detected React Native version: ${major}.${minor}.${patch}`);
+    console.log(`Detected react-native-reanimated version: ${major}.${minor}.${patch}`);
     if (major === 4 && minor === 1) {
-        return '0.6.x';
+        return '0.5.x';
     } else if (major === 4 && minor === 0) {
         return '0.4.x';
     } else {
@@ -35,9 +33,8 @@ function getWorkletsVersion(libraryVersion: string): string | null {
     }
 }
 
-async function installWorklets(appDir: string, version: string) {
+async function installWorklets(version: string) {
     console.log(`Installing worklets version: ${version}`);
-    $.cwd(appDir);
     await $`npm install react-native-worklets@${version} --save-exact`.quiet();
     console.log(`✓ Installed react-native-worklets@${version}`);
 }

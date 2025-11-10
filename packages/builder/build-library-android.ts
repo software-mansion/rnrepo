@@ -64,9 +64,8 @@ async function postInstallSetup(appDir: string) {
   );
   if (existsSync(scriptPath)) {
     const { postInstallSetup } = await import(scriptPath) as { postInstallSetup: PostInstallScript };
+    $.cwd(appDir);
     await postInstallSetup(
-      appDir,
-      workDir,
       libraryName,
       libraryVersion,
       reactNativeVersion

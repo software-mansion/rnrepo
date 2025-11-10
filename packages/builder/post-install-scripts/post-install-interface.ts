@@ -4,8 +4,6 @@
  */
 export interface PostInstallScript {
     (
-        appDir: string,
-        workDir: string,
         libraryName: string,
         libraryVersion: string,
         reactNativeVersion: string
