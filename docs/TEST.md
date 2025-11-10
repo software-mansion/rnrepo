@@ -23,8 +23,8 @@ apply plugin: "com.facebook.react.rootproject"
 +
 + repositories {
 +    maven {
-+        name "reposiliteRepositoryReleases"
-+        url "https://repo.swmtest.xyz/releases"
++        name "RNRepoMavenRepository"
++        url "https://packages.rnrepo.org/releases"
 +    }
 + }
 ```
