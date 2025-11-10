@@ -1,8 +1,10 @@
 # Config Package
 
-This package contains shared configuration files used across the build system.
+This package provides TypeScript exports and validation for shared configuration files used across the build system.
 
-## Contents
+## Configuration Files
+
+The actual configuration files are located at the **project root**:
 
 - **`libraries.json`** - Configuration for which React Native libraries to build and their version requirements
 - **`libraries.schema.json`** - JSON schema for validating `libraries.json`
@@ -13,7 +15,11 @@ This package contains shared configuration files used across the build system.
 Import configuration in your code:
 
 ```typescript
-import { libraries, reactNativeVersions, type LibraryConfig } from '@rnrepo/config';
+import {
+  libraries,
+  reactNativeVersions,
+  type LibraryConfig,
+} from '@rnrepo/config';
 ```
 
 ## Validation
@@ -24,21 +30,17 @@ Validate the `libraries.json` file:
 bun run validate
 ```
 
-This checks that `libraries.json` conforms to `libraries.schema.json`.
+This checks that `libraries.json` (at the project root) conforms to `libraries.schema.json`.
 
 ## Structure
 
 ```
 packages/config/
 ├── src/
-│   ├── index.ts               # Exports configuration (from root)
+│   ├── index.ts               # Exports configuration (imports from root)
 │   ├── types.ts               # TypeScript types
-│   └── validate.ts            # Validation script
+│   └── validate.ts            # Validation script (validates root files)
 └── package.json
-
-Configuration files are located at the project root:
-- libraries.json              # Library build configurations
-- libraries.schema.json       # JSON schema for validation
-- react-native-versions.json  # Supported RN versions
 ```
 
+The package imports and re-exports the JSON files from the project root, providing a clean TypeScript interface for other packages to use.
