@@ -1,0 +1,40 @@
+name: Publish RNRepo Gradle Plugin for Android
+
+run-name: Publish RNRepo Gradle Plugin for Android ${{ inputs.plugin_version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      plugin_version:
+        description: 'Plugin version'
+        required: true
+        type: string
+  
+jobs:
+  build-rnrepo-plugin-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔨 Build RNRepo Gradle Plugin for Android
+        run: ./gradlew build 
+        working-directory: ./packages/client/rnrepo-plugin
+
+      # - name: 🔐 Import GPG key
+      #   run: |
+      #     echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+      #     gpg --list-secret-keys --keyid-format LONG
+
+      - name: 📦 Publish RNRepo Gradle Plugin for Android
+        # run: ./gradlew publishRNRepoPluginPublicationToReposiliteRepositoryReleasesRepository \
+        # publishRNRepoPluginPublicationToDevelopmentRepositoryRepository
+        run: |
+          ./gradlew publishRNRepoPluginPublicationToDevelopmentRepositoryRepository --no-daemon \
+          -PpluginVersion=${{ inputs.plugin_version }} \
+          -PmavenUserDev=${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME_DEV }} \
+          -PmavenPasswordDev=${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN_DEV }} \
+          -PsigningKey="${{ secrets.GPG_PRIVATE_KEY }}" \
+          -PsigningPassword="${{ secrets.GPG_PASSPHRASE }}"
+        working-directory: ./packages/client/rnrepo-plugin

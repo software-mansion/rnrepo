@@ -6,6 +6,7 @@
 cd packages/client/rnrepo-plugin
 
 ./gradlew publishRNRepoPluginPublicationToProductionRepositoryRepository \
+-PpluginVersion=<> \
 -PmavenUserProd=<> \
 -PmavenPasswordProd=<> \
 -PsigningKey=<> \
@@ -16,6 +17,7 @@ cd packages/client/rnrepo-plugin
 cd packages/client/rnrepo-plugin
 
 ./gradlew publishRNRepoPluginPublicationToDevelopmentRepositoryRepository \
+-PpluginVersion=<> \
 -PmavenUserDev=<> \
 -PmavenPasswordDev=<> \
 -PsigningKey=<> \

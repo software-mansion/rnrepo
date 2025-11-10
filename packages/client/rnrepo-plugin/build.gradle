@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'org.rnrepo.prebuilds'
-version = '1.0.0'
+version = project.findProperty("pluginVersion") ?: "0.0.1-MISSINGVERSION"
 
 repositories {
     mavenCentral()
