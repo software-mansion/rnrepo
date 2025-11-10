@@ -7,7 +7,7 @@ import {
   type NpmVersionInfo,
 } from './npm';
 import { scheduleLibraryBuild } from './github';
-import { isBuildAlreadyScheduled, createBuildRecord } from './supabase';
+import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
 function getVersionMatcherForPlatform(
   libraryName: string,

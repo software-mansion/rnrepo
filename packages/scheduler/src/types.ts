@@ -1,4 +1,4 @@
-export type Platform = 'android' | 'ios';
+export type { Platform } from '@rnrepo/database';
 
 export interface LibraryConfig {
   versionMatcher?: string | string[];

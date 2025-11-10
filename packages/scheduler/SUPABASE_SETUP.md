@@ -1,5 +1,7 @@
 # Supabase Setup for Scheduler
 
+> **Note:** Database setup has been moved to the `@rnrepo/database` package. See `packages/database/README.md` for details.
+
 ## Environment Variables
 
 The scheduler requires the following environment variables to connect to Supabase:
@@ -9,21 +11,7 @@ The scheduler requires the following environment variables to connect to Supabas
 
 ## Database Setup
 
-### Option 1: Using Supabase CLI (Recommended)
-
-```bash
-# Link to your Supabase project
-supabase link --project-ref your-project-ref
-
-# Run all migrations
-supabase db push
-```
-
-### Option 2: Manual Setup
-
-1. Go to your Supabase project dashboard → SQL Editor
-2. Run the migration files from `supabase/migrations/` in order (sorted by timestamp)
-3. Start with `20240101000000_initial_schema.sql`
+See `packages/database/README.md` for migration instructions. Migrations are located in `packages/database/supabase/migrations/`.
 
 ## Database Schema
 

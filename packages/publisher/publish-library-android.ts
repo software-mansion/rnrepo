@@ -2,8 +2,7 @@ import { Octokit } from '@octokit/rest';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { $ } from 'bun';
-import { updateBuildStatus } from '../scheduler/src/supabase';
-import type { Platform } from '../scheduler/src/types';
+import { updateBuildStatus, type Platform } from '@rnrepo/database';
 
 /**
  * Publish Library Android Script

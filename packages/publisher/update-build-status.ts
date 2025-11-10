@@ -1,6 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { updateBuildStatus, type BuildStatus } from '../scheduler/src/supabase';
-import type { Platform } from '../scheduler/src/types';
+import { updateBuildStatus, type BuildStatus, type Platform } from '@rnrepo/database';
 
 /**
  * Update Build Status Script

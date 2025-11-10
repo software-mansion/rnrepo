@@ -1,7 +1,7 @@
 import { test, expect, mock, beforeEach, afterEach, spyOn } from 'bun:test';
 import type { LibraryConfig } from './types';
 import * as npmModule from './npm';
-import * as supabaseModule from './supabase';
+import * as supabaseModule from '@rnrepo/database';
 import * as githubModule from './github';
 import type { NpmVersionInfo } from './npm';
 
