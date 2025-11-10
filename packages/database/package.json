@@ -1,0 +1,23 @@
+{
+  "name": "@rnrepo/database",
+  "description": "Database package for build tracking",
+  "type": "module",
+  "main": "./src/index.ts",
+  "private": true,
+  "scripts": {
+    "migrate": "supabase db push",
+    "migrate:local": "supabase migration up",
+    "migrate:reset": "supabase db reset"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "supabase": "^2.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
+
