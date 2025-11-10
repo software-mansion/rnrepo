@@ -4,10 +4,8 @@ run-name: Publish library for Android from build workflow
 
 on:
   workflow_run:
-    workflows:
-     - Build Android
-    types:
-     - completed
+    workflows: [Build]
+    types: [completed]
 
 jobs:
   handle-build-completion:

@@ -1,4 +1,4 @@
-name: Build Android
+name: Build
 
 run-name: Build for Android ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}
 
