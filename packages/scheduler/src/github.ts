@@ -83,7 +83,7 @@ export async function scheduleLibraryBuild(
   platform: Platform,
   reactNativeVersion: string,
   ref: string = 'main'
-): Promise<string | null> {
+): Promise<void> {
   const platformPrefix = platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
 
   console.log(
@@ -109,31 +109,6 @@ export async function scheduleLibraryBuild(
       },
     });
     console.log(`  ✅ Workflow dispatched successfully`);
-
-    // Get the workflow run URL by finding the most recent run for this workflow
-    // Note: There's a small delay between dispatch and run creation, so we wait a bit
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    try {
-      const runs = await listWorkflowRuns(workflowId, ref, 'queued', 5);
-      const platformLabel = platform === 'android' ? 'Android' : 'iOS';
-      const expectedRunName = `Build for ${platformLabel} ${libraryName}@${libraryVersion} RN@${reactNativeVersion}`;
-
-      // Find the matching run
-      for (const run of runs) {
-        if (run.name === expectedRunName && run.event === 'workflow_dispatch') {
-          const runUrl =
-            run.html_url ||
-            `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${run.id}`;
-          return runUrl;
-        }
-      }
-    } catch (error) {
-      console.warn(`  ⚠️  Could not fetch workflow run URL:`, error);
-      // Return null if we can't get the URL, but don't fail the whole operation
-    }
-
-    return null;
   } catch (error) {
     console.error(`  ❌ Failed to dispatch workflow:`, error);
     throw error;

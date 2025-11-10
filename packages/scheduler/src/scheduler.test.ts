@@ -32,7 +32,7 @@ beforeEach(async () => {
   mockMatchesVersionPattern.mockReset();
 
   // Setup default mock implementations
-  mockScheduleLibraryBuild.mockResolvedValue(null); // Return null for GitHub run URL by default
+  mockScheduleLibraryBuild.mockResolvedValue(undefined); // Dispatch succeeds by default
   mockIsBuildAlreadyScheduled.mockResolvedValue(false); // Not already scheduled by default
   mockCreateBuildRecord.mockResolvedValue(undefined); // Create record succeeds by default
   mockMatchesVersionPattern.mockImplementation((version: string, pattern: string | string[]) => {

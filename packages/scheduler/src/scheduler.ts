@@ -134,10 +134,9 @@ export async function processLibrary(
           return scheduledCount;
         }
 
-        // Schedule the build and get the GitHub run URL
-        let githubRunUrl: string | null = null;
+        // Schedule the build
         try {
-          githubRunUrl = await scheduleLibraryBuild(
+          await scheduleLibraryBuild(
             libraryName,
             pkgVersion,
             platform,
@@ -151,15 +150,9 @@ export async function processLibrary(
           continue;
         }
 
-        // Create build record in Supabase with GitHub run URL
+        // Create build record in Supabase (without run URL - will be updated later)
         try {
-          await createBuildRecord(
-            libraryName,
-            pkgVersion,
-            rnVersion,
-            platform,
-            githubRunUrl || undefined
-          );
+          await createBuildRecord(libraryName, pkgVersion, rnVersion, platform);
         } catch (error) {
           console.error(
             `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
