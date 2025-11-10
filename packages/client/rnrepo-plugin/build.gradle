@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'org.rnrepo.prebuilds'
-version = '1.0.0'
+version = project.findProperty("pluginVersion") ?: "0.0.1-MISSINGVERSION"
 
 repositories {
     mavenCentral()
@@ -41,7 +41,7 @@ gradlePlugin {
 
 publishing {
     publications {
-        RNRepoPluginPublication(MavenPublication) {
+        RNRepoPlugin(MavenPublication) {
             from components.java
             pom {
                 name = "RNRepo Gradle Plugin"
@@ -59,11 +59,19 @@ publishing {
     repositories {
         mavenLocal()
         maven { 
-            name "reposiliteRepositoryReleases" // todo(rolkrado): change name when changing URL
-            url "https://repo.swmtest.xyz/releases" // todo(rolkrado): change to production URL
+            name "DevelopmentRepository"
+            url "https://repo.swmtest.xyz/releases"
             credentials {
-                username = project.properties["mavenUser"]
-                password = project.properties["mavenPassword"]
+                username = project.properties["mavenUserDev"]
+                password = project.properties["mavenPasswordDev"]
+            }
+        }
+        maven {
+            name "ProductionRepository"
+            url "https://packages.rnrepo.org/releases"
+            credentials {
+                username = project.properties["mavenUserProd"]
+                password = project.properties["mavenPasswordProd"]
             }
         }
     }
@@ -74,5 +82,5 @@ signing {
     def publishingToMavenLocal = project.gradle.startParameter.taskNames.any { it.contains("MavenLocal") }
     setRequired(!publishingToMavenLocal)
     useInMemoryPgpKeys(project.findProperty("signingKey"), project.findProperty("signingPassword"))
-    sign publishing.publications.RNRepoPluginPublication
+    sign publishing.publications.RNRepoPlugin
 }

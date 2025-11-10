@@ -5,8 +5,8 @@ const rnrepoClasspath = 'classpath("org.rnrepo.prebuilds:rnrepo-plugin:+")';
 const mavenCentralRepository = `mavenCentral()`;
 const mavenRepositoryBlock = `
     maven {
-        name "reposiliteRepositoryReleases"
-        url "https://repo.swmtest.xyz/releases"
+        name "RNRepoMavenRepository"
+        url "https://packages.rnrepo.org/releases"
     }`;
 const applyPluginrnrepo = 'apply plugin: "org.rnrepo.prebuilds.rnrepo-plugin"';
 const applyPluginFacebook = 'apply plugin: "com.facebook.react"';
