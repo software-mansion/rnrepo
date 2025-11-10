@@ -76,7 +76,7 @@ CREATE POLICY "Allow update on builds" ON builds
 -- RLS Policy: Disallow DELETE
 -- No policy for DELETE means DELETE operations are blocked by default
 
--- Trigger function to validate that only status and build_duration_seconds can be modified
+-- Trigger function to validate that only specific fields can be modified
 CREATE OR REPLACE FUNCTION validate_build_update()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -97,20 +97,13 @@ BEGIN
     RAISE EXCEPTION 'react_version cannot be modified';
   END IF;
 
-  -- Allow retry to be modified (can be set manually to trigger retries)
-  -- retry can be modified along with status
-
-  IF OLD.github_run_url IS DISTINCT FROM NEW.github_run_url THEN
-    RAISE EXCEPTION 'github_run_url cannot be modified';
-  END IF;
-
   IF OLD.created_at IS DISTINCT FROM NEW.created_at THEN
     RAISE EXCEPTION 'created_at cannot be modified';
   END IF;
 
   -- updated_at is automatically set by the trigger, so we don't check it
 
-  -- Allow status, build_duration_seconds, and retry to be modified
+  -- Allow status, build_duration_seconds, retry, and github_run_url to be modified
   -- All other fields are immutable after creation
   RETURN NEW;
 END;
