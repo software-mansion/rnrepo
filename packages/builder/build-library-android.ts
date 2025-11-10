@@ -110,7 +110,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     'org',
     'rnrepo',
     'public',
-    libraryName,
+    gradleProjectName,
     libraryVersion
   );
 
@@ -136,14 +136,14 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     // verify that the .pom and .aar files are present aftre the publish command completes
     const pomPath = join(
       mavenLocalLibraryLocationPath,
-      `${libraryName}-${libraryVersion}.pom`
+      `${gradleProjectName}-${libraryVersion}.pom`
     );
     if (!existsSync(pomPath)) {
       throw new Error(`POM file not found at ${pomPath}`);
     }
     const aarPath = join(
       mavenLocalLibraryLocationPath,
-      `${libraryName}-${libraryVersion}-rn${reactNativeVersion}.aar`
+      `${gradleProjectName}-${libraryVersion}-rn${reactNativeVersion}.aar`
     );
     if (!existsSync(aarPath)) {
       throw new Error(`AAR file not found at ${aarPath}`);
