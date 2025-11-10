@@ -5,7 +5,6 @@
   "main": "./index.ts",
   "private": true,
   "scripts": {
-    "validate": "bun run --cwd ../config validate",
     "test": "bun test"
   },
   "devDependencies": {
