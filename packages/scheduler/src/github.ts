@@ -83,7 +83,7 @@ export async function scheduleLibraryBuild(
   platform: Platform,
   reactNativeVersion: string,
   ref: string = 'main'
-): Promise<void> {
+): Promise<string | null> {
   const platformPrefix = platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
 
   console.log(
@@ -109,6 +109,31 @@ export async function scheduleLibraryBuild(
       },
     });
     console.log(`  ✅ Workflow dispatched successfully`);
+
+    // Get the workflow run URL by finding the most recent run for this workflow
+    // Note: There's a small delay between dispatch and run creation, so we wait a bit
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    try {
+      const runs = await listWorkflowRuns(workflowId, ref, 'queued', 5);
+      const platformLabel = platform === 'android' ? 'Android' : 'iOS';
+      const expectedRunName = `Build for ${platformLabel} ${libraryName}@${libraryVersion} RN@${reactNativeVersion}`;
+
+      // Find the matching run
+      for (const run of runs) {
+        if (run.name === expectedRunName && run.event === 'workflow_dispatch') {
+          const runUrl =
+            run.html_url ||
+            `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${run.id}`;
+          return runUrl;
+        }
+      }
+    } catch (error) {
+      console.warn(`  ⚠️  Could not fetch workflow run URL:`, error);
+      // Return null if we can't get the URL, but don't fail the whole operation
+    }
+
+    return null;
   } catch (error) {
     console.error(`  ❌ Failed to dispatch workflow:`, error);
     throw error;
@@ -117,90 +142,4 @@ export async function scheduleLibraryBuild(
 
 export function getWorkflowFile(platform: Platform): string {
   return WORKFLOW_FILES[platform];
-}
-
-interface WorkflowRunCache {
-  runs: Awaited<ReturnType<InstanceType<typeof MyOctokit>['paginate']>>;
-  cachedAt: Date;
-}
-
-const workflowRunsCache: Map<string, WorkflowRunCache> = new Map();
-
-function getCacheKey(daysBack: number, branch: string = 'main'): string {
-  return `${daysBack}-${branch}`;
-}
-
-export function clearWorkflowRunsCache() {
-  workflowRunsCache.clear();
-}
-
-async function getWorkflowRuns(
-  daysBack: number,
-  branch: string = 'main'
-): Promise<Awaited<ReturnType<InstanceType<typeof MyOctokit>['paginate']>>> {
-  const cacheKey = getCacheKey(daysBack, branch);
-  const cached = workflowRunsCache.get(cacheKey);
-
-  if (cached) {
-    return cached.runs;
-  }
-
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - daysBack);
-
-  const cutoffDateString = cutoffDate.toISOString().split('T')[0];
-  const createdFilter = `>=${cutoffDateString}`;
-
-  const client = getOctokit();
-  const runs = await client.paginate(
-    client.rest.actions.listWorkflowRunsForRepo,
-    {
-      owner: GITHUB_OWNER,
-      repo: GITHUB_REPO,
-      branch,
-      created: createdFilter,
-    }
-  );
-
-  workflowRunsCache.set(cacheKey, {
-    runs,
-    cachedAt: new Date(),
-  });
-
-  return runs;
-}
-
-/**
- * Checks if a workflow run exists for the given library name, version, React Native version, and platform in the past N days.
- * Returns true if a matching workflow run is found, false otherwise.
- * Workflow runs are cached to avoid repeated API calls for the same date range.
- */
-export async function hasRecentWorkflowRun(
-  libraryName: string,
-  libraryVersion: string,
-  reactNativeVersion: string,
-  platform: Platform,
-  daysBack: number = 3
-): Promise<boolean> {
-  try {
-    const runs = await getWorkflowRuns(daysBack, 'main');
-
-    const platformLabel = platform === 'android' ? 'Android' : 'iOS';
-    const expectedRunName = `Build for ${platformLabel} ${libraryName}@${libraryVersion} RN@${reactNativeVersion}`;
-
-    for (const run of runs) {
-      if (run.event !== 'workflow_dispatch') {
-        continue;
-      }
-
-      if (run.name === expectedRunName) {
-        return true;
-      }
-    }
-
-    return false;
-  } catch (error) {
-    console.error('Error checking recent workflow runs:', error);
-    return false;
-  }
 }

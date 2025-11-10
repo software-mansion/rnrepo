@@ -6,8 +6,8 @@ import {
   findMatchingVersionsFromNPM,
   type NpmVersionInfo,
 } from './npm';
-import { isCombinationOnMaven } from './maven';
-import { scheduleLibraryBuild, hasRecentWorkflowRun } from './github';
+import { scheduleLibraryBuild } from './github';
+import { isBuildAlreadyScheduled, createBuildRecord } from './supabase';
 
 function getVersionMatcherForPlatform(
   libraryName: string,
@@ -108,23 +108,13 @@ export async function processLibrary(
           continue;
         }
 
-        const isOnMaven = await isCombinationOnMaven(
-          libraryName,
-          pkgVersion,
-          rnVersion
-        );
-        if (isOnMaven) {
-          continue;
-        }
-
-        const hasRecentRun = await hasRecentWorkflowRun(
+        const alreadyScheduled = await isBuildAlreadyScheduled(
           libraryName,
           pkgVersion,
           rnVersion,
-          platform,
-          5
+          platform
         );
-        if (hasRecentRun) {
+        if (alreadyScheduled) {
           const platformPrefix =
             platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
           console.log(
@@ -134,7 +124,7 @@ export async function processLibrary(
             pkgVersion,
             'with React Native',
             rnVersion,
-            '- already scheduled in the past 5 days'
+            '- already scheduled or completed'
           );
           continue;
         }
@@ -144,12 +134,40 @@ export async function processLibrary(
           return scheduledCount;
         }
 
-        await scheduleLibraryBuild(
-          libraryName,
-          pkgVersion,
-          platform,
-          rnVersion
-        );
+        // Schedule the build and get the GitHub run URL
+        let githubRunUrl: string | null = null;
+        try {
+          githubRunUrl = await scheduleLibraryBuild(
+            libraryName,
+            pkgVersion,
+            platform,
+            rnVersion
+          );
+        } catch (error) {
+          console.error(
+            `Failed to schedule build for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
+            error
+          );
+          continue;
+        }
+
+        // Create build record in Supabase with GitHub run URL
+        try {
+          await createBuildRecord(
+            libraryName,
+            pkgVersion,
+            rnVersion,
+            platform,
+            githubRunUrl || undefined
+          );
+        } catch (error) {
+          console.error(
+            `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
+            error
+          );
+          // Continue anyway - the record might have been created by another process
+        }
+
         scheduledCount++;
       }
     }
