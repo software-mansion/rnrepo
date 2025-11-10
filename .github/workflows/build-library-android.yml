@@ -54,6 +54,10 @@ jobs:
       - name: 🔨 Build library for Android
         run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}"
 
+      - name: 📋 List artifacts with checksums
+        run: |
+          find ~/.m2/repository/org/rnrepo/public -type f -exec md5sum {} \;
+
       - name: 📦 Upload Maven artifacts
         uses: actions/upload-artifact@v4
         with:

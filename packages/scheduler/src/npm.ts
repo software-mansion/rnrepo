@@ -85,7 +85,7 @@ export async function fetchNpmPackageVersions(
 /**
  * Finds matching NPM package versions based on version matcher and publishedAfterDate.
  * Returns versions sorted by publish date (oldest first).
- * Does not check Maven - that should be done separately in the scheduler.
+ * Does not check build status - that should be done separately in the scheduler using Supabase.
  */
 export async function findMatchingVersionsFromNPM(
   packageName: string,

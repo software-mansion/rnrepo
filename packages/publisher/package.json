@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@octokit/rest": "^22.0.0",
+    "@rnrepo/database": "workspace:*",
     "commander": "^13.1.0",
     "zx": "^8.6.0"
   },
