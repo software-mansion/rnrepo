@@ -57,7 +57,7 @@ jobs:
       - name: 📦 Upload Maven artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: maven-artifacts-${{ inputs.library_name }}-${{ inputs.library_version }}-rn${{ inputs.react_native_version }}
+          name: maven-artifacts
           path: |
             ~/.m2/repository/org/rnrepo/public
           retention-days: 1

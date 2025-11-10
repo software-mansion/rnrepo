@@ -29,6 +29,7 @@
       "name": "@rnrepo/publisher",
       "version": "0.1.0",
       "dependencies": {
+        "@octokit/rest": "^22.0.0",
         "commander": "^13.1.0",
         "zx": "^8.6.0",
       },

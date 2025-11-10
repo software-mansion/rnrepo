@@ -1,14 +1,6 @@
 import { $ } from 'bun';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  readdirSync,
-  copyFileSync,
-  statSync,
-  chmodSync,
-} from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
 
 /**
@@ -40,6 +32,11 @@ const ALLOWED_LICENSES: AllowedLicense[] = [
   'BSD-3-Clause',
   'BSD-2-Clause',
 ];
+
+const GITHUB_SERVER_URL = process.env.GITHUB_SERVER_URL;
+const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY;
+const GITHUB_RUN_ID = process.env.GITHUB_RUN_ID;
+const GITHUB_BUILD_URL = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}`;
 
 // Main execution
 console.log('📦 Building Android library:');
@@ -77,6 +74,10 @@ function convertToGradleProjectName(packageName: string): string {
   return packageName.replace(/^@/, '').replace(/\//g, '_');
 }
 
+function getCpuInfo() {
+  return `${arch()}-${platform()}-${cpus().length}coresAt${cpus()[0].speed}`;
+}
+
 async function buildAAR(appDir: string, license: AllowedLicense) {
   const gradleProjectName = convertToGradleProjectName(libraryName);
   const packagePath = join(appDir, 'node_modules', libraryName);
@@ -97,25 +98,11 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     );
   }
 
-  // Temporarily add the package to settings.gradle if not already there
-  const originalSettings = readFileSync(settingsPath, 'utf-8');
-  const packageInclude = `include ':${gradleProjectName}'`;
-  const packageProject = `project(':${gradleProjectName}').projectDir = new File('${packagePath}/android')`;
-
-  if (!originalSettings.includes(packageInclude)) {
-    const updatedSettings = `${originalSettings}\n${packageInclude}\n${packageProject}\n`;
-    writeFileSync(settingsPath, updatedSettings);
-    console.log(
-      `✓ Added ${libraryName} as :${gradleProjectName} to settings.gradle`
-    );
-  }
-
   const addPublishingGradleScriptPath = join(
     __dirname,
     'add-publishing.gradle'
   );
 
-  const publishVersionString = `${libraryVersion}-rn${reactNativeVersion}`;
   const mavenLocalLibraryLocationPath = join(
     process.env.HOME || process.env.USERPROFILE || '',
     '.m2',
@@ -124,7 +111,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     'rnrepo',
     'public',
     libraryName,
-    publishVersionString
+    libraryVersion
   );
 
   if (existsSync(mavenLocalLibraryLocationPath)) {
@@ -138,25 +125,28 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
       --no-daemon \
       --init-script ${addPublishingGradleScriptPath} \
       -PrnrepoArtifactId=${gradleProjectName} \
-      -PrnrepoPublishVersion=${publishVersionString} \
+      -PrnrepoPublishVersion=${libraryVersion} \
+      -PrnrepoClassifier=rn${reactNativeVersion} \
+      -PrnrepoCpuInfo=${getCpuInfo()} \
+      -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
       -PrnrepoLicenseName=${license} \
       -PrnrepoLicenseUrl=https://opensource.org/license/${license}
     `.cwd(androidPath);
 
-    // verify that the .aar and .pom files are present aftre the publish command completes
-    const aarPath = join(
-      mavenLocalLibraryLocationPath,
-      `${libraryName}-${publishVersionString}.aar`
-    );
+    // verify that the .pom and .aar files are present aftre the publish command completes
     const pomPath = join(
       mavenLocalLibraryLocationPath,
-      `${libraryName}-${publishVersionString}.pom`
+      `${libraryName}-${libraryVersion}.pom`
+    );
+    if (!existsSync(pomPath)) {
+      throw new Error(`POM file not found at ${pomPath}`);
+    }
+    const aarPath = join(
+      mavenLocalLibraryLocationPath,
+      `${libraryName}-${libraryVersion}-rn${reactNativeVersion}.aar`
     );
     if (!existsSync(aarPath)) {
       throw new Error(`AAR file not found at ${aarPath}`);
-    }
-    if (!existsSync(pomPath)) {
-      throw new Error(`POM file not found at ${pomPath}`);
     }
 
     console.log('✓ Published to Maven Local successfully');
