@@ -1,7 +1,9 @@
 import { Octokit } from '@octokit/rest';
-import { existsSync, statSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { $ } from 'bun';
+import { updateBuildStatus } from '../scheduler/src/supabase';
+import type { Platform } from '../scheduler/src/types';
 
 /**
  * Publish Library Android Script
@@ -23,6 +25,9 @@ const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY;
 const MAVEN_USERNAME = process.env.MAVEN_USERNAME;
 const MAVEN_PASSWORD = process.env.MAVEN_PASSWORD;
 const MAVEN_REPOSITORY_URL = process.env.MAVEN_REPOSITORY_URL;
+const MAVEN_GPG_KEY = process.env.MAVEN_GPG_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) {
   console.error(
@@ -38,8 +43,15 @@ if (!MAVEN_USERNAME || !MAVEN_PASSWORD || !MAVEN_REPOSITORY_URL) {
   process.exit(1);
 }
 
-if (!process.env.MAVEN_GPG_KEY) {
+if (!MAVEN_GPG_KEY) {
   console.error('Error: MAVEN_GPG_KEY environment variable is required');
+  process.exit(1);
+}
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error(
+    'Error: SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required'
+  );
   process.exit(1);
 }
 
@@ -151,6 +163,29 @@ async function main() {
     console.log(
       `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
     );
+
+    // Update Supabase status to 'completed' after publish is fully complete
+    try {
+      const githubRunUrl =
+        run.html_url ||
+        `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
+
+      await updateBuildStatus(
+        libraryName,
+        libraryVersion,
+        reactNativeVersion,
+        'android' as Platform,
+        'completed',
+        {
+          githubRunUrl,
+        }
+      );
+      console.log('✓ Database status updated to completed');
+    } catch (error) {
+      console.warn(`⚠️  Failed to update database status: ${error}`);
+      // Don't fail the publish if database update fails
+    }
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Publish failed:', error);

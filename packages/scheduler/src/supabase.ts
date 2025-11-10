@@ -100,3 +100,50 @@ export async function createBuildRecord(
     throw new Error(`Failed to create/update build record: ${error.message}`);
   }
 }
+
+/**
+ * Updates the status of a build record.
+ */
+export async function updateBuildStatus(
+  packageName: string,
+  version: string,
+  reactVersion: string,
+  platform: Platform,
+  status: BuildStatus,
+  options?: {
+    githubRunUrl?: string;
+    buildDurationSeconds?: number;
+  }
+): Promise<void> {
+  const supabase = getSupabaseClient();
+
+  const updateData: {
+    status: BuildStatus;
+    updated_at: string;
+    github_run_url?: string | null;
+    build_duration_seconds?: number | null;
+  } = {
+    status,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (options?.githubRunUrl !== undefined) {
+    updateData.github_run_url = options.githubRunUrl || null;
+  }
+
+  if (options?.buildDurationSeconds !== undefined) {
+    updateData.build_duration_seconds = options.buildDurationSeconds || null;
+  }
+
+  const { error } = await supabase
+    .from('builds')
+    .update(updateData)
+    .eq('package_name', packageName)
+    .eq('version', version)
+    .eq('react_version', reactVersion)
+    .eq('platform', platform);
+
+  if (error) {
+    throw new Error(`Failed to update build status: ${error.message}`);
+  }
+}
