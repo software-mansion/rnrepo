@@ -22,19 +22,12 @@ jobs:
         run: ./gradlew build 
         working-directory: ./packages/client/rnrepo-plugin
 
-      # - name: 🔐 Import GPG key
-      #   run: |
-      #     echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
-      #     gpg --list-secret-keys --keyid-format LONG
-
       - name: 📦 Publish RNRepo Gradle Plugin for Android
-        # run: ./gradlew publishRNRepoPluginPublicationToReposiliteRepositoryReleasesRepository \
-        # publishRNRepoPluginPublicationToDevelopmentRepositoryRepository
         run: |
-          ./gradlew publishRNRepoPluginPublicationToDevelopmentRepositoryRepository --no-daemon \
+          ./gradlew publishRNRepoPluginPublicationToProductionRepositoryRepository --no-daemon \
           -PpluginVersion=${{ inputs.plugin_version }} \
-          -PmavenUserDev=${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME_DEV }} \
-          -PmavenPasswordDev=${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN_DEV }} \
+          -PmavenUserProd=${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }} \
+          -PmavenPasswordProd=${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }} \
           -PsigningKey="${{ secrets.GPG_PRIVATE_KEY }}" \
           -PsigningPassword="${{ secrets.GPG_PASSPHRASE }}"
         working-directory: ./packages/client/rnrepo-plugin
