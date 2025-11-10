@@ -52,11 +52,6 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install
 
-      - name: 🔐 Import GPG key
-        run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
-          gpg --list-secret-keys --keyid-format LONG
-
       - name: 🔐 Generate Maven settings.xml
         run: |
           mkdir -p ~/.m2
@@ -84,6 +79,6 @@ jobs:
           MAVEN_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}
           MAVEN_REPOSITORY_URL: ${{ secrets.RNREPO_SWM_REPOSITORY_URL }}
-          MAVEN_GPG_KEY: ${{ secrets.GPG_KEY_ID }}
+          MAVEN_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
