@@ -2,6 +2,7 @@ import { $ } from 'bun';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
+import type { PostInstallScript } from './post-install-scripts/post-install-interface';
 
 /**
  * Build Library Android Script
@@ -52,19 +53,27 @@ try {
   process.exit(1);
 }
 
-async function installWorkletsIfNeeded(appDir: string) {
-  if (libraryName === 'react-native-reanimated') {
-    if (libraryVersion.startsWith('4.0.')) {
-      console.log('📦 Installing react-native-worklets@0.4.0...');
-      await $`npm install react-native-worklets@0.4.0 --save-exact`
-        .cwd(appDir)
-        .quiet();
-    } else if (libraryVersion.startsWith('4.1.')) {
-      console.log('📦 Installing react-native-worklets@0.5.0...');
-      await $`npm install react-native-worklets@0.5.0 --save-exact`
-        .cwd(appDir)
-        .quiet();
-    }
+async function postInstallSetup(appDir: string) {
+  // Dynamically imports the `postInstallSetup` function from a library-specific script
+  // located in the `post-install-scripts` directory relative to this script. The target
+  // script is expected to match the library's name and have a `.ts` extension.
+  const scriptPath = join(
+    __dirname,
+    'post-install-scripts',
+    convertToGradleProjectName(libraryName) + '.ts'
+  );
+  if (existsSync(scriptPath)) {
+    const { postInstallSetup } = await import(scriptPath) as { postInstallSetup: PostInstallScript };
+    await postInstallSetup(
+      appDir,
+      workDir,
+      libraryName,
+      libraryVersion,
+      reactNativeVersion
+    );
+    console.log(`✓ Executed post-install script for ${libraryName}`);
+  } else {
+    console.log(`ℹ️ No post-install script found for ${libraryName}`);
   }
 }
 
@@ -207,8 +216,8 @@ async function buildLibrary() {
     // Extract license name from the library's package.json
     const license = extractAndVerifyLicense(appDir);
 
-    // Install worklets if needed for reanimated
-    await installWorkletsIfNeeded(appDir);
+    // Perform any library-specific setup (e.g., install worklets) 
+    await postInstallSetup(appDir);
 
     // Install all dependencies
     console.log('📦 Installing all dependencies...');
