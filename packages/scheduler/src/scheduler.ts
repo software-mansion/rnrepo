@@ -1,6 +1,9 @@
-import libraries from '../libraries.json';
-import reactNativeVersions from '../react-native-versions.json';
-import type { LibraryConfig, Platform } from './types';
+import {
+  libraries,
+  reactNativeVersions,
+  type LibraryConfig,
+} from '@rnrepo/config';
+import type { Platform } from '@rnrepo/database';
 import {
   matchesVersionPattern,
   findMatchingVersionsFromNPM,
