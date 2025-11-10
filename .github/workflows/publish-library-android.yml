@@ -3,12 +3,6 @@ name: Publish React Native Library for Android
 run-name: Publish library for Android from build workflow
 
 on:
-  workflow_dispatch:
-    inputs:
-      build_run_id:
-        description: 'Build workflow run ID (for testing)'
-        required: true
-        type: string
   workflow_run:
     workflows: ["Build React Native Library for Android"]
     types:
@@ -22,7 +16,7 @@ jobs:
     permissions:
       actions: read
       contents: read
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+    if: github.event.workflow_run.conclusion != 'success'
 
     steps:
       - name: 🏗 Checkout repository
@@ -49,27 +43,17 @@ jobs:
     permissions:
       actions: read
       contents: read
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    if: github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 📥 Download Maven artifacts (from workflow_run)
-        if: github.event_name == 'workflow_run'
+      - name: 📥 Download Maven artifacts
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
-          name: maven-artifacts
-          path: maven-artifacts
-
-      - name: 📥 Download Maven artifacts (from workflow_dispatch)
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ inputs.build_run_id }}
           name: maven-artifacts
           path: maven-artifacts
 
@@ -106,7 +90,7 @@ jobs:
           EOF
 
       - name: 📤 Publish library
-        run: bun run packages/publisher/publish-library-android.ts -- "${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.build_run_id }}"
+        run: bun run packages/publisher/publish-library-android.ts -- "${{ github.event.workflow_run.id }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
