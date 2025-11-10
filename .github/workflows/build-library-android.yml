@@ -35,9 +35,7 @@ jobs:
       - name: 📱 Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          api-level: 33
-          build-tools: 33.0.0
-          components: platform-tools,android-33,build-tools-33.0.0
+          packages: platform-tools;android-33;build-tools;33.0.0
 
       - name: ✅ Accept Android Licenses
         run: |
