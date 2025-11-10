@@ -9,4 +9,7 @@ if (limit !== undefined && (isNaN(limit) || limit < 1)) {
   process.exit(1);
 }
 
-runScheduler(limit).catch(console.error);
+runScheduler(limit).catch((error) => {
+  console.error('Scheduler failed:', error);
+  process.exit(1);
+});

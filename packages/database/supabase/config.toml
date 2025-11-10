@@ -1,0 +1,11 @@
+# Supabase CLI configuration
+# This file is used by Supabase CLI to manage migrations
+
+[project]
+# Project reference (set via `supabase link`)
+# project_id = "your-project-ref"
+
+[db]
+# Database connection settings
+# These are typically set via environment variables or `supabase link`
+
