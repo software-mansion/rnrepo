@@ -1,7 +1,7 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import schema from './libraries.schema.json';
-import data from './libraries.json';
+import schema from '../../libraries.schema.json';
+import data from '../../libraries.json';
 
 const ajv = new Ajv();
 addFormats(ajv);
@@ -23,3 +23,4 @@ if (valid) {
   });
   process.exit(1);
 }
+
