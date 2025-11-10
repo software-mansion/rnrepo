@@ -1,8 +1,7 @@
 // Maven stores artifacts under the following URL. For each package and react-native
-// version, artifacts are stored under path like: REPO_URL_PREFIX/some-npm-package-name/4.18.1-rn0.79.0
-const MAVEN_REPO_BASE_URL = 'https://repo.swmtest.xyz/releases/com/swmansion/';
+// version, artifacts are stored under path like: REPO_URL_PREFIX/some-npm-package-name/package-version/
 const MAVEN_API_BASE_URL =
-  'https://repo.swmtest.xyz/api/maven/versions/releases/com/swmansion/';
+  'https://packages.rnrepo.org/api/maven/versions/releases/org/rnrepo/public/';
 
 // Cache Maven artifacts per package using the JSON API
 const mavenArtifactsCache: Record<string, Set<string> | null> = {};
