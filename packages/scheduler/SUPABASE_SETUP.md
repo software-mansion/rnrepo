@@ -5,7 +5,7 @@
 The scheduler requires the following environment variables to connect to Supabase:
 
 - `SUPABASE_URL` - Your Supabase project URL (e.g., `https://xxxxx.supabase.co`)
-- `SUPABASE_ANON_KEY` - Your Supabase anonymous key (uses RLS policies for security)
+- `SUPABASE_KEY` - Your Supabase anonymous key (uses RLS policies for security)
 
 ## Database Setup
 

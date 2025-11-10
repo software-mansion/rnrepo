@@ -29,7 +29,7 @@ if (status !== 'completed' && status !== 'failed') {
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) {
   console.error(
@@ -38,9 +38,9 @@ if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) {
   process.exit(1);
 }
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error(
-    'Error: SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required'
+    'Error: SUPABASE_URL and SUPABASE_KEY environment variables are required'
   );
   process.exit(1);
 }

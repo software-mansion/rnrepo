@@ -27,7 +27,7 @@ const MAVEN_PASSWORD = process.env.MAVEN_PASSWORD;
 const MAVEN_REPOSITORY_URL = process.env.MAVEN_REPOSITORY_URL;
 const MAVEN_GPG_KEY = process.env.MAVEN_GPG_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 if (!GITHUB_TOKEN || !GITHUB_REPOSITORY) {
   console.error(
@@ -48,9 +48,9 @@ if (!MAVEN_GPG_KEY) {
   process.exit(1);
 }
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error(
-    'Error: SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required'
+    'Error: SUPABASE_URL and SUPABASE_KEY environment variables are required'
   );
   process.exit(1);
 }

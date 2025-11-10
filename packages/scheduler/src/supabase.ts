@@ -18,14 +18,14 @@ export interface BuildRecord {
 }
 
 // Initialize Supabase client
-// Uses SUPABASE_ANON_KEY with RLS policies
+// Uses SUPABASE_KEY with RLS policies
 function getSupabaseClient(): SupabaseClient {
   const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_ANON_KEY;
+  const supabaseKey = process.env.SUPABASE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error(
-      'SUPABASE_URL and SUPABASE_ANON_KEY environment variables are required'
+      'SUPABASE_URL and SUPABASE_KEY environment variables are required'
     );
   }
 
