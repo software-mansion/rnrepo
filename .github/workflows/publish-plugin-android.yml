@@ -1,0 +1,33 @@
+name: Publish RNRepo Gradle Plugin for Android
+
+run-name: Publish RNRepo Gradle Plugin for Android ${{ inputs.plugin_version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      plugin_version:
+        description: 'Plugin version'
+        required: true
+        type: string
+  
+jobs:
+  build-rnrepo-plugin-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔨 Build RNRepo Gradle Plugin for Android
+        run: ./gradlew build 
+        working-directory: ./packages/client/rnrepo-plugin
+
+      - name: 📦 Publish RNRepo Gradle Plugin for Android
+        run: |
+          ./gradlew publishRNRepoPluginPublicationToProductionRepositoryRepository --no-daemon \
+          -PpluginVersion=${{ inputs.plugin_version }} \
+          -PmavenUserProd=${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }} \
+          -PmavenPasswordProd=${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }} \
+          -PsigningKey="${{ secrets.GPG_PRIVATE_KEY }}" \
+          -PsigningPassword="${{ secrets.GPG_PASSPHRASE }}"
+        working-directory: ./packages/client/rnrepo-plugin
