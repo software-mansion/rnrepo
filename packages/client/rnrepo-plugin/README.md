@@ -27,7 +27,8 @@ cd packages/client/rnrepo-plugin
 ```
 cd packages/client/rnrepo-plugin
 
-./gradlew publishRNRepoPluginPublicationToMavenLocalRepository
+./gradlew publishRNRepoPluginPublicationToMavenLocalRepository \
+-PpluginVersion=<>
 ```
 
 ## Using RNRepo in dev mode

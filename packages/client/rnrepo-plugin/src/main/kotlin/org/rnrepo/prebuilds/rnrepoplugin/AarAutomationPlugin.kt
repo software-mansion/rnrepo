@@ -166,7 +166,7 @@ class AarAutomationPlugin : Plugin<Project> {
         }
         var currentDirName = rootProject.rootDir
         while (currentDirName != null) {
-            if (File(currentDirName, "node_modules/react-native").exists()) {
+            if (File(currentDirName, "node_modules${File.separator}react-native").exists()) {
                 logger.lifecycle("[RNRepo] Found React Native root directory at: ${currentDirName.absolutePath}")
                 return currentDirName
             }
@@ -236,12 +236,12 @@ class AarAutomationPlugin : Plugin<Project> {
         packageVersion: String, 
         RNVersion: String
     ): Boolean {
-        val cachePath = System.getProperty("user.home") + "/.gradle/caches/modules-2/files-2.1"
-        val groupPath = "org.rnrepo.public/$gradlePackageName"
+        val cachePath = Paths.get(System.getProperty("user.home"), ".gradle", "caches", "modules-2", "files-2.1").toString()
+        val groupPath = "org.rnrepo.public${File.separator}$gradlePackageName"
         val artifactPath = "${packageVersion}-rn$RNVersion"
         
         // Construct the local path expected for the .aar file in cache
-        val filePathInCache = "$cachePath/$groupPath/$artifactPath"
+        val filePathInCache = Paths.get(cachePath, groupPath, artifactPath).toString()
         val cacheFile = File(filePathInCache)
         // Check if the directory for this package and version exists in the cache
         if (cacheFile.exists() && cacheFile.isDirectory) {
@@ -300,7 +300,8 @@ class AarAutomationPlugin : Plugin<Project> {
         }
 
         // find react-native version
-        val rnPackageJsonFile = File(node_modulesDir, "react-native/package.json")
+        val rnPackageJsonPath = Paths.get(node_modulesDir.absolutePath, "react-native", "package.json").toString()
+        val rnPackageJsonFile = File(rnPackageJsonPath)
         if (!rnPackageJsonFile.exists()) {
             logger.error("[RNRepo] react-native package.json not found in node_modules/react-native")
             return
@@ -324,8 +325,8 @@ class AarAutomationPlugin : Plugin<Project> {
 
         // get all projects paths that contain node_modules in path
         val projectNodeModulesPaths = rootProject.rootProject.allprojects.mapNotNull { proj ->
-            val relPath = proj.projectDir.absolutePath.replace("/android", "")
-            if (relPath.contains("/node_modules/") || relPath.contains("node_modules/")) {
+            val relPath = proj.projectDir.absolutePath.replace("${File.separator}android", "")
+            if (relPath.contains("node_modules")) {
                 logger.info("[RNRepo] Project in build: ${proj.name} at $relPath")
                 relPath
             } else {
