@@ -9,18 +9,45 @@ on:
         description: 'Build workflow run ID (for testing)'
         required: true
         type: string
-  # TODO: eventually this action will run as a response to a workflow_run event
   workflow_run:
     workflows: ["Build React Native Library for Android"]
     types:
       - completed
 
 jobs:
+  handle-build-completion:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 📝 Update build status (failure)
+        run: bun run packages/publisher/update-build-status.ts -- "${{ github.event.workflow_run.id }}" "failed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
   publish-library:
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
     steps:
       - name: 🏗 Checkout repository
@@ -86,4 +113,6 @@ jobs:
           MAVEN_REPOSITORY_URL: ${{ secrets.RNREPO_SWM_REPOSITORY_URL }}
           MAVEN_GPG_KEY: ${{ secrets.GPG_KEY_ID }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
 

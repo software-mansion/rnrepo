@@ -1,7 +1,7 @@
 import { test, expect, mock, beforeEach, afterEach, spyOn } from 'bun:test';
 import type { LibraryConfig } from './types';
 import * as npmModule from './npm';
-import * as mavenModule from './maven';
+import * as supabaseModule from '@rnrepo/database';
 import * as githubModule from './github';
 import type { NpmVersionInfo } from './npm';
 
@@ -11,8 +11,8 @@ const originalError = console.error;
 
 // Mock the modules
   const mockFindMatchingVersionsFromNPM = mock();
-  const mockIsCombinationOnMaven = mock();
-  const mockHasRecentWorkflowRun = mock();
+  const mockIsBuildAlreadyScheduled = mock();
+  const mockCreateBuildRecord = mock();
   const mockScheduleLibraryBuild = mock();
   const mockMatchesVersionPattern = mock();
 
@@ -26,15 +26,15 @@ beforeEach(async () => {
 
   // Reset all mocks
   mockFindMatchingVersionsFromNPM.mockReset();
-  mockIsCombinationOnMaven.mockReset();
-  mockHasRecentWorkflowRun.mockReset();
+  mockIsBuildAlreadyScheduled.mockReset();
+  mockCreateBuildRecord.mockReset();
   mockScheduleLibraryBuild.mockReset();
   mockMatchesVersionPattern.mockReset();
 
   // Setup default mock implementations
-  mockScheduleLibraryBuild.mockResolvedValue(undefined);
-  mockIsCombinationOnMaven.mockResolvedValue(false); // Not on Maven by default
-  mockHasRecentWorkflowRun.mockResolvedValue(false); // No recent runs by default
+  mockScheduleLibraryBuild.mockResolvedValue(undefined); // Dispatch succeeds by default
+  mockIsBuildAlreadyScheduled.mockResolvedValue(false); // Not already scheduled by default
+  mockCreateBuildRecord.mockResolvedValue(undefined); // Create record succeeds by default
   mockMatchesVersionPattern.mockImplementation((version: string, pattern: string | string[]) => {
     const patterns = Array.isArray(pattern) ? pattern : [pattern];
     return patterns.some((p) => {
@@ -54,8 +54,8 @@ beforeEach(async () => {
     mockFindMatchingVersionsFromNPM
   );
   spyOn(npmModule, 'matchesVersionPattern').mockImplementation(mockMatchesVersionPattern);
-  spyOn(mavenModule, 'isCombinationOnMaven').mockImplementation(mockIsCombinationOnMaven);
-  spyOn(githubModule, 'hasRecentWorkflowRun').mockImplementation(mockHasRecentWorkflowRun);
+  spyOn(supabaseModule, 'isBuildAlreadyScheduled').mockImplementation(mockIsBuildAlreadyScheduled);
+  spyOn(supabaseModule, 'createBuildRecord').mockImplementation(mockCreateBuildRecord);
   spyOn(githubModule, 'scheduleLibraryBuild').mockImplementation(mockScheduleLibraryBuild);
 
   // Note: We'll pass rnVersions as a parameter to processLibrary instead of mocking the import
@@ -73,11 +73,11 @@ afterEach(() => {
   if (npmModule.matchesVersionPattern.mockRestore) {
     npmModule.matchesVersionPattern.mockRestore();
   }
-  if (mavenModule.isCombinationOnMaven.mockRestore) {
-    mavenModule.isCombinationOnMaven.mockRestore();
+  if (supabaseModule.isBuildAlreadyScheduled.mockRestore) {
+    supabaseModule.isBuildAlreadyScheduled.mockRestore();
   }
-  if (githubModule.hasRecentWorkflowRun.mockRestore) {
-    githubModule.hasRecentWorkflowRun.mockRestore();
+  if (supabaseModule.createBuildRecord.mockRestore) {
+    supabaseModule.createBuildRecord.mockRestore();
   }
   if (githubModule.scheduleLibraryBuild.mockRestore) {
     githubModule.scheduleLibraryBuild.mockRestore();
@@ -128,11 +128,11 @@ test('processLibrary - schedules builds for valid combinations', async () => {
   expect(mockScheduleLibraryBuild).toHaveBeenCalledTimes(16);
   // findMatchingVersionsFromNPM called once per platform (android, ios)
   expect(mockFindMatchingVersionsFromNPM).toHaveBeenCalledTimes(2);
-  // Maven checks: Only checked for RN versions that match pattern
+  // Supabase checks: Only checked for RN versions that match pattern
   // 2 platforms * 2 versions * 4 matching RN versions = 16 checks (not 20, because 0.78.3 is filtered out)
-  expect(mockIsCombinationOnMaven).toHaveBeenCalledTimes(16);
-  // Recent run checks: 2 platforms * 2 versions * 4 matching RN versions = 16 checks
-  expect(mockHasRecentWorkflowRun).toHaveBeenCalledTimes(16);
+  expect(mockIsBuildAlreadyScheduled).toHaveBeenCalledTimes(16);
+  // Build record creation: 2 platforms * 2 versions * 2 matching RN versions = 8 records (only for unscheduled builds)
+  expect(mockCreateBuildRecord).toHaveBeenCalledTimes(8);
 });
 
 test('processLibrary - skips disabled platforms', async () => {
@@ -195,7 +195,7 @@ test('processLibrary - skips when reactNativeVersion is missing', async () => {
   expect(mockScheduleLibraryBuild).not.toHaveBeenCalled();
 });
 
-test('processLibrary - skips combinations already on Maven', async () => {
+test('processLibrary - skips combinations already scheduled', async () => {
   const libraryName = 'test-library';
   const config: LibraryConfig = {
     versionMatcher: '1.*',
@@ -209,18 +209,18 @@ test('processLibrary - skips combinations already on Maven', async () => {
   mockFindMatchingVersionsFromNPM.mockResolvedValue(matchingVersions);
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.79.0');
 
-  // Mock that all combinations are on Maven
-  mockIsCombinationOnMaven.mockResolvedValue(true);
+  // Mock that all combinations are already scheduled
+  mockIsBuildAlreadyScheduled.mockResolvedValue(true);
 
   const { processLibrary } = await import('./scheduler');
   await processLibrary(libraryName, config);
 
-  // Should not schedule anything since all are on Maven
+  // Should not schedule anything since all are already scheduled
   expect(mockScheduleLibraryBuild).not.toHaveBeenCalled();
-  expect(mockHasRecentWorkflowRun).not.toHaveBeenCalled(); // Not checked if on Maven
+  expect(mockCreateBuildRecord).not.toHaveBeenCalled(); // Not created if already scheduled
 });
 
-test('processLibrary - skips combinations with recent workflow runs', async () => {
+test('processLibrary - skips combinations already scheduled', async () => {
   const libraryName = 'test-library';
   const config: LibraryConfig = {
     versionMatcher: '1.*',
@@ -234,8 +234,8 @@ test('processLibrary - skips combinations with recent workflow runs', async () =
   mockFindMatchingVersionsFromNPM.mockResolvedValue(matchingVersions);
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.79.0');
 
-  // Mock that all combinations have recent workflow runs
-  mockHasRecentWorkflowRun.mockResolvedValue(true);
+  // Mock that all combinations are already scheduled
+  mockIsBuildAlreadyScheduled.mockResolvedValue(true);
 
   // Suppress console.log for this test
   const originalLog = console.log;
@@ -245,10 +245,10 @@ test('processLibrary - skips combinations with recent workflow runs', async () =
     const { processLibrary } = await import('./scheduler');
     await processLibrary(libraryName, config, mockReactNativeVersions);
 
-  // Should not schedule anything since all have recent runs
+  // Should not schedule anything since all are already scheduled
   // 2 platforms (android, ios) * 1 version * 4 matching RN versions = 8 checks
   expect(mockScheduleLibraryBuild).not.toHaveBeenCalled();
-  expect(mockHasRecentWorkflowRun).toHaveBeenCalledTimes(8); // Checked for each platform + RN version combination
+  expect(mockIsBuildAlreadyScheduled).toHaveBeenCalledTimes(8); // Checked for each platform + RN version combination
   } finally {
     console.log = originalLog;
   }
@@ -381,9 +381,9 @@ test('processLibrary - handles multiple package versions correctly', async () =>
   mockFindMatchingVersionsFromNPM.mockResolvedValue(matchingVersions);
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.81.0');
 
-  // Mock that 1.0.0 is on Maven, but others are not
-  mockIsCombinationOnMaven.mockImplementation(
-    (pkg: string, version: string, rn: string) => {
+  // Mock that 1.0.0 is already scheduled, but others are not
+  mockIsBuildAlreadyScheduled.mockImplementation(
+    (pkg: string, version: string, rn: string, platform: string) => {
       return version === '1.0.0';
     }
   );
