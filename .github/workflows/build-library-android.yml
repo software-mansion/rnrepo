@@ -32,33 +32,33 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # - name: 📱 Setup Android SDK
-      #   uses: android-actions/setup-android@v3
+      - name: 📱 Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      # - name: ✅ Accept Android Licenses
-      #   run: |
-      #     yes | sdkmanager --licenses || true
+      - name: ✅ Accept Android Licenses
+        run: |
+          yes | sdkmanager --licenses || true
 
-      # - name: 🏗 Setup Bun
-      #   uses: oven-sh/setup-bun@v1
-      #   with:
-      #     bun-version: latest
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
-      # - name: 📦 Install dependencies
-      #   run: bun install
+      - name: 📦 Install dependencies
+        run: bun install
 
-      # - name: 🔨 Build library for Android
-      #   run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}"
+      - name: 🔨 Build library for Android
+        run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}"
 
-      # - name: 📋 List artifacts with checksums
-      #   run: |
-      #     find ~/.m2/repository/org/rnrepo/public -type f -exec md5sum {} \;
+      - name: 📋 List artifacts with checksums
+        run: |
+          find ~/.m2/repository/org/rnrepo/public -type f -exec md5sum {} \;
 
-      # - name: 📦 Upload Maven artifacts
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: maven-artifacts
-      #     path: |
-      #       ~/.m2/repository/org/rnrepo/public
-      #     retention-days: 1
+      - name: 📦 Upload Maven artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-artifacts
+          path: |
+            ~/.m2/repository/org/rnrepo/public
+          retention-days: 1
 
