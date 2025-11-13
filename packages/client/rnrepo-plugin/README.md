@@ -1,39 +1,36 @@
 # Usage of RNRepo Gradle Plugin
 
+## Version Management
+
+The plugin version is fixed in code (`0.0.1` in `build.gradle`).
+
+- **Local publishes** automatically append `-SNAPSHOT` suffix
+- **Production publishes** use the base version
+
+Examples:
+
+- Local build: `./gradlew build` → `0.0.1`
+- Local publish: `./gradlew publishReleasePublicationToMavenLocalRepository` → `0.0.1-SNAPSHOT`
+- Production publish: `./gradlew publishReleasePublicationToRnrepoRepository` → `0.0.1`
+
 ## Publishing new version of plugin
+
 - Remote PROD
+
 ```
 cd packages/client/rnrepo-plugin
 
-./gradlew publishRNRepoPluginPublicationToProductionRepositoryRepository \
--PpluginVersion=<> \
--PmavenUserProd=<> \
--PmavenPasswordProd=<> \
+./gradlew publishReleasePublicationToRnrepoRepository \
+-PmavenUsername=<> \
+-PmavenPassword=<> \
 -PsigningKey=<> \
 -PsigningPassword=<>
 ```
-- Remote DEV
+
+- Local (automatically publishes as `-SNAPSHOT`)
+
 ```
 cd packages/client/rnrepo-plugin
 
-./gradlew publishRNRepoPluginPublicationToDevelopmentRepositoryRepository \
--PpluginVersion=<> \
--PmavenUserDev=<> \
--PmavenPasswordDev=<> \
--PsigningKey=<> \
--PsigningPassword=<>
+./gradlew publishReleasePublicationToMavenLocalRepository
 ```
-- Local
-```
-cd packages/client/rnrepo-plugin
-
-./gradlew publishRNRepoPluginPublicationToMavenLocalRepository \
--PpluginVersion=<>
-```
-
-## Using RNRepo in dev mode
-- add to `gradle.properties` in your project root:
-```
-RNREPO_USE_DEV_REPO=true
-```
-- this will make the plugin use DEV remote repository instead of PROD
