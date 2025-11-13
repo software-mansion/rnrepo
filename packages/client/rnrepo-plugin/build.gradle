@@ -40,7 +40,7 @@ gradlePlugin {
     plugins {
         prebuildsPlugin {
             id = "org.rnrepo.tools.prebuilds-plugin"
-            implementationClass = "org.rnrepo.tools.prebuildsplugin.AarAutomationPlugin"
+            implementationClass = "org.rnrepo.tools.prebuilds.PrebuildsPlugin"
         }
     }
 }

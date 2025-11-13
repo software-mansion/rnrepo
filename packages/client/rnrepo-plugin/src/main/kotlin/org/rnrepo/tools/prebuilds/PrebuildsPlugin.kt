@@ -1,4 +1,4 @@
-package org.rnrepo.tools.prebuildsplugin
+package org.rnrepo.tools.prebuilds
 
 import org.gradle.api.*
 import org.gradle.api.artifacts.*
@@ -23,8 +23,8 @@ open class PackagesManager {
     var denyList: Set<String> = setOf()
 }
 
-class AarAutomationPlugin : Plugin<Project> {
-    private val logger: Logger = Logging.getLogger("AarAutomationPlugin")
+class PrebuildsPlugin : Plugin<Project> {
+    private val logger: Logger = Logging.getLogger("PrebuildsPlugin")
     private var REACT_NATIVE_ROOT_DIR: File? = null
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
