@@ -1,39 +1,33 @@
-# Usage of RNRepo Gradle Plugin
+# RNRepo Gradle Plugin
 
-## Publishing new version of plugin
-- Remote PROD
-```
+## Building
+
+To build the plugin locally:
+
+```bash
 cd packages/client/rnrepo-plugin
+./gradlew build
+```
 
-./gradlew publishRNRepoPluginPublicationToProductionRepositoryRepository \
--PpluginVersion=<> \
--PmavenUserProd=<> \
--PmavenPasswordProd=<> \
--PsigningKey=<> \
--PsigningPassword=<>
+## Publishing
+
+### Production Publishing (CI)
+
+Production publishing should be done via the GitHub Actions workflow (`.github/workflows/publish-plugin-android.yml`). This ensures proper signing and credentials management.
+
+**Before publishing, update the version in `build.gradle`** (line 11):
+
+```gradle
+def baseVersion = '0.0.1'  // Update this version
 ```
-- Remote DEV
-```
+
+### Local Publishing
+
+To publish locally for testing (e.g., to `~/.m2/repository`):
+
+```bash
 cd packages/client/rnrepo-plugin
-
-./gradlew publishRNRepoPluginPublicationToDevelopmentRepositoryRepository \
--PpluginVersion=<> \
--PmavenUserDev=<> \
--PmavenPasswordDev=<> \
--PsigningKey=<> \
--PsigningPassword=<>
-```
-- Local
-```
-cd packages/client/rnrepo-plugin
-
-./gradlew publishRNRepoPluginPublicationToMavenLocalRepository \
--PpluginVersion=<>
+./gradlew publishReleasePublicationToMavenLocalRepository
 ```
 
-## Using RNRepo in dev mode
-- add to `gradle.properties` in your project root:
-```
-RNREPO_USE_DEV_REPO=true
-```
-- this will make the plugin use DEV remote repository instead of PROD
+**Note:** Local publishes automatically append a `-SNAPSHOT` suffix to the version (e.g., `0.0.1` becomes `0.0.1-SNAPSHOT`).
