@@ -31,17 +31,3 @@ cd packages/client/rnrepo-plugin
 ```
 
 **Note:** Local publishes automatically append a `-SNAPSHOT` suffix to the version (e.g., `0.0.1` becomes `0.0.1-SNAPSHOT`).
-
-### Manual Production Publishing
-
-If you need to publish manually (not recommended), you can use:
-
-```bash
-cd packages/client/rnrepo-plugin
-
-./gradlew publishReleasePublicationToRnrepoRepository \
--PmavenUsername=<> \
--PmavenPassword=<> \
--PsigningKey=<> \
--PsigningPassword=<>
-```
