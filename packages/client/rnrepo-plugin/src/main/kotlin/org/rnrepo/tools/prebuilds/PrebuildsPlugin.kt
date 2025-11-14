@@ -88,18 +88,13 @@ class PrebuildsPlugin : Plugin<Project> {
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.packages.forEach { packageItem ->
-                // val subproject = project.rootProject.findProject(":${packageItem.name}")
-                // val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                // val codegenTaskExists = subproject?.tasks?.findByName(codegenTaskName) != null
-                // if (codegenTaskExists) {
-                //     project.logger.info("Adding dependency on task :${packageItem.name}:$codegenTaskName")
-                //     project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
-                // }
-
-                // if (packageItem.name.contains("expo")) return@forEach // todo - investigate or drop expo packages
-                // keeping this code for reference if above doesn't work as expected
-                project.logger.info("[RNRepo] Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
-                project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
+                val subproject = project.rootProject.findProject(":${packageItem.name}")
+                val codegenTaskName = "generateCodegenArtifactsFromSchema"
+                val codegenTaskExists = subproject?.tasks?.findByName(codegenTaskName) != null
+                if (codegenTaskExists) {
+                    project.logger.info("Adding dependency on task :${packageItem.name}:$codegenTaskName")
+                    project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
+                }
             }
 
             // Add substitution for supported packages
