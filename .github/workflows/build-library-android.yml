@@ -1,6 +1,6 @@
 name: Build React Native Library for Android
 
-run-name: Build for Android ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}
+run-name: Build for Android ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }} with ${{ inputs.additional_library }}
 
 on:
   workflow_dispatch:
@@ -16,6 +16,10 @@ on:
       react_native_version:
         description: 'React Native version'
         required: true
+        type: string
+      additional_library:
+        description: 'Additional library name to build with in form <package>@<version>'
+        required: false
         type: string
 
 jobs:
@@ -48,7 +52,7 @@ jobs:
         run: bun install
 
       - name: 🔨 Build library for Android
-        run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}"
+        run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}" "${{ inputs.additional_library }}"
 
       - name: 📋 List artifacts with checksums
         run: |

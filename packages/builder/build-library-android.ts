@@ -13,14 +13,15 @@ import type { PostInstallScript } from './post-install-scripts/post-install-inte
  * @param libraryVersion - Version of the library from NPM
  * @param reactNativeVersion - React Native version to use for building
  * @param workDir - Working directory where "app" (RN project) and "outputs" (AAR files) will be created
+ * @param additionalLibrary - (Optional) Additional library name to build with in form <package>@<version>
  */
 
-const [libraryName, libraryVersion, reactNativeVersion, workDir] =
+const [libraryName, libraryVersion, reactNativeVersion, workDir, additionalLibrary] =
   process.argv.slice(2);
 
 if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   console.error(
-    'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir>'
+    'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir> [<additional-library>]'
   );
   process.exit(1);
 }
@@ -76,10 +77,30 @@ async function postInstallSetup(appDir: string) {
   }
 }
 
+async function installAdditionalLibrary(appDir: string) {
+  $.cwd(appDir);
+  console.log(`Installing additional library: ${additionalLibrary}`);
+  try {
+    await $`npm install ${additionalLibrary}`.quiet();
+  } catch (error) {
+    console.error(`❌ Failed to install ${additionalLibrary}:`, error);
+    throw error;
+  }
+}
+
 function convertToGradleProjectName(packageName: string): string {
   // Convert npm package name to Gradle project name following React Native's pattern
   // @react-native-community/slider -> react-native-community_slider
   return packageName.replace(/^@/, '').replace(/\//g, '_');
+}
+
+function createdArtifactProjectName(libraryName: string): string {
+  // remove part before first slash if exists
+  const packageNameWithoutOrganization = libraryName.split('/').pop();
+  // remove 'react-native-' prefix if exists
+  const packageNameWithoutPrefix = packageNameWithoutOrganization?.replace(/^react-native-/, '') || '';
+  // remove any remaining '-' and replace with ''
+  return packageNameWithoutPrefix.replace(/-/g, '');
 }
 
 function getCpuInfo() {
@@ -88,6 +109,7 @@ function getCpuInfo() {
 
 async function buildAAR(appDir: string, license: AllowedLicense) {
   const gradleProjectName = convertToGradleProjectName(libraryName);
+  const repoArtifactId = createdArtifactProjectName(libraryName);
   const packagePath = join(appDir, 'node_modules', libraryName);
   const androidPath = join(appDir, 'android');
   const settingsPath = join(androidPath, 'settings.gradle');
@@ -118,7 +140,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     'org',
     'rnrepo',
     'public',
-    gradleProjectName,
+    repoArtifactId,
     libraryVersion
   );
 
@@ -132,7 +154,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
       --no-daemon \
       --init-script ${addPublishingGradleScriptPath} \
-      -PrnrepoArtifactId=${gradleProjectName} \
+      -PrnrepoArtifactId=${repoArtifactId} \
       -PrnrepoPublishVersion=${libraryVersion} \
       -PrnrepoClassifier=rn${reactNativeVersion} \
       -PrnrepoCpuInfo=${getCpuInfo()} \
@@ -144,14 +166,14 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     // verify that the .pom and .aar files are present aftre the publish command completes
     const pomPath = join(
       mavenLocalLibraryLocationPath,
-      `${gradleProjectName}-${libraryVersion}.pom`
+      `${repoArtifactId}-${libraryVersion}.pom`
     );
     if (!existsSync(pomPath)) {
       throw new Error(`POM file not found at ${pomPath}`);
     }
     const aarPath = join(
       mavenLocalLibraryLocationPath,
-      `${gradleProjectName}-${libraryVersion}-rn${reactNativeVersion}.aar`
+      `${repoArtifactId}-${libraryVersion}-rn${reactNativeVersion}.aar`
     );
     if (!existsSync(aarPath)) {
       throw new Error(`AAR file not found at ${aarPath}`);
@@ -214,6 +236,9 @@ async function buildLibrary() {
 
     // Extract license name from the library's package.json
     const license = extractAndVerifyLicense(appDir);
+
+    // Install additional libraries if provided
+    await installAdditionalLibrary(appDir)
 
     // Perform any library-specific setup (e.g., install worklets) 
     await postInstallSetup(appDir);
