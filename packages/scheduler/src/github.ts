@@ -82,6 +82,7 @@ export async function scheduleLibraryBuild(
   libraryVersion: string,
   platform: Platform,
   reactNativeVersion: string,
+  additionalLibrary: string = "",
   ref: string = 'main'
 ): Promise<void> {
   const platformPrefix = platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
@@ -92,7 +93,8 @@ export async function scheduleLibraryBuild(
     libraryName,
     libraryVersion,
     'with React Native',
-    reactNativeVersion
+    reactNativeVersion,
+    additionalLibrary ? 'and additional:' + additionalLibrary : ''
   );
 
   try {
@@ -106,6 +108,7 @@ export async function scheduleLibraryBuild(
         library_name: libraryName,
         library_version: libraryVersion,
         react_native_version: reactNativeVersion,
+        additional_library: additionalLibrary,
       },
     });
     console.log(`  ✅ Workflow dispatched successfully`);
