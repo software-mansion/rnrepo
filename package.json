@@ -15,7 +15,9 @@
     "test-ios": "node --loader ts-node/esm ios-resources/scripts/test-ios-app.mts",
     "builder": "bun run packages/builder",
     "scheduler": "bun run packages/scheduler",
-    "publisher": "bun run packages/publisher"
+    "publisher": "bun run packages/publisher",
+    "validate": "bun run packages/config/src/validate.ts",
+    "lint-client": "./packages/client/rnrepo-plugin/gradlew -p packages/client/rnrepo-plugin spotlessCheck -q"
   },
   "author": "",
   "license": "ISC",

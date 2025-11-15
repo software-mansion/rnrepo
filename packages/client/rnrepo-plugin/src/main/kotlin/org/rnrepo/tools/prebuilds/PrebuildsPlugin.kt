@@ -66,7 +66,6 @@ class PrebuildsPlugin : Plugin<Project> {
                     val androidExtension = project.extensions.getByName("android") as? BaseExtension
                     androidExtension?.let { android ->
                         val packagingOptions = android.packagingOptions
-                        val excludedPatterns = packagingOptions.excludes
 
                         packagingOptions.apply {
                             pickFirsts += "lib/arm64-v8a/libworklets.so"
