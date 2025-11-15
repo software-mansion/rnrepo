@@ -2,7 +2,7 @@ import type { Platform } from '@rnrepo/database';
 
 export type PackageInfo = {
   name: string;
-  version: string;
+  version: string | string[];
 }
 
 export interface PlatformConfigOptions {
@@ -14,7 +14,7 @@ export interface PlatformConfigOptions {
 }
 
 export type PlatformConfig =
-  | boolean
+  | false
   | PlatformConfigOptions[];
 
 export interface LibraryConfig {

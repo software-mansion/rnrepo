@@ -2,6 +2,7 @@ import {
   libraries,
   reactNativeVersions,
   type LibraryConfig,
+  type PlatformConfigOptions,
 } from '@rnrepo/config';
 import type { Platform } from '@rnrepo/database';
 import {
@@ -12,55 +13,42 @@ import {
 import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
-function getVersionMatcherForPlatform(
-  libraryName: string,
-  config: LibraryConfig,
-  platform: Platform
-): string | string[] | undefined {
-  const platformConfig = config[platform];
-
-  if (platformConfig === false) {
-    return undefined;
+function allCombinations(stringList: Record<string, string[]>): string[][] {
+  // Create all combinations of the versions
+  const combinations: string[][] = [];
+  const keys = Object.keys(stringList);
+  const totalCombinations = keys.reduce((acc, key) => acc * stringList[key].length, 1);
+  for (let i = 0; i < totalCombinations; i++) {
+      const combination: string[] = [];
+      let divisor = totalCombinations;
+      for (const key of keys) {
+          const versions = stringList[key];
+          divisor /= versions.length;
+          const index = Math.floor(i / divisor) % versions.length;
+          combination.push(`${key}@${versions[index]}`);
+      }
+      combinations.push(combination);
   }
-
-  if (
-    typeof platformConfig === 'object' &&
-    platformConfig.versionMatcher !== undefined
-  ) {
-    return platformConfig.versionMatcher;
-  }
-
-  return config.versionMatcher;
+  return combinations;
 }
 
-function getReactNativeMatcherForPlatform(
-  config: LibraryConfig,
-  platform: Platform
-): string | string[] | undefined {
-  const platformConfig = config[platform];
-  if (platformConfig === false) return undefined;
-  if (
-    typeof platformConfig === 'object' &&
-    platformConfig.reactNativeVersion !== undefined
-  ) {
-    return platformConfig.reactNativeVersion;
+async function getDependencyList(
+  platformConfig: PlatformConfigOptions,
+  dependencyType: "requiredDependency" | "additionalDependency"
+): Promise<string[][]> {
+  if (platformConfig[dependencyType] === undefined) {
+    return [[""]];
   }
-  return config.reactNativeVersion;
-}
-
-function getPublishedAfterDateForPlatform(
-  config: LibraryConfig,
-  platform: Platform
-): string | undefined {
-  const platformConfig = config[platform];
-  if (platformConfig === false) return undefined;
-  if (
-    typeof platformConfig === 'object' &&
-    platformConfig.publishedAfterDate !== undefined
-  ) {
-    return platformConfig.publishedAfterDate;
+  const libraries: Record<string, string[]> = {};
+  for (const { name: lib, version: versions } of platformConfig[dependencyType]) {
+    const matchingVersions = await findMatchingVersionsFromNPM(lib, versions);
+    libraries[lib] = matchingVersions.map(v => v.version);
   }
-  return config.publishedAfterDate;
+  let combinations = allCombinations(libraries);
+  if (dependencyType == "additionalDependency") {
+    combinations.push([""]);
+  }
+  return combinations;
 }
 
 export async function processLibrary(
@@ -78,93 +66,103 @@ export async function processLibrary(
 
   for (const platform of platforms) {
     if (config[platform] === false) continue;
+    // Add empty config to run from global versions
+    config[platform] = (config[platform] || [{}]) as PlatformConfigOptions[]; 
+ 
+    for (const configEntry of config[platform]) {
+      const pkgMatcher = configEntry.versionMatcher ?? config.reactNativeVersion;
+      if (!pkgMatcher) continue;
+      const reactNativeMatcher = configEntry.reactNativeVersion ?? config.reactNativeVersion;
+      if (!reactNativeMatcher) continue;
+      const publishedAfterDate = configEntry.publishedAfterDate ?? config.publishedAfterDate;
+      const matchingVersions = await findMatchingVersionsFromNPM(
+        libraryName,
+        pkgMatcher,
+        publishedAfterDate
+      );
 
-    const pkgMatcher = getVersionMatcherForPlatform(
-      libraryName,
-      config,
-      platform
-    );
-    if (!pkgMatcher) continue;
+      const requiredDependencies = getDependencyList(
+        configEntry,
+        "requiredDependency"
+      );
+      const additionalDependencies = getDependencyList(
+        configEntry,
+        "additionalDependency"
+      );
 
-    const reactNativeMatcher = getReactNativeMatcherForPlatform(
-      config,
-      platform
-    );
-    if (!reactNativeMatcher) continue;
+      for (const pkgVersionInfo of matchingVersions) {
+        const pkgVersion = pkgVersionInfo.version;
 
-    const publishedAfterDate = getPublishedAfterDateForPlatform(
-      config,
-      platform
-    );
+        for (const rnVersion of rnVersions) {
+          if (!matchesVersionPattern(rnVersion, reactNativeMatcher)) {
+            continue;
+          }
 
-    const matchingVersions = await findMatchingVersionsFromNPM(
-      libraryName,
-      pkgMatcher,
-      publishedAfterDate
-    );
+          for (const requiredLibraries of await requiredDependencies) {
+            for (const additionalLibraries of await additionalDependencies) {
+              // Combine required and additional libraries into a single array
+              const allLibs = [...requiredLibraries, ...additionalLibraries].filter(lib => lib !== "");
+              const extendedLibraryName = allLibs.length > 0 ? `${libraryName} with ${allLibs.join(", ")}` : libraryName;
 
-    for (const pkgVersionInfo of matchingVersions) {
-      const pkgVersion = pkgVersionInfo.version;
+              const alreadyScheduled = await isBuildAlreadyScheduled(
+                extendedLibraryName,
+                pkgVersion,
+                rnVersion,
+                platform
+              );
+              if (alreadyScheduled) {
+                const platformPrefix =
+                  platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
+                console.log(
+                  platformPrefix,
+                  '⏭️  Skipping',
+                  extendedLibraryName,
+                  pkgVersion,
+                  'with React Native',
+                  rnVersion,
+                  '- already scheduled or completed'
+                );
+                continue;
+              }
 
-      for (const rnVersion of rnVersions) {
-        if (!matchesVersionPattern(rnVersion, reactNativeMatcher)) {
-          continue;
+              if (limit !== undefined && scheduledCount >= limit) {
+                console.log(`\n⏸️  Reached scheduling limit of ${limit}. Stopping.`);
+                return scheduledCount;
+              }
+
+              // Schedule the build
+              try {
+                await scheduleLibraryBuild(
+                  libraryName,
+                  pkgVersion,
+                  platform,
+                  rnVersion,
+                  allLibs,
+                  "rolkrado/building-postinstall"
+                );
+              } catch (error) {
+                console.error(
+                  `Failed to schedule build for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
+                  error
+                );
+                continue;
+              }
+
+              // Create build record in Supabase (without run URL - will be updated later)
+              try {
+                await createBuildRecord(extendedLibraryName, pkgVersion, rnVersion, platform);
+              } catch (error) {
+                console.error(
+                  `Failed to create build record for ${extendedLibraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
+                  error
+                );
+                // Continue anyway - the record might have been created by another process
+              }
+
+              scheduledCount++;
+            }
+          }
         }
-
-        const alreadyScheduled = await isBuildAlreadyScheduled(
-          libraryName,
-          pkgVersion,
-          rnVersion,
-          platform
-        );
-        if (alreadyScheduled) {
-          const platformPrefix =
-            platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
-          console.log(
-            platformPrefix,
-            '⏭️  Skipping',
-            libraryName,
-            pkgVersion,
-            'with React Native',
-            rnVersion,
-            '- already scheduled or completed'
-          );
-          continue;
-        }
-
-        if (limit !== undefined && scheduledCount >= limit) {
-          console.log(`\n⏸️  Reached scheduling limit of ${limit}. Stopping.`);
-          return scheduledCount;
-        }
-
-        // Schedule the build
-        try {
-          await scheduleLibraryBuild(
-            libraryName,
-            pkgVersion,
-            platform,
-            rnVersion
-          );
-        } catch (error) {
-          console.error(
-            `Failed to schedule build for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
-            error
-          );
-          continue;
-        }
-
-        // Create build record in Supabase (without run URL - will be updated later)
-        try {
-          await createBuildRecord(libraryName, pkgVersion, rnVersion, platform);
-        } catch (error) {
-          console.error(
-            `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
-            error
-          );
-          // Continue anyway - the record might have been created by another process
-        }
-
-        scheduledCount++;
       }
     }
   }

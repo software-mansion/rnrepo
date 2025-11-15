@@ -82,7 +82,7 @@ export async function scheduleLibraryBuild(
   libraryVersion: string,
   platform: Platform,
   reactNativeVersion: string,
-  additionalLibrary: string = "",
+  additionalLibrary: string[] = [],
   ref: string = 'main'
 ): Promise<void> {
   const platformPrefix = platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
@@ -94,7 +94,7 @@ export async function scheduleLibraryBuild(
     libraryVersion,
     'with React Native',
     reactNativeVersion,
-    additionalLibrary ? 'and additional:' + additionalLibrary : ''
+    additionalLibrary.length > 0 ? 'and additional: ' + additionalLibrary.join(", ") : ''
   );
 
   try {
