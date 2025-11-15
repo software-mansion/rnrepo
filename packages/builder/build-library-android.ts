@@ -251,7 +251,7 @@ async function buildLibrary() {
     // Install additional libraries if provided
     await installAdditionalLibraries(appDir)
 
-    // Perform any library-specific setup (e.g., install worklets) 
+    // Perform any library-specific setup after installing
     await postInstallSetup(appDir);
 
     // Install all dependencies

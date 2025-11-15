@@ -102,6 +102,8 @@ export async function processLibrary(
             for (const additionalLibraries of await additionalDependencies) {
               // Combine required and additional libraries into a single array
               const allLibs = [...requiredLibraries, ...additionalLibraries].filter(lib => lib !== "");
+              // sort all libraries to ensure consistent naming
+              allLibs.sort();
               const extendedLibraryName = allLibs.length > 0 ? `${libraryName}-with-${allLibs.join("-with-")}` : libraryName;
 
               const alreadyScheduled = await isBuildAlreadyScheduled(
