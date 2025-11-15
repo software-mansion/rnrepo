@@ -5,8 +5,14 @@ plugins {
     id 'signing'
 }
 
-group = 'org.rnrepo.prebuilds'
-version = project.findProperty("pluginVersion") ?: "0.0.1-MISSINGVERSION"
+group = 'org.rnrepo.tools'
+
+// Fixed version in code - automatically appends -SNAPSHOT for local publishes
+def baseVersion = '0.0.1'
+def isLocalPublish = project.gradle.startParameter.taskNames.any {
+    it.contains("MavenLocal")
+}
+version = baseVersion + (isLocalPublish ? '-SNAPSHOT' : '')
 
 repositories {
     mavenCentral()
@@ -32,21 +38,21 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
 
 gradlePlugin {
     plugins {
-        rnrepoPlugin {
-            id = "org.rnrepo.prebuilds.rnrepo-plugin"
-            implementationClass = "org.rnrepo.prebuilds.rnrepoplugin.AarAutomationPlugin"
+        prebuildsPlugin {
+            id = "org.rnrepo.tools.prebuilds-plugin"
+            implementationClass = "org.rnrepo.tools.prebuilds.PrebuildsPlugin"
         }
     }
 }
 
 publishing {
     publications {
-        RNRepoPlugin(MavenPublication) {
+        release(MavenPublication) {
             from components.java
             pom {
                 name = "RNRepo Gradle Plugin"
                 description = "A Gradle plugin to automate React Native AAR prebuilds integration for faster builds"
-                url = "" // todo(rolkrado): add url
+                url = "https://rnrepo.org"
                 licenses {
                     license {
                         name = "ISC"
@@ -58,20 +64,12 @@ publishing {
     }
     repositories {
         mavenLocal()
-        maven { 
-            name "DevelopmentRepository"
-            url "https://repo.swmtest.xyz/releases"
-            credentials {
-                username = project.properties["mavenUserDev"]
-                password = project.properties["mavenPasswordDev"]
-            }
-        }
         maven {
-            name "ProductionRepository"
+            name "rnrepo"
             url "https://packages.rnrepo.org/releases"
             credentials {
-                username = project.properties["mavenUserProd"]
-                password = project.properties["mavenPasswordProd"]
+                username = project.properties["mavenUsername"]
+                password = project.properties["mavenPassword"]
             }
         }
     }
@@ -82,5 +80,5 @@ signing {
     def publishingToMavenLocal = project.gradle.startParameter.taskNames.any { it.contains("MavenLocal") }
     setRequired(!publishingToMavenLocal)
     useInMemoryPgpKeys(project.findProperty("signingKey"), project.findProperty("signingPassword"))
-    sign publishing.publications.RNRepoPlugin
+    sign publishing.publications.release
 }

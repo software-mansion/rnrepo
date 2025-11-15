@@ -1,4 +1,4 @@
-package org.rnrepo.prebuilds.rnrepoplugin
+package org.rnrepo.tools.prebuilds
 
 import org.gradle.api.*
 import org.gradle.api.artifacts.*
@@ -23,8 +23,8 @@ open class PackagesManager {
     var denyList: Set<String> = setOf()
 }
 
-class AarAutomationPlugin : Plugin<Project> {
-    private val logger: Logger = Logging.getLogger("AarAutomationPlugin")
+class PrebuildsPlugin : Plugin<Project> {
+    private val logger: Logger = Logging.getLogger("PrebuildsPlugin")
     private var REACT_NATIVE_ROOT_DIR: File? = null
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
@@ -39,7 +39,7 @@ class AarAutomationPlugin : Plugin<Project> {
         if (shouldPluginExecute(project)) {
             val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
             logger.lifecycle("RNRepo Plugin has been applied to project!")
-            
+
             // Add SWM Maven repository with AAR artifacts
             project.repositories.apply {
                 maven { repo ->
@@ -60,7 +60,7 @@ class AarAutomationPlugin : Plugin<Project> {
             loadDenyList(project.rootProject, extension)
             findPackagesWithVersions(project, extension)
 
-            // Add dependencies for supported packages 
+            // Add dependencies for supported packages
             extension.packages.forEach { packageItem ->
                 project.logger.info("[RNRepo] Adding dependency for ${packageItem.name} version ${packageItem.version}")
                 project.dependencies.add("implementation", "org.rnrepo.public:${packageItem.module}:${packageItem.version}:rn${extension.reactNativeVersion}@aar")
@@ -88,21 +88,16 @@ class AarAutomationPlugin : Plugin<Project> {
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.packages.forEach { packageItem ->
-                // val subproject = project.rootProject.findProject(":${packageItem.name}")
-                // val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                // val codegenTaskExists = subproject?.tasks?.findByName(codegenTaskName) != null
-                // if (codegenTaskExists) {
-                //     project.logger.info("Adding dependency on task :${packageItem.name}:$codegenTaskName")
-                //     project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
-                // }
-
-                // if (packageItem.name.contains("expo")) return@forEach // todo - investigate or drop expo packages
-                // keeping this code for reference if above doesn't work as expected
-                project.logger.info("[RNRepo] Adding dependency on task :${packageItem.name}:generateCodegenArtifactsFromSchema")
-                project.tasks.named("preBuild", Task::class.java).dependsOn(":${packageItem.name}:generateCodegenArtifactsFromSchema")
+                val subproject = project.rootProject.findProject(":${packageItem.name}")
+                val codegenTaskName = "generateCodegenArtifactsFromSchema"
+                val codegenTaskExists = subproject?.tasks?.findByName(codegenTaskName) != null
+                if (codegenTaskExists) {
+                    project.logger.info("Adding dependency on task :${packageItem.name}:$codegenTaskName")
+                    project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
+                }
             }
 
-            // Add substitution for supported packages 
+            // Add substitution for supported packages
             project.afterEvaluate {
                 extension.packages.forEach { packageItem ->
                     val module = "org.rnrepo.public:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}"
@@ -200,7 +195,7 @@ class AarAutomationPlugin : Plugin<Project> {
             project.logger.error("[RNRepo] Error parsing $CONFIG_FILE_NAME: ${e.message}. Using empty deny list.")
         }
     }
-    
+
     /**
      * Checks if a specific package is not in the deny list.
      *
@@ -232,14 +227,14 @@ class AarAutomationPlugin : Plugin<Project> {
      * @return True if the package is available, false otherwise.
      */
     private fun isPackageAvailable(
-        gradlePackageName: String, 
-        packageVersion: String, 
+        gradlePackageName: String,
+        packageVersion: String,
         RNVersion: String
     ): Boolean {
         val cachePath = Paths.get(System.getProperty("user.home"), ".gradle", "caches", "modules-2", "files-2.1").toString()
         val groupPath = "org.rnrepo.public${File.separator}$gradlePackageName"
         val artifactPath = "${packageVersion}-rn$RNVersion"
-        
+
         // Construct the local path expected for the .aar file in cache
         val filePathInCache = Paths.get(cachePath, groupPath, artifactPath).toString()
         val cacheFile = File(filePathInCache)
@@ -348,3 +343,4 @@ class AarAutomationPlugin : Plugin<Project> {
         extension.packages = packagesWithVersions
     }
 }
+
