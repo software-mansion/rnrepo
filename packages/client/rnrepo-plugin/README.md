@@ -31,3 +31,11 @@ cd packages/client/rnrepo-plugin
 ```
 
 **Note:** Local publishes automatically append a `-SNAPSHOT` suffix to the version (e.g., `0.0.1` becomes `0.0.1-SNAPSHOT`).
+
+## Using RNRepo in dev mode
+- add to `<RNProjectRoot/android/gradle.properties`:
+```
+RNREPO_REPO_NAME_DEV = <YOUR_DEV_REPO_NAME> // name is optional
+RNREPO_REPO_URL_DEV = <YOUR_DEV_REPO_URL>
+```
+- this will make the plugin use DEV remote repository instead of PROD

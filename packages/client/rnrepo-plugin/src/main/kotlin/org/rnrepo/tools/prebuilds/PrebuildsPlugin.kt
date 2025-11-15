@@ -31,8 +31,9 @@ class PrebuildsPlugin : Plugin<Project> {
     // remote repo URL with AARs
     private val REMOTE_REPO_NAME_PROD = "RNRepoMavenRepository"
     private val REMOTE_REPO_URL_PROD = "https://packages.rnrepo.org/releases"
-    private val REMOTE_REPO_NAME_DEV = "RNRepoMavenRepositoryDev"
-    private val REMOTE_REPO_URL_DEV = "https://repo.swmtest.xyz/releases"
+    // setup for dev repo if needed
+    private val REMOTE_REPO_NAME = getProperty("RNREPO_REPO_URL_DEV", REMOTE_REPO_NAME_PROD)
+    private val REMOTE_REPO_URL = getProperty("RNREPO_REPO_NAME_DEV", REMOTE_REPO_URL_PROD)  
 
 
     override fun apply(project: Project) {
@@ -43,15 +44,8 @@ class PrebuildsPlugin : Plugin<Project> {
             // Add SWM Maven repository with AAR artifacts
             project.repositories.apply {
                 maven { repo ->
-                    if (project.hasProperty("RNREPO_USE_DEV_REPO") &&
-                        project.property("RNREPO_USE_DEV_REPO").toString().toBoolean()) {
-                        repo.name = REMOTE_REPO_NAME_DEV
-                        repo.url = URI(REMOTE_REPO_URL_DEV)
-                        project.logger.lifecycle("[RNRepo] Using DEV remote repository: $REMOTE_REPO_URL_DEV")
-                    } else {
-                        repo.name = REMOTE_REPO_NAME_PROD
-                        repo.url = URI(REMOTE_REPO_URL_PROD)
-                    }
+                    repo.name = REMOTE_REPO_NAME
+                    repo.url = URI(REMOTE_REPO_URL)
                 }
             }
 
@@ -111,6 +105,10 @@ class PrebuildsPlugin : Plugin<Project> {
                 }
             }
         }
+    }
+
+    private fun getProperty(propertyName: String, defaultValue: String): String {
+        return System.getProperty(propertyName) ?: System.getenv(propertyName) ?: defaultValue
     }
 
     /**
@@ -244,7 +242,7 @@ class PrebuildsPlugin : Plugin<Project> {
             return true
         }
 
-        val urlString = "https://packages.rnrepo.org/releases/org/rnrepo/public/${gradlePackageName}/${packageVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
+        val urlString = "${REMOTE_REPO_URL}/org/rnrepo/public/${gradlePackageName}/${packageVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
         var connection: HttpURLConnection? = null
         return try {
             connection = URL(urlString).openConnection() as HttpURLConnection
