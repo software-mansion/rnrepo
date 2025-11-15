@@ -13,15 +13,17 @@ import type { PostInstallScript } from './post-install-scripts/post-install-inte
  * @param libraryVersion - Version of the library from NPM
  * @param reactNativeVersion - React Native version to use for building
  * @param workDir - Working directory where "app" (RN project) and "outputs" (AAR files) will be created
- * @param additionalLibrary - (Optional) Additional library name to build with in form <package>@<version>
+ * @param additionalLibrariesString - (Optional) Additional library names to build with in form <package>@<version>, separated by commas
  */
 
-const [libraryName, libraryVersion, reactNativeVersion, workDir, additionalLibrary] =
+const [libraryName, libraryVersion, reactNativeVersion, workDir, additionalLibrariesString] =
   process.argv.slice(2);
+
+const additionalLibraries = additionalLibrariesString?.split(',');
 
 if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   console.error(
-    'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir> [<additional-library>]'
+    'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir> [<additional-libraries-string>]'
   );
   process.exit(1);
 }
@@ -44,7 +46,7 @@ const GITHUB_BUILD_URL = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs
 console.log('📦 Building Android library:');
 console.log(`   Library: ${libraryName}@${libraryVersion}`);
 console.log(`   React Native: ${reactNativeVersion}`);
-console.log('');
+console.log(`${additionalLibrariesString ? `   Additional Library: ${additionalLibrariesString}\n` : ''}`);
 
 try {
   await buildLibrary();
@@ -77,14 +79,17 @@ async function postInstallSetup(appDir: string) {
   }
 }
 
-async function installAdditionalLibrary(appDir: string) {
+async function installAdditionalLibraries(appDir: string) {
   $.cwd(appDir);
-  console.log(`Installing additional library: ${additionalLibrary}`);
-  try {
-    await $`npm install ${additionalLibrary}`.quiet();
-  } catch (error) {
-    console.error(`❌ Failed to install ${additionalLibrary}:`, error);
-    throw error;
+  console.log("📦 Installing additional libraries");
+  for (const additionalLibrary of additionalLibraries) {
+    try {
+      console.log(`  - Installing ${additionalLibrary}...`);
+      await $`npm install ${additionalLibrary} --save-exact`.quiet();
+    } catch (error) {
+      console.error(`❌ Failed to install ${additionalLibrary}:`, error);
+      throw error;
+    }
   }
 }
 
@@ -94,13 +99,19 @@ function convertToGradleProjectName(packageName: string): string {
   return packageName.replace(/^@/, '').replace(/\//g, '_');
 }
 
-function createdArtifactProjectName(libraryName: string): string {
-  // remove part before first slash if exists
-  const packageNameWithoutOrganization = libraryName.split('/').pop();
-  // remove 'react-native-' prefix if exists
-  const packageNameWithoutPrefix = packageNameWithoutOrganization?.replace(/^react-native-/, '') || '';
-  // remove any remaining '-' and replace with ''
-  return packageNameWithoutPrefix.replace(/-/g, '');
+function createExtendedClassifier(classifier: string): string {
+  if (!additionalLibraries) {
+    return classifier
+  }
+  for (const lib of additionalLibraries) {
+    // remove part before first slash if exists
+    const packageNameWithoutOrganization = lib.split('/').pop();
+    // remove 'react-native-' prefix if exists
+    const packageNameWithoutPrefix = packageNameWithoutOrganization?.replace(/^react-native-/, '') || '';
+    // remove any remaining '-' and '@' and replace with ''
+    classifier += `-with-${packageNameWithoutPrefix.replace(/[@-]/g, '')}`;
+  }
+  return classifier
 }
 
 function getCpuInfo() {
@@ -109,7 +120,7 @@ function getCpuInfo() {
 
 async function buildAAR(appDir: string, license: AllowedLicense) {
   const gradleProjectName = convertToGradleProjectName(libraryName);
-  const repoArtifactId = createdArtifactProjectName(libraryName);
+  const extendedClassifier = createExtendedClassifier(`rn${reactNativeVersion}`);
   const packagePath = join(appDir, 'node_modules', libraryName);
   const androidPath = join(appDir, 'android');
   const settingsPath = join(androidPath, 'settings.gradle');
@@ -140,7 +151,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     'org',
     'rnrepo',
     'public',
-    repoArtifactId,
+    gradleProjectName,
     libraryVersion
   );
 
@@ -154,9 +165,9 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
       --no-daemon \
       --init-script ${addPublishingGradleScriptPath} \
-      -PrnrepoArtifactId=${repoArtifactId} \
+      -PrnrepoArtifactId=${gradleProjectName} \
       -PrnrepoPublishVersion=${libraryVersion} \
-      -PrnrepoClassifier=rn${reactNativeVersion} \
+      -PrnrepoClassifier=${extendedClassifier} \
       -PrnrepoCpuInfo=${getCpuInfo()} \
       -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
       -PrnrepoLicenseName=${license} \
@@ -166,14 +177,14 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     // verify that the .pom and .aar files are present aftre the publish command completes
     const pomPath = join(
       mavenLocalLibraryLocationPath,
-      `${repoArtifactId}-${libraryVersion}.pom`
+      `${gradleProjectName}-${libraryVersion}.pom`
     );
     if (!existsSync(pomPath)) {
       throw new Error(`POM file not found at ${pomPath}`);
     }
     const aarPath = join(
       mavenLocalLibraryLocationPath,
-      `${repoArtifactId}-${libraryVersion}-rn${reactNativeVersion}.aar`
+      `${gradleProjectName}-${libraryVersion}-${extendedClassifier}.aar`
     );
     if (!existsSync(aarPath)) {
       throw new Error(`AAR file not found at ${aarPath}`);
@@ -238,7 +249,7 @@ async function buildLibrary() {
     const license = extractAndVerifyLicense(appDir);
 
     // Install additional libraries if provided
-    await installAdditionalLibrary(appDir)
+    await installAdditionalLibraries(appDir)
 
     // Perform any library-specific setup (e.g., install worklets) 
     await postInstallSetup(appDir);

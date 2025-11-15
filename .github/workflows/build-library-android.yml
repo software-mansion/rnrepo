@@ -17,8 +17,8 @@ on:
         description: 'React Native version'
         required: true
         type: string
-      additional_library:
-        description: 'Additional library name to build with in form <package>@<version>'
+      additional_libraries:
+        description: 'Additional libraries names to build with in form <package>@<version>, comma separated'
         required: false
         type: string
 

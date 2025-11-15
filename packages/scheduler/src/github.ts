@@ -82,7 +82,7 @@ export async function scheduleLibraryBuild(
   libraryVersion: string,
   platform: Platform,
   reactNativeVersion: string,
-  additionalLibrary: string[] = [],
+  additionalLibraries: string = '',
   ref: string = 'main'
 ): Promise<void> {
   const platformPrefix = platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
@@ -94,7 +94,7 @@ export async function scheduleLibraryBuild(
     libraryVersion,
     'with React Native',
     reactNativeVersion,
-    additionalLibrary.length > 0 ? 'and additional: ' + additionalLibrary.join(", ") : ''
+    additionalLibraries ? 'and additional: ' + additionalLibraries : ''
   );
 
   try {
@@ -108,7 +108,7 @@ export async function scheduleLibraryBuild(
         library_name: libraryName,
         library_version: libraryVersion,
         react_native_version: reactNativeVersion,
-        additional_library: additionalLibrary,
+        additional_libraries: additionalLibraries,
       },
     });
     console.log(`  ✅ Workflow dispatched successfully`);

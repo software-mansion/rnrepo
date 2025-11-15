@@ -102,7 +102,7 @@ export async function processLibrary(
             for (const additionalLibraries of await additionalDependencies) {
               // Combine required and additional libraries into a single array
               const allLibs = [...requiredLibraries, ...additionalLibraries].filter(lib => lib !== "");
-              const extendedLibraryName = allLibs.length > 0 ? `${libraryName} with ${allLibs.join(", ")}` : libraryName;
+              const extendedLibraryName = allLibs.length > 0 ? `${libraryName}-with-${allLibs.join("-with-")}` : libraryName;
 
               const alreadyScheduled = await isBuildAlreadyScheduled(
                 extendedLibraryName,
@@ -137,7 +137,7 @@ export async function processLibrary(
                   pkgVersion,
                   platform,
                   rnVersion,
-                  allLibs,
+                  allLibs.join(","),
                   "rolkrado/building-postinstall"
                 );
               } catch (error) {
