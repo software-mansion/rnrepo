@@ -1,0 +1,40 @@
+name: Lint and Validate
+
+run-name: Lint sources and Validate json
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  #   branches:
+  #     - main
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔍 Lint kotlin
+        run: bun run lint-client
+
+      - name: 🔍 Lint typescript
+        run: bun run lint-ts
+
+      - name: ✅ Validate JSON files
+        run: bun run validate
+    
