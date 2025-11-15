@@ -333,12 +333,26 @@ class PrebuildsPlugin : Plugin<Project> {
             checkPackageDir(File(path), packagesWithVersions, extension)
         }
 
-        // gesture-handler and reanimated share common interfaces, so if both are present then we need to use other aar file
-        // todo GH&svg common interfaces
+        // Todo(rolkrado): add more generic way to handle dependencies between packages 
+        // special handling for gesture-handler
         val gestureHandlerItem = packagesWithVersions.find { it.name == "react-native-gesture-handler" }
-        val hasReanimated = packagesWithVersions.any { it.name == "react-native-reanimated" }
-        if (gestureHandlerItem != null && hasReanimated) {
-            gestureHandlerItem.module = "react-native-gesture-handler-reanimated"
+        if (gestureHandlerItem != null) {
+            val reanimatedItem = packagesWithVersions.find { it.name == "react-native-reanimated" }
+            if (reanimatedItem != null) {
+                gestureHandlerItem.module += "with-reanimated${reanimatedItem.version}"
+            }
+            val svgItem = packagesWithVersions.find { it.name == "react-native-svg" }
+            if (svgItem != null) {
+                gestureHandlerItem.module += "with-svg${svgItem.version}"
+            }
+        }
+        // special handling for reanimated
+        val reanimatedItem = packagesWithVersions.find { it.name == "react-native-reanimated" }
+        if (reanimatedItem != null) {
+            val workletsItem = packagesWithVersions.find { it.name == "react-native-worklets" }
+            if (workletsItem != null) {
+                reanimatedItem.module += "with-worklets${workletsItem.version}"
+            }
         }
         extension.packages = packagesWithVersions
     }
