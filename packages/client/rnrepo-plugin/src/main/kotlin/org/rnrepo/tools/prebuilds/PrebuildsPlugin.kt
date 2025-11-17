@@ -240,20 +240,23 @@ class PrebuildsPlugin : Plugin<Project> {
             return true
         }
 
-        val urlString = "${REMOTE_REPO_URL}/org/rnrepo/public/${gradlePackageName}/${packageVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
-        var connection: HttpURLConnection? = null
-        return try {
-            connection = URL(urlString).openConnection() as HttpURLConnection
-            connection.requestMethod = "HEAD"
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
-            logger.info("[RNRepo] Checking availability of package $gradlePackageName version $packageVersion at $urlString")
-            connection.responseCode == HttpURLConnection.HTTP_OK
-        } catch (e: Exception) {
-            logger.error("[RNRepo] Error checking package availability for $gradlePackageName version $packageVersion: ${e.message}")
-            false
-        } finally {
-            connection?.disconnect()
+        // for each repository check if package exists by sending HEAD request
+        project.repositories.forEach { repo ->
+            val urlString = "${repo.url}/org/rnrepo/public/${gradlePackageName}/${packageVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
+            var connection: HttpURLConnection? = null
+            return try {
+                connection = URL(urlString).openConnection() as HttpURLConnection
+                connection.requestMethod = "HEAD"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                logger.info("[RNRepo] Checking availability of package $gradlePackageName version $packageVersion at $urlString")
+                connection.responseCode == HttpURLConnection.HTTP_OK
+            } catch (e: Exception) {
+                logger.error("[RNRepo] Error checking package availability for $gradlePackageName version $packageVersion: ${e.message}")
+                false
+            } finally {
+                connection?.disconnect()
+            }
         }
     }
 
