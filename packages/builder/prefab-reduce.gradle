@@ -1,5 +1,5 @@
 allprojects { project ->
-    if (project.name == "react-native-reanimated") {
+    if (project.plugins.hasPlugin("com.android.library")) {
         project.afterEvaluate {
             project.android {
                 buildTypes {
