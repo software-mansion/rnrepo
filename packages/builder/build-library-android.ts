@@ -103,6 +103,11 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     'add-publishing.gradle'
   );
 
+  const addPrefabReduceGradleScriptPath = join(
+    __dirname,
+    'prefab-reduce.gradle'
+  );
+
   const mavenLocalLibraryLocationPath = join(
     process.env.HOME || process.env.USERPROFILE || '',
     '.m2',
@@ -124,6 +129,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
       --no-daemon \
       --init-script ${addPublishingGradleScriptPath} \
+      --init-script ${addPrefabReduceGradleScriptPath} \
       -PrnrepoArtifactId=${gradleProjectName} \
       -PrnrepoPublishVersion=${libraryVersion} \
       -PrnrepoClassifier=rn${reactNativeVersion} \

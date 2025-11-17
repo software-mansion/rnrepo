@@ -1,0 +1,28 @@
+allprojects { project ->
+    if (project.plugins.hasPlugin("com.android.library")) {
+        project.afterEvaluate {
+            project.android {
+                buildTypes {
+                    release {
+                        externalNativeBuild {
+                            cmake {
+                                def currentArgs = arguments ?: []
+                                currentArgs += "-DCMAKE_BUILD_TYPE=Release"
+                                currentArgs += "-DCMAKE_CXX_FLAGS=-DNDEBUG -g0"
+                                arguments = currentArgs
+                            }
+                        }
+                    }
+                }
+            }
+            project.androidComponents {
+                onVariants(selector().withBuildType("debug")) {
+                    packaging.jniLibs.keepDebugSymbols.add("**/**/*.so")
+                }
+                onVariants(selector().withBuildType("release")) {
+                    packaging.jniLibs.keepDebugSymbols.empty()
+                }
+            }
+        }
+    }
+}
