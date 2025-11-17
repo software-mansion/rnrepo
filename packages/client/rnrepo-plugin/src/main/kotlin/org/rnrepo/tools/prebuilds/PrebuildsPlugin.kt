@@ -29,11 +29,10 @@ class PrebuildsPlugin : Plugin<Project> {
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
     // remote repo URL with AARs
-    private val REMOTE_REPO_NAME_PROD = "RNRepoMavenRepository"
+    private val REMOTE_REPO_NAME = "RNRepoMavenRepository"
     private val REMOTE_REPO_URL_PROD = "https://packages.rnrepo.org/releases"
     // setup for dev repo if needed
-    private val REMOTE_REPO_NAME = getProperty("RNREPO_REPO_URL_DEV", REMOTE_REPO_NAME_PROD)
-    private val REMOTE_REPO_URL = getProperty("RNREPO_REPO_NAME_DEV", REMOTE_REPO_URL_PROD)  
+    private val REMOTE_REPO_URL = getProperty("RNREPO_REPO_URL_DEV", REMOTE_REPO_URL_PROD)  
 
 
     override fun apply(project: Project) {
