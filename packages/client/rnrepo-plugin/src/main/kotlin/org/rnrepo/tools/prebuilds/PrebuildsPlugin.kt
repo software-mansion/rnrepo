@@ -29,10 +29,10 @@ class PrebuildsPlugin : Plugin<Project> {
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
     // remote repo URL with AARs
-    private val REMOTE_REPO_NAME_PROD = "RNRepoMavenRepository"
+    private val REMOTE_REPO_NAME = "RNRepoMavenRepository"
     private val REMOTE_REPO_URL_PROD = "https://packages.rnrepo.org/releases"
-    private val REMOTE_REPO_NAME_DEV = "RNRepoMavenRepositoryDev"
-    private val REMOTE_REPO_URL_DEV = "https://repo.swmtest.xyz/releases"
+    // setup for dev repo if needed
+    private val REMOTE_REPO_URL = getProperty("RNREPO_REPO_URL_DEV", REMOTE_REPO_URL_PROD)  
 
 
     override fun apply(project: Project) {
@@ -43,15 +43,8 @@ class PrebuildsPlugin : Plugin<Project> {
             // Add SWM Maven repository with AAR artifacts
             project.repositories.apply {
                 maven { repo ->
-                    if (project.hasProperty("RNREPO_USE_DEV_REPO") &&
-                        project.property("RNREPO_USE_DEV_REPO").toString().toBoolean()) {
-                        repo.name = REMOTE_REPO_NAME_DEV
-                        repo.url = URI(REMOTE_REPO_URL_DEV)
-                        project.logger.lifecycle("[RNRepo] Using DEV remote repository: $REMOTE_REPO_URL_DEV")
-                    } else {
-                        repo.name = REMOTE_REPO_NAME_PROD
-                        repo.url = URI(REMOTE_REPO_URL_PROD)
-                    }
+                    repo.name = REMOTE_REPO_NAME
+                    repo.url = URI(REMOTE_REPO_URL)
                 }
             }
 
@@ -72,7 +65,6 @@ class PrebuildsPlugin : Plugin<Project> {
                     val androidExtension = project.extensions.getByName("android") as? BaseExtension
                     androidExtension?.let { android ->
                         val packagingOptions = android.packagingOptions
-                        val excludedPatterns = packagingOptions.excludes
 
                         packagingOptions.apply {
                             pickFirsts += "lib/arm64-v8a/libworklets.so"
@@ -111,6 +103,10 @@ class PrebuildsPlugin : Plugin<Project> {
                 }
             }
         }
+    }
+
+    private fun getProperty(propertyName: String, defaultValue: String): String {
+        return System.getProperty(propertyName) ?: System.getenv(propertyName) ?: defaultValue
     }
 
     /**
@@ -244,20 +240,23 @@ class PrebuildsPlugin : Plugin<Project> {
             return true
         }
 
-        val urlString = "https://packages.rnrepo.org/releases/org/rnrepo/public/${gradlePackageName}/${packageVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
-        var connection: HttpURLConnection? = null
-        return try {
-            connection = URL(urlString).openConnection() as HttpURLConnection
-            connection.requestMethod = "HEAD"
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
-            logger.info("[RNRepo] Checking availability of package $gradlePackageName version $packageVersion at $urlString")
-            connection.responseCode == HttpURLConnection.HTTP_OK
-        } catch (e: Exception) {
-            logger.error("[RNRepo] Error checking package availability for $gradlePackageName version $packageVersion: ${e.message}")
-            false
-        } finally {
-            connection?.disconnect()
+        // for each repository check if package exists by sending HEAD request
+        project.repositories.forEach { repo ->
+            val urlString = "${repo.url}/org/rnrepo/public/${gradlePackageName}/${packageVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
+            var connection: HttpURLConnection? = null
+            return try {
+                connection = URL(urlString).openConnection() as HttpURLConnection
+                connection.requestMethod = "HEAD"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                logger.info("[RNRepo] Checking availability of package $gradlePackageName version $packageVersion at $urlString")
+                connection.responseCode == HttpURLConnection.HTTP_OK
+            } catch (e: Exception) {
+                logger.error("[RNRepo] Error checking package availability for $gradlePackageName version $packageVersion: ${e.message}")
+                false
+            } finally {
+                connection?.disconnect()
+            }
         }
     }
 
