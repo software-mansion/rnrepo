@@ -7,7 +7,8 @@ export interface BuildRecord {
   package_name: string;
   version: string;
   platform: Platform;
-  react_version: string;
+  rn_version: string;
+  worklets_version?: string | null;
   status: BuildStatus;
   retry: boolean;
   github_run_url?: string | null;

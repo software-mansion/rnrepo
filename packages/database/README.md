@@ -80,7 +80,8 @@ The `builds` table tracks build status for React Native library builds:
 - `package_name` - NPM package name (e.g., `react-native-screens`)
 - `version` - Package version (e.g., `4.18.1`)
 - `platform` - Target platform: `android` or `ios` (ENUM type)
-- `react_version` - React Native version (e.g., `0.79.0`)
+- `rn_version` - React Native version (e.g., `0.79.0`)
+- `worklets_version` - React Native Worklets version (e.g., `0.1.0`), optional
 - `status` - Build status: `scheduled`, `completed`, or `failed` (ENUM type)
 - `retry` - Boolean flag indicating if the build should be retried
 - `github_run_url` - URL to the GitHub Actions workflow run (optional)
@@ -90,7 +91,7 @@ The `builds` table tracks build status for React Native library builds:
 
 ### Unique Constraint
 
-The table has a unique constraint on `(package_name, version, react_version, platform)` to ensure only one build record exists per combination.
+The table has a unique constraint on `(package_name, version, rn_version, platform, worklets_version)` to ensure only one build record exists per combination.
 
 ## Retry Mechanism
 

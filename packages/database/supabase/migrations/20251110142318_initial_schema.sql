@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS builds (
   package_name TEXT NOT NULL,
   version TEXT NOT NULL,
   platform platform_type NOT NULL,
-  react_version TEXT NOT NULL,
+  rn_version TEXT NOT NULL,
+  worklets_version TEXT,
   status build_status_type NOT NULL DEFAULT 'scheduled',
   retry BOOLEAN NOT NULL DEFAULT false,
   github_run_url TEXT,
@@ -19,12 +20,12 @@ CREATE TABLE IF NOT EXISTS builds (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  -- Ensure unique combination of package, version, react_version, and platform
-  UNIQUE(package_name, version, react_version, platform)
+  -- Ensure unique combination of package, version, rn_version, platform, and worklets_version
+  UNIQUE(package_name, version, rn_version, platform, worklets_version)
 );
 
--- Create index for faster lookups
-CREATE INDEX IF NOT EXISTS idx_builds_lookup ON builds(package_name, version, react_version, platform);
+-- Create index for faster lookups (worklets_version placed after platform to take advantage of optional nature)
+CREATE INDEX IF NOT EXISTS idx_builds_lookup ON builds(package_name, version, rn_version, platform, worklets_version);
 CREATE INDEX IF NOT EXISTS idx_builds_status ON builds(status);
 CREATE INDEX IF NOT EXISTS idx_builds_retry ON builds(retry) WHERE retry = true;
 
@@ -48,7 +49,8 @@ COMMENT ON TABLE builds IS 'Tracks build status for React Native library builds'
 COMMENT ON COLUMN builds.package_name IS 'NPM package name (e.g., react-native-screens)';
 COMMENT ON COLUMN builds.version IS 'Package version (e.g., 4.18.1)';
 COMMENT ON COLUMN builds.platform IS 'Target platform: android or ios';
-COMMENT ON COLUMN builds.react_version IS 'React Native version (e.g., 0.79.0)';
+COMMENT ON COLUMN builds.rn_version IS 'React Native version (e.g., 0.79.0)';
+COMMENT ON COLUMN builds.worklets_version IS 'React Native Worklets version (e.g., 0.1.0), optional';
 COMMENT ON COLUMN builds.status IS 'Build status: scheduled, completed, or failed';
 COMMENT ON COLUMN builds.retry IS 'If true, this build should be retried (ignores existing scheduled/completed status)';
 COMMENT ON COLUMN builds.github_run_url IS 'URL to the GitHub Actions workflow run';
@@ -93,8 +95,12 @@ BEGIN
     RAISE EXCEPTION 'platform cannot be modified';
   END IF;
 
-  IF OLD.react_version IS DISTINCT FROM NEW.react_version THEN
-    RAISE EXCEPTION 'react_version cannot be modified';
+  IF OLD.rn_version IS DISTINCT FROM NEW.rn_version THEN
+    RAISE EXCEPTION 'rn_version cannot be modified';
+  END IF;
+
+  IF OLD.worklets_version IS DISTINCT FROM NEW.worklets_version THEN
+    RAISE EXCEPTION 'worklets_version cannot be modified';
   END IF;
 
   IF OLD.created_at IS DISTINCT FROM NEW.created_at THEN
