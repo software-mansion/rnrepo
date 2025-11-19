@@ -24,24 +24,35 @@ function getSupabaseClient(): SupabaseClient {
 export async function isBuildAlreadyScheduled(
   packageName: string,
   version: string,
-  reactVersion: string,
-  platform: Platform
+  rnVersion: string,
+  platform: Platform,
+  workletsVersion?: string | null
 ): Promise<boolean> {
   const supabase = getSupabaseClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('builds')
     .select('id')
     .eq('package_name', packageName)
     .eq('version', version)
-    .eq('react_version', reactVersion)
+    .eq('rn_version', rnVersion)
     .eq('platform', platform)
-    .eq('retry', false)
-    .maybeSingle();
+    .eq('retry', false);
+
+  // Filter by worklets_version if provided, otherwise check for NULL
+  if (workletsVersion !== undefined) {
+    if (workletsVersion === null) {
+      query = query.is('worklets_version', null);
+    } else {
+      query = query.eq('worklets_version', workletsVersion);
+    }
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     console.error(
-      `Error checking build status for ${packageName}@${version} (RN ${reactVersion}, ${platform}):`,
+      `Error checking build status for ${packageName}@${version} (RN ${rnVersion}, ${platform}):`,
       error
     );
     // On error, assume not scheduled to avoid blocking builds
@@ -59,9 +70,10 @@ export async function isBuildAlreadyScheduled(
 export async function createBuildRecord(
   packageName: string,
   version: string,
-  reactVersion: string,
+  rnVersion: string,
   platform: Platform,
-  githubRunUrl?: string
+  githubRunUrl?: string,
+  workletsVersion?: string | null
 ): Promise<void> {
   const supabase = getSupabaseClient();
 
@@ -69,14 +81,15 @@ export async function createBuildRecord(
     {
       package_name: packageName,
       version,
-      react_version: reactVersion,
+      rn_version: rnVersion,
+      worklets_version: workletsVersion || null,
       platform,
       status: 'scheduled',
       retry: false,
       github_run_url: githubRunUrl || null,
     },
     {
-      onConflict: 'package_name,version,react_version,platform',
+      onConflict: 'package_name,version,rn_version,platform,worklets_version',
     }
   );
 
@@ -91,12 +104,13 @@ export async function createBuildRecord(
 export async function updateBuildStatus(
   packageName: string,
   version: string,
-  reactVersion: string,
+  rnVersion: string,
   platform: Platform,
   status: BuildStatus,
   options?: {
     githubRunUrl?: string;
     buildDurationSeconds?: number;
+    workletsVersion?: string | null;
   }
 ): Promise<void> {
   const supabase = getSupabaseClient();
@@ -119,13 +133,24 @@ export async function updateBuildStatus(
     updateData.build_duration_seconds = options.buildDurationSeconds || null;
   }
 
-  const { error } = await supabase
+  let query = supabase
     .from('builds')
     .update(updateData)
     .eq('package_name', packageName)
     .eq('version', version)
-    .eq('react_version', reactVersion)
+    .eq('rn_version', rnVersion)
     .eq('platform', platform);
+
+  // Filter by worklets_version if provided
+  if (options?.workletsVersion !== undefined) {
+    if (options.workletsVersion === null) {
+      query = query.is('worklets_version', null);
+    } else {
+      query = query.eq('worklets_version', options.workletsVersion);
+    }
+  }
+
+  const { error } = await query;
 
   if (error) {
     throw new Error(`Failed to update build status: ${error.message}`);
