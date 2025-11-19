@@ -82,7 +82,7 @@ export async function scheduleLibraryBuild(
   libraryVersion: string,
   platform: Platform,
   reactNativeVersion: string,
-  additionalLibraries: string = '',
+  workletsVersion: string = '',
   ref: string = 'rolkrado/building-postinstall' // DO NOT MERGE
 ): Promise<void> {
   const platformPrefix = platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
@@ -94,7 +94,7 @@ export async function scheduleLibraryBuild(
     libraryVersion,
     'with React Native',
     reactNativeVersion,
-    additionalLibraries ? 'and additional: ' + additionalLibraries : ''
+    workletsVersion ? 'and worklets version: ' + workletsVersion : ''
   );
 
   try {
@@ -108,7 +108,7 @@ export async function scheduleLibraryBuild(
         library_name: libraryName,
         library_version: libraryVersion,
         react_native_version: reactNativeVersion,
-        additional_libraries: additionalLibraries,
+        worklets_version: workletsVersion,
       },
     });
     console.log(`  ✅ Workflow dispatched successfully`);

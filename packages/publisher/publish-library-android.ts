@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { $ } from 'bun';
 import { updateBuildStatus, type Platform } from '@rnrepo/database';
-import { convertToGradleProjectName, createExtendedClassifier } from '@rnrepo/config';
+import { convertToGradleProjectName } from '@rnrepo/config';
 
 /**
  * Publish Library Android Script
@@ -79,20 +79,19 @@ async function main() {
       throw new Error('Could not get build workflow run name');
     }
 
-    // Format: "Build for Android {library_name}@{library_version} RN@{react_native_version} with {additional_libraries|None}"
-    const match = buildRunName.match(/Build for Android (.+?)@(.+?) RN@(.+?) with (.+?)$/);
+    // Format: "Build for Android {library_name}@{library_version} RN@{react_native_version}( with worklets@{worklets_version})"
+    const match = buildRunName.match(/Build for Android (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?$/);
     if (!match) {
       throw new Error(`Could not parse workflow run name: ${buildRunName}`);
     }
 
-    const [, libraryName, libraryVersion, reactNativeVersion, additionalLibrariesOrNone] = match;
-    const additionalLibraries = additionalLibrariesOrNone === "None" ? [] : additionalLibrariesOrNone.split(',');
+    const [, libraryName, libraryVersion, reactNativeVersion, _, workletsVersion] = match;
 
     console.log('📤 Publishing library:');
     console.log(`   Build Run: ${buildRunName}`);
     console.log(`   Library: ${libraryName}@${libraryVersion}`);
     console.log(`   React Native: ${reactNativeVersion}`);
-    console.log(`${additionalLibraries.length > 0 ? `   Additional Libraries: ${additionalLibrariesOrNone}\n` : ""}`)
+    console.log(`${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`);
 
     const mavenLibraryName = convertToGradleProjectName(libraryName);
 
@@ -112,8 +111,7 @@ async function main() {
 
     const baseFileName = `${mavenLibraryName}-${libraryVersion}`;
     const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
-    const classifier = createExtendedClassifier(`rn${reactNativeVersion}`, additionalLibraries);
-    const extendedLibraryName = additionalLibraries.length > 0 ? `${libraryName}-with-${additionalLibraries.join("-with-")}` : libraryName;
+    const classifier = `rn${reactNativeVersion}${workletsVersion ? `-worklets${workletsVersion}` : ''}`;
     const aarFile = join(
       artifactsBasePath,
       `${baseFileName}-${classifier}.aar`
@@ -168,13 +166,14 @@ async function main() {
         `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
 
       await updateBuildStatus(
-        extendedLibraryName,
+        libraryName,
         libraryVersion,
         reactNativeVersion,
         'android' as Platform,
         'completed',
         {
-          githubRunUrl,
+          githubRunUrl: githubRunUrl,
+          workletsVersion: workletsVersion || null,
         }
       );
       console.log('✓ Database status updated to completed');
@@ -189,6 +188,5 @@ async function main() {
     process.exit(1);
   }
 }
-
 
 main();

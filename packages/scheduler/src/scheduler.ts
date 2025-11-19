@@ -13,57 +13,6 @@ import {
 import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
-function allCombinations(stringList: Record<string, string[]>): string[][] {
-  // Create all combinations of the versions
-  const combinations: string[][] = [];
-  const keys = Object.keys(stringList);
-  const totalCombinations = keys.reduce((acc, key) => acc * stringList[key].length, 1);
-  for (let i = 0; i < totalCombinations; i++) {
-      const combination: string[] = [];
-      let divisor = totalCombinations;
-      for (const key of keys) {
-          const versions = stringList[key];
-          divisor /= versions.length;
-          const index = Math.floor(i / divisor) % versions.length;
-          combination.push(`${key}@${versions[index]}`);
-      }
-      combinations.push(combination);
-  }
-  return combinations;
-}
-
-function getCartesianSet(packageAndVersions: Record<string, string[]>): string[][] {
-  // Generate the Cartesian product of the input sets
-  const cartesianSet: string[][] = [[]];
-  for (let i=1; i<=Object.keys(packageAndVersions).length; i++) {
-    const key = Object.keys(packageAndVersions)[i-1];
-    const values = packageAndVersions[key];
-    const tempSet: string[][] = [];
-    for (const existingCombination of cartesianSet) {
-      for (const value of values) {
-        tempSet.push([...existingCombination, `${key}@${value}`]);
-      }
-    }
-    cartesianSet.push(...tempSet);
-  }
-  return cartesianSet;
-}
-
-async function getDependencyList(
-  platformConfig: PlatformConfigOptions,
-  dependencyType: "requiredDependency" | "additionalDependency"
-): Promise<string[][]> {
-  if (platformConfig[dependencyType] === undefined) {
-    return [[""]];
-  }
-  const libraries: Record<string, string[]> = {};
-  for (const { name: lib, version: versions } of platformConfig[dependencyType]) {
-    const matchingVersions = await findMatchingVersionsFromNPM(lib, versions);
-    libraries[lib] = matchingVersions.map(v => v.version);
-  }
-  return dependencyType === "requiredDependency" ? allCombinations(libraries) : getCartesianSet(libraries);
-}
-
 export async function processLibrary(
   libraryName: string,
   config: LibraryConfig,
@@ -83,24 +32,19 @@ export async function processLibrary(
     config[platform] = (config[platform] || [{}]) as PlatformConfigOptions[]; 
  
     for (const configEntry of config[platform]) {
-      const pkgMatcher = configEntry.versionMatcher ?? config.reactNativeVersion;
+      const pkgMatcher = configEntry.versionMatcher ?? config.versionMatcher;
       if (!pkgMatcher) continue;
       const reactNativeMatcher = configEntry.reactNativeVersion ?? config.reactNativeVersion;
       if (!reactNativeMatcher) continue;
       const publishedAfterDate = configEntry.publishedAfterDate ?? config.publishedAfterDate;
+      const workletsMatchingVersions = await findMatchingVersionsFromNPM(
+        'react-native-worklets',
+        configEntry.withWorkletsVersion
+      );
       const matchingVersions = await findMatchingVersionsFromNPM(
         libraryName,
         pkgMatcher,
         publishedAfterDate
-      );
-
-      const requiredDependencies = getDependencyList(
-        configEntry,
-        "requiredDependency"
-      );
-      const additionalDependencies = getDependencyList(
-        configEntry,
-        "additionalDependency"
       );
 
       for (const pkgVersionInfo of matchingVersions) {
@@ -111,71 +55,66 @@ export async function processLibrary(
             continue;
           }
 
-          for (const requiredLibraries of await requiredDependencies) {
-            for (const additionalLibraries of await additionalDependencies) {
-              // Combine required and additional libraries into a single array
-              const allLibs = [...requiredLibraries, ...additionalLibraries].filter(lib => lib !== "");
-              // sort all libraries to ensure consistent naming
-              allLibs.sort();
-              const extendedLibraryName = allLibs.length > 0 ? `${libraryName}-with-${allLibs.join("-with-")}` : libraryName;
-
-              const alreadyScheduled = await isBuildAlreadyScheduled(
-                extendedLibraryName,
+          for (const workletsVersionInfo of workletsMatchingVersions.length > 0 ? workletsMatchingVersions : [null]) {
+            const workletsVersion = workletsVersionInfo?.version;
+            const alreadyScheduled = await isBuildAlreadyScheduled(
+              libraryName,
+              pkgVersion,
+              rnVersion,
+              platform,
+              workletsVersion
+            );
+            if (alreadyScheduled && false) { // DO NOT MERGE
+              const platformPrefix =
+                platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
+              console.log(
+                platformPrefix,
+                '⏭️  Skipping',
+                libraryName,
                 pkgVersion,
+                'with React Native',
                 rnVersion,
-                platform
+                workletsVersion ? 'and worklets version: ' + workletsVersion : '',
+                '- already scheduled or completed'
               );
-              if (alreadyScheduled && false) { // DO NOT MERGE
-                const platformPrefix =
-                  platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
-                console.log(
-                  platformPrefix,
-                  '⏭️  Skipping',
-                  extendedLibraryName,
-                  pkgVersion,
-                  'with React Native',
-                  rnVersion,
-                  '- already scheduled or completed'
-                );
-                continue;
-              }
-
-              if (limit !== undefined && scheduledCount >= limit) {
-                console.log(`\n⏸️  Reached scheduling limit of ${limit}. Stopping.`);
-                return scheduledCount;
-              }
-
-              // Schedule the build
-              try {
-                await scheduleLibraryBuild(
-                  libraryName,
-                  pkgVersion,
-                  platform,
-                  rnVersion,
-                  allLibs.join(","),
-                  "rolkrado/building-postinstall" // TODO: change to 'main' after testing
-                );
-              } catch (error) {
-                console.error(
-                  `Failed to schedule build for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
-                  error
-                );
-                continue;
-              }
-
-              // Create build record in Supabase (without run URL - will be updated later)
-              try {
-                await createBuildRecord(extendedLibraryName, pkgVersion, rnVersion, platform);
-              } catch (error) {
-                console.error(
-                  `Failed to create build record for ${extendedLibraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
-                  error
-                );
-                // Continue anyway - the record might have been created by another process
-              }
-
-              scheduledCount++;
+              continue;
             }
+
+            if (limit !== undefined && scheduledCount >= limit) {
+              console.log(`\n⏸️  Reached scheduling limit of ${limit}. Stopping.`);
+              return scheduledCount;
+            }
+
+            // Schedule the build
+            try {
+              await scheduleLibraryBuild(
+                libraryName,
+                pkgVersion,
+                platform,
+                rnVersion,
+                workletsVersion,
+                "rolkrado/building-postinstall" // TODO: change to 'main' after testing
+              );
+            } catch (error) {
+              console.error(
+                `Failed to schedule build for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${workletsVersion ? ', worklets ' + workletsVersion : ''}):`,
+                error
+              );
+              continue;
+            }
+
+            // Create build record in Supabase (without run URL - will be updated later)
+            try {
+              await createBuildRecord(libraryName, pkgVersion, rnVersion, platform, undefined, workletsVersion);
+            } catch (error) {
+              console.error(
+                `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${workletsVersion ? ', worklets ' + workletsVersion : ''}):`,
+                error
+              );
+              // Continue anyway - the record might have been created by another process
+            }
+
+            scheduledCount++;
           }
         }
       }

@@ -35,16 +35,6 @@ class PrebuildsPlugin : Plugin<Project> {
     private val REMOTE_REPO_URL_PROD = "https://packages.rnrepo.org/releases"
     // setup for dev repo if needed
     private val REMOTE_REPO_URL = getProperty("RNREPO_REPO_URL_DEV", REMOTE_REPO_URL_PROD)
-    private val DEPENDENCIES_MAP: Map<String, Set<Pair<String, Boolean>>> = mapOf(
-        // key: package name, value: set of pairs (dependency package name, withVersionInClassifier)
-        "react-native-reanimated" to setOf(
-            "react-native-worklets" to true
-        ),
-        "react-native-gesture-handler" to setOf(
-            "react-native-reanimated" to false,
-            "react-native-svg" to false
-        )
-    );
 
 
     override fun apply(project: Project) {
@@ -53,6 +43,7 @@ class PrebuildsPlugin : Plugin<Project> {
             logger.lifecycle("RNRepo Plugin has been applied to project!")
 
             addRepositoryIfNotExists(project.rootProject.repositories, REMOTE_REPO_URL, REMOTE_REPO_NAME)
+            addRepositoryIfNotExists(project.repositories, REMOTE_REPO_URL, REMOTE_REPO_NAME)
 
             // Check what packages are in project and which are we supporting
             REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project.rootProject)
@@ -91,29 +82,21 @@ class PrebuildsPlugin : Plugin<Project> {
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.supportedPackages.forEach { packageItem ->
-                val subProject = project.rootProject.findProject(":${packageItem.name}")
                 val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                if (subProject == null) {
-                    println("ℹ️ Plugin: Skipping dependency for unknown module '${packageItem.name}'.")
-                    return@forEach
-                }
-                val libraryModuleName = packageItem.name
-                val libraryProject = project.findProject(":$libraryModuleName")
-                if (libraryProject != null) {
-                    subProject.evaluationDependsOn(":$libraryModuleName")
-                    subProject.afterEvaluate {
-                        val codegenTask = libraryProject.tasks.findByName(codegenTaskName)
-                        if (codegenTask != null) {
-                            subProject.tasks.named("preBuild").configure { preBuildTask ->
-                                preBuildTask.dependsOn(codegenTask)
-                            }
-                            println("✅ Plugin: Linked ${libraryModuleName}:${codegenTaskName} to ${subProject.name}:preBuild")
-                        } else {
-                            println("ℹ️ Plugin: Skipping dependency for ${libraryModuleName}. CodeGen task '$codegenTaskName' not found.")
+                project.evaluationDependsOn(":${packageItem.name}")
+                project.afterEvaluate {
+                    try {
+                        val libraryProject = project.project(":${packageItem.name}")
+                        val libraryCodegenTaskProvider = libraryProject.tasks.named(codegenTaskName)
+                        val appPreBuildTaskProvider = project.tasks.named("preBuild")
+                        appPreBuildTaskProvider.configure {
+                            it.dependsOn(libraryCodegenTaskProvider)
                         }
+                        logger.lifecycle("✅ Plugin: Successfully linked ${packageItem.name}:${codegenTaskName} to ${project.name}:preBuild")
+                        
+                    } catch (e: Exception) {
+                        logger.lifecycle("⚠️ Plugin: Failed to find or link task :${packageItem.name}:$codegenTaskName. Error: ${e.message}")
                     }
-                } else {
-                    println("ℹ️ Plugin: Skipping dependency for unknown module '$libraryModuleName'.")
                 }
             }
 
@@ -284,6 +267,7 @@ class PrebuildsPlugin : Plugin<Project> {
         // for each repository check if package exists by sending HEAD request
         repositories.forEach { repoUnchecked ->
             val repo = repoUnchecked as? MavenArtifactRepository ?: return@forEach
+            if (repo.url.scheme != "http" && repo.url.scheme != "https") return@forEach
             val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar" // todo(rolkrado): handle classifier
             var connection: HttpURLConnection? = null
             try {
@@ -353,69 +337,46 @@ class PrebuildsPlugin : Plugin<Project> {
         }
     }
 
-    private fun changeNameToSuffix(packageName: String): String {
-        return packageName
-            .split('/').last() // remove organization
-            .replace("react-native-", "") // remove prefix
-            .replace(Regex("[-@]"), "") // remove - and @
-    }
-
-    private fun addClassifierToPackage(packageItem: PackageItem, extension: PackagesManager) {
-        DEPENDENCIES_MAP[packageItem.name]?.sortedBy { it.first } // Correcting to sort pairs by the name part
-            ?.forEach { (dependencyName, withVersionInClassifier) ->
-                extension.projectPackages.find { it.name == dependencyName }?.let { dependencyPackage ->
-                    val suffix = changeNameToSuffix(dependencyPackage.name)
-                    packageItem.classifier += if (withVersionInClassifier) {
-                        "-with-$suffix${dependencyPackage.version}"
-                    } else {
-                        "-with-$suffix"
+    private fun isSpecificCheckPassed(
+        packageItem: PackageItem,
+        extension: PackagesManager
+    ): Boolean {
+        when (packageItem.name) {
+            "react-native-gesture-handler" -> {
+                val dependencyPackages = listOf("react-native-reanimated", "react-native-svg")
+                dependencyPackages.forEach { depName ->
+                    val depItem = extension.projectPackages.find { it.name == depName }
+                    if (depItem == null) {
+                        logger.info("[RNRepo] react-native-gesture-handler: Not found $depName in project, using react-native-gesture-handler from sources.")
+                        return false
                     }
                 }
             }
+            "react-native-reanimated" -> {
+                val workletsItem = extension.projectPackages.find { it.name == "react-native-worklets" }
+                if (workletsItem != null) {
+                    logger.info("[RNRepo] react-native-reanimated: Found react-native-worklets@${workletsItem.version} in project, adding to classifier.")
+                    packageItem.classifier += "-worklets${workletsItem.version}"
+                } else {
+                    logger.info("[RNRepo] react-native-reanimated: react-native-worklets not found in project, using react-native-reanimated from sources.")
+                    return false
+                }
+            }
+        }
+        return true
     }
 
     private fun setupSupportedPackages(rootProject: Project, extension: PackagesManager) {
-        extension.projectPackages.forEach { packageItem ->
-            addClassifierToPackage(packageItem, extension)
-        }
-
         extension.supportedPackages = extension.projectPackages.filter { packageItem ->
             isPackageNotDenied(packageItem.name, extension) &&
+            isSpecificCheckPassed(packageItem, extension) &&
             isPackageAvailable(
                 packageItem,
                 extension.reactNativeVersion,
-                rootProject.repositories
+                rootProject.findProject("app")!!.repositories
             )
         }.toSet()
-        val packagesWithVersions = mutableListOf<PackageItem>()
-
-
-        // projectNodeModulesPaths.forEach { path ->
-        //    checkPackageDir(File(path), packagesWithVersions, extension, rootProject.repositories.filterIsInstance<MavenArtifactRepository>())
-        // }
-
-        // Todo(rolkrado): add more generic way to handle dependencies between packages 
-        // special handling for gesture-handler
-        val gestureHandlerItem = packagesWithVersions.find { it.name == "react-native-gesture-handler" }
-        if (gestureHandlerItem != null) {
-            val reanimatedItem = packagesWithVersions.find { it.name == "react-native-reanimated" }
-            if (reanimatedItem != null) {
-                gestureHandlerItem.classifier += "-with-reanimated"
-            }
-            val svgItem = packagesWithVersions.find { it.name == "react-native-svg" }
-            if (svgItem != null) {
-                gestureHandlerItem.classifier += "-with-svg"
-            }
-        }
-        // special handling for reanimated
-        val reanimatedItem = packagesWithVersions.find { it.name == "react-native-reanimated" }
-        if (reanimatedItem != null) {
-            val workletsItem = packagesWithVersions.find { it.name == "react-native-worklets" }
-            if (workletsItem != null) {
-                reanimatedItem.classifier += "-with-worklets${workletsItem.version}"
-            }
-        }
-        //extension.supportedPackages = packagesWithVersions
+        logger.lifecycle("[RNRepo] Supported packages for prebuilt AARs: ${extension.supportedPackages.map { "\n  - ${it.name}@${it.version}${it.classifier}" }}")
     }
 }
 

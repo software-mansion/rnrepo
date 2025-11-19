@@ -34,12 +34,8 @@
           "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
         },
         "withWorkletsVersion": {
-          "type": "array",
           "description": "react-native-worklets versions that should be included as a required dependency",
-          "items": {
-            "$ref": "#/$defs/versionPattern"
-          },
-          "minItems": 1
+          "$ref": "#/$defs/versionPattern"
         }
       },
       "additionalProperties": false

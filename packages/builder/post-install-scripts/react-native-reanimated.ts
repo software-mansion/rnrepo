@@ -9,11 +9,11 @@ export const postInstallSetup: PostInstallScript = async (
 ) => {
     console.log(`Running post-install setup for ${libraryName}...`);
     
-    // Support RN-GH only with reanimated
-    await $`bun install react-native-reanimated@4.0.0 --save-exact`.quiet();
-    console.log('✓ Installed react-native-reanimated@4.0.0');
-    await $`bun install react-native-worklets@0.4.0 --save-exact`.quiet();
-    console.log('✓ Installed react-native-worklets@0.4.0');
+    if (workletsVersion == undefined) {
+        throw new Error('workletsVersion is required for react-native-reanimated post-install setup');
+    }
+    await $`bun install react-native-worklets@${workletsVersion} --save-exact`.quiet();
+    console.log(`✓ Installed react-native-worklets@${workletsVersion}`);
     
     console.log(`✓ Post-install setup for ${libraryName} completed.`);
 };

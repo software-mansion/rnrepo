@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
 import type { PostInstallScript } from './post-install-scripts/post-install-interface';
-import { convertToGradleProjectName, createExtendedClassifier } from '@rnrepo/config';
+import { convertToGradleProjectName } from '@rnrepo/config';
 
 /**
  * Build Library Android Script
@@ -14,17 +14,15 @@ import { convertToGradleProjectName, createExtendedClassifier } from '@rnrepo/co
  * @param libraryVersion - Version of the library from NPM
  * @param reactNativeVersion - React Native version to use for building
  * @param workDir - Working directory where "app" (RN project) and "outputs" (AAR files) will be created
- * @param additionalLibrariesString - (Optional) Additional library names to build with in form <package>@<version>, separated by commas
+ * @param workletsVersion - (Optional) react-native-worklets version to install
  */
 
-const [libraryName, libraryVersion, reactNativeVersion, workDir, additionalLibrariesString] =
+const [libraryName, libraryVersion, reactNativeVersion, workDir, workletsVersion] =
   process.argv.slice(2);
-
-const additionalLibraries = additionalLibrariesString?.split(',') || [];
 
 if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   console.error(
-    'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir> [<additional-libraries-string>]'
+    'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir> [<worklets-version>]'
   );
   process.exit(1);
 }
@@ -47,7 +45,7 @@ const GITHUB_BUILD_URL = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs
 console.log('📦 Building Android library:');
 console.log(`   Library: ${libraryName}@${libraryVersion}`);
 console.log(`   React Native: ${reactNativeVersion}`);
-console.log(`${additionalLibrariesString ? `   Additional Library: ${additionalLibrariesString}\n` : ''}`);
+console.log(`${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`);
 
 try {
   await buildLibrary();
@@ -73,25 +71,11 @@ async function postInstallSetup(appDir: string) {
       libraryName,
       libraryVersion,
       reactNativeVersion,
-      additionalLibraries
+      workletsVersion
     );
     console.log(`✓ Executed post-install script for ${libraryName}`);
   } else {
     console.log(`ℹ️ No post-install script found for ${libraryName}`);
-  }
-}
-
-async function installAdditionalLibraries(appDir: string) {
-  $.cwd(appDir);
-  console.log("📦 Installing additional libraries");
-  for (const additionalLibrary of additionalLibraries) {
-    try {
-      console.log(`  - Installing ${additionalLibrary}...`);
-      await $`npm install ${additionalLibrary} --save-exact`.quiet();
-    } catch (error) {
-      console.error(`❌ Failed to install ${additionalLibrary}:`, error);
-      throw error;
-    }
   }
 }
 
@@ -101,7 +85,7 @@ function getCpuInfo() {
 
 async function buildAAR(appDir: string, license: AllowedLicense) {
   const gradleProjectName = convertToGradleProjectName(libraryName);
-  const extendedClassifier = createExtendedClassifier(`rn${reactNativeVersion}`, additionalLibraries);
+  const classifier = `rn${reactNativeVersion}${workletsVersion ? `-worklets${workletsVersion}` : ''}`;
   const packagePath = join(appDir, 'node_modules', libraryName);
   const androidPath = join(appDir, 'android');
   const settingsPath = join(androidPath, 'settings.gradle');
@@ -154,7 +138,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
       --init-script ${addPrefabReduceGradleScriptPath} \
       -PrnrepoArtifactId=${gradleProjectName} \
       -PrnrepoPublishVersion=${libraryVersion} \
-      -PrnrepoClassifier=${extendedClassifier} \
+      -PrnrepoClassifier=${classifier} \
       -PrnrepoCpuInfo=${getCpuInfo()} \
       -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
       -PrnrepoLicenseName=${license} \
@@ -171,7 +155,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     }
     const aarPath = join(
       mavenLocalLibraryLocationPath,
-      `${gradleProjectName}-${libraryVersion}-${extendedClassifier}.aar`
+      `${gradleProjectName}-${libraryVersion}-${classifier}.aar`
     );
     if (!existsSync(aarPath)) {
       throw new Error(`AAR file not found at ${aarPath}`);
@@ -234,9 +218,6 @@ async function buildLibrary() {
 
     // Extract license name from the library's package.json
     const license = extractAndVerifyLicense(appDir);
-
-    // Install additional libraries if provided
-    await installAdditionalLibraries(appDir)
 
     // Perform any library-specific setup after installing
     await postInstallSetup(appDir);

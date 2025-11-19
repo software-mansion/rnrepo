@@ -1,16 +1,10 @@
 import type { Platform } from '@rnrepo/database';
 
-export type PackageInfo = {
-  name: string;
-  version: string | string[];
-}
-
 export interface PlatformConfigOptions {
   versionMatcher?: string | string[];
   reactNativeVersion?: string | string[];
   publishedAfterDate?: string;
-  requiredDependency?: PackageInfo[];
-  additionalDependency?: PackageInfo[];
+  withWorkletsVersion?: string | string[];
 }
 
 export type PlatformConfig =

@@ -2,19 +2,9 @@
   "react-native-reanimated": {
     "android": [
       {
-        "versionMatcher": ["4.1.*"],
+        "versionMatcher": ["4.1.3"],
         "reactNativeVersion": "0.81.4",
-        "withWorkletsVersion": ["0.5.*", "0.6.*"]
-      },
-      {
-        "versionMatcher": ["4.0.*"],
-        "reactNativeVersion": "0.81.4",
-        "requiredDependency": [
-          {
-            "name": "react-native-worklets",
-            "version": ["0.4.*"]
-          }
-        ]
+        "withWorkletsVersion": ["0.5.1"]
       }
     ]
   },
