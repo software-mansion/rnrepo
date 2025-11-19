@@ -8,3 +8,6 @@ export { reactNativeVersions };
 
 // Re-export types
 export type { LibraryConfig, PlatformConfig, PlatformConfigOptions, PackageInfo } from './types';
+
+// Export utility functions
+export { convertToGradleProjectName, createExtendedClassifier } from './utils';

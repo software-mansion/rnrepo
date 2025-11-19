@@ -19,22 +19,6 @@
         }
       ]
     },
-    "packageInfo": {
-      "type": "object",
-      "description": "Information about a package dependency",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Name of the package"
-        },
-        "version": {
-          "$ref": "#/$defs/versionPattern",
-          "description": "Version or versions of the package"
-        }
-      },
-      "required": ["name", "version"],
-      "additionalProperties": false
-    },
     "platformConfig": {
       "type": "object",
       "properties": {
@@ -49,19 +33,11 @@
           "description": "Only consider package versions published after this date (ISO 8601 format: YYYY-MM-DD)",
           "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
         },
-        "requiredDependency": {
+        "withWorkletsVersion": {
           "type": "array",
-          "description": "Libraries that are required dependencies for this library",
+          "description": "react-native-worklets versions that should be included as a required dependency",
           "items": {
-            "$ref": "#/$defs/packageInfo"
-          },
-          "minItems": 1
-        },
-        "additionalDependency": {
-          "type": "array",
-          "description": "Libraries that are additional dependencies for this library, that change the build output",
-          "items": {
-            "$ref": "#/$defs/packageInfo"
+            "$ref": "#/$defs/versionPattern"
           },
           "minItems": 1
         }

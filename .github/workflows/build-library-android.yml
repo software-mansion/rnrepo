@@ -1,6 +1,6 @@
 name: Build Android Library
 
-run-name: Build for Android ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }} with ${{ inputs.additional_library }}
+run-name: Build for Android ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}${{ inputs.library_name != '' && format('with {0}', inputs.worklets_version) }}
 
 on:
   workflow_dispatch:
@@ -17,8 +17,8 @@ on:
         description: 'React Native version'
         required: true
         type: string
-      additional_libraries:
-        description: 'Additional libraries names to build with in form <package>@<version>, comma separated'
+      worklets_version:
+        description: 'Worklets version'
         required: false
         type: string
 
@@ -52,7 +52,7 @@ jobs:
         run: bun install
 
       - name: 🔨 Build library for Android
-        run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}" "${{ inputs.additional_library }}"
+        run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}" "${{ inputs.worklets_version }}"
 
       - name: 📋 List artifacts with checksums
         run: |
@@ -65,4 +65,3 @@ jobs:
           path: |
             ~/.m2/repository/org/rnrepo/public
           retention-days: 1
-

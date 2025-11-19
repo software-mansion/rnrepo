@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
 import type { PostInstallScript } from './post-install-scripts/post-install-interface';
+import { convertToGradleProjectName, createExtendedClassifier } from '@rnrepo/config';
 
 /**
  * Build Library Android Script
@@ -19,7 +20,7 @@ import type { PostInstallScript } from './post-install-scripts/post-install-inte
 const [libraryName, libraryVersion, reactNativeVersion, workDir, additionalLibrariesString] =
   process.argv.slice(2);
 
-const additionalLibraries = additionalLibrariesString?.split(',');
+const additionalLibraries = additionalLibrariesString?.split(',') || [];
 
 if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   console.error(
@@ -71,7 +72,8 @@ async function postInstallSetup(appDir: string) {
     await postInstallSetup(
       libraryName,
       libraryVersion,
-      reactNativeVersion
+      reactNativeVersion,
+      additionalLibraries
     );
     console.log(`✓ Executed post-install script for ${libraryName}`);
   } else {
@@ -93,34 +95,13 @@ async function installAdditionalLibraries(appDir: string) {
   }
 }
 
-function convertToGradleProjectName(packageName: string): string {
-  // Convert npm package name to Gradle project name following React Native's pattern
-  // @react-native-community/slider -> react-native-community_slider
-  return packageName.replace(/^@/, '').replace(/\//g, '_');
-}
-
-function createExtendedClassifier(classifier: string): string {
-  if (!additionalLibraries) {
-    return classifier
-  }
-  for (const lib of additionalLibraries) {
-    // remove part before first slash if exists
-    const packageNameWithoutOrganization = lib.split('/').pop();
-    // remove 'react-native-' prefix if exists
-    const packageNameWithoutPrefix = packageNameWithoutOrganization?.replace(/^react-native-/, '') || '';
-    // remove any remaining '-' and '@' and replace with ''
-    classifier += `-with-${packageNameWithoutPrefix.replace(/[@-]/g, '')}`;
-  }
-  return classifier
-}
-
 function getCpuInfo() {
   return `${arch()}-${platform()}-${cpus().length}coresAt${cpus()[0].speed}`;
 }
 
 async function buildAAR(appDir: string, license: AllowedLicense) {
   const gradleProjectName = convertToGradleProjectName(libraryName);
-  const extendedClassifier = createExtendedClassifier(`rn${reactNativeVersion}`);
+  const extendedClassifier = createExtendedClassifier(`rn${reactNativeVersion}`, additionalLibraries);
   const packagePath = join(appDir, 'node_modules', libraryName);
   const androidPath = join(appDir, 'android');
   const settingsPath = join(androidPath, 'settings.gradle');
@@ -144,6 +125,11 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     'add-publishing.gradle'
   );
 
+  const addPrefabReduceGradleScriptPath = join(
+    __dirname,
+    'prefab-reduce.gradle'
+  );
+
   const mavenLocalLibraryLocationPath = join(
     process.env.HOME || process.env.USERPROFILE || '',
     '.m2',
@@ -165,6 +151,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
       --no-daemon \
       --init-script ${addPublishingGradleScriptPath} \
+      --init-script ${addPrefabReduceGradleScriptPath} \
       -PrnrepoArtifactId=${gradleProjectName} \
       -PrnrepoPublishVersion=${libraryVersion} \
       -PrnrepoClassifier=${extendedClassifier} \

@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { $ } from 'bun';
 import { updateBuildStatus, type Platform } from '@rnrepo/database';
+import { convertToGradleProjectName, createExtendedClassifier } from '@rnrepo/config';
 
 /**
  * Publish Library Android Script
@@ -64,12 +65,6 @@ function createOctokit() {
 
 const octokit = createOctokit();
 
-function convertToGradleProjectName(packageName: string): string {
-  // Convert npm package name to Gradle project name following React Native's pattern
-  // @react-native-community/slider -> react-native-community_slider
-  return packageName.replace(/^@/, '').replace(/\//g, '_');
-}
-
 async function main() {
   try {
     console.log(`📥 Fetching build workflow run ${buildRunId}...`);
@@ -84,19 +79,20 @@ async function main() {
       throw new Error('Could not get build workflow run name');
     }
 
-    // Format: "Build for Android {library_name}@{library_version} RN@{react_native_version}"
-    const match = buildRunName.match(/Build for Android (.+?)@(.+?) RN@(.+?)$/);
+    // Format: "Build for Android {library_name}@{library_version} RN@{react_native_version} with {additional_libraries|None}"
+    const match = buildRunName.match(/Build for Android (.+?)@(.+?) RN@(.+?) with (.+?)$/);
     if (!match) {
       throw new Error(`Could not parse workflow run name: ${buildRunName}`);
     }
 
-    const [, libraryName, libraryVersion, reactNativeVersion] = match;
+    const [, libraryName, libraryVersion, reactNativeVersion, additionalLibrariesOrNone] = match;
+    const additionalLibraries = additionalLibrariesOrNone === "None" ? [] : additionalLibrariesOrNone.split(',');
 
     console.log('📤 Publishing library:');
     console.log(`   Build Run: ${buildRunName}`);
     console.log(`   Library: ${libraryName}@${libraryVersion}`);
     console.log(`   React Native: ${reactNativeVersion}`);
-    console.log('');
+    console.log(`${additionalLibraries.length > 0 ? `   Additional Libraries: ${additionalLibrariesOrNone}\n` : ""}`)
 
     const mavenLibraryName = convertToGradleProjectName(libraryName);
 
@@ -116,9 +112,11 @@ async function main() {
 
     const baseFileName = `${mavenLibraryName}-${libraryVersion}`;
     const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
+    const classifier = createExtendedClassifier(`rn${reactNativeVersion}`, additionalLibraries);
+    const extendedLibraryName = additionalLibraries.length > 0 ? `${libraryName}-with-${additionalLibraries.join("-with-")}` : libraryName;
     const aarFile = join(
       artifactsBasePath,
-      `${baseFileName}-rn${reactNativeVersion}.aar`
+      `${baseFileName}-${classifier}.aar`
     );
 
     // Deploy POM separately (may return 409 if already published, which is acceptable)
@@ -153,7 +151,7 @@ async function main() {
         -DartifactId=${mavenLibraryName} \
         -Dversion=${libraryVersion} \
         -Dpackaging=aar \
-        -Dclassifier=rn${reactNativeVersion} \
+        -Dclassifier=${classifier} \
         -DgeneratePom=false \
         -DrepositoryId=RNRepo \
         -Durl=${MAVEN_REPOSITORY_URL}`;
@@ -170,7 +168,7 @@ async function main() {
         `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
 
       await updateBuildStatus(
-        libraryName,
+        extendedLibraryName,
         libraryVersion,
         reactNativeVersion,
         'android' as Platform,
@@ -191,5 +189,6 @@ async function main() {
     process.exit(1);
   }
 }
+
 
 main();

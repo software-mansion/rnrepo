@@ -14,11 +14,13 @@ import com.android.build.gradle.*
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
+import org.gradle.api.artifacts.dsl.RepositoryHandler
 
-data class PackageItem(val name: String, val version: String, var module: String = name)
+data class PackageItem(val name: String, val version: String, var classifier: String = "")
 
 open class PackagesManager {
-    var packages: List<PackageItem> = listOf()
+    var projectPackages: Set<PackageItem> = mutableSetOf()
+    var supportedPackages: Set<PackageItem> = mutableSetOf()
     var reactNativeVersion: String = ""
     var denyList: Set<String> = setOf()
 }
@@ -29,10 +31,20 @@ class PrebuildsPlugin : Plugin<Project> {
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
     // remote repo URL with AARs
-    private val REMOTE_REPO_NAME_PROD = "RNRepoMavenRepository"
+    private val REMOTE_REPO_NAME = "RNRepoMavenRepository"
     private val REMOTE_REPO_URL_PROD = "https://packages.rnrepo.org/releases"
-    private val REMOTE_REPO_NAME_DEV = "RNRepoMavenRepositoryDev"
-    private val REMOTE_REPO_URL_DEV = "https://repo.swmtest.xyz/releases"
+    // setup for dev repo if needed
+    private val REMOTE_REPO_URL = getProperty("RNREPO_REPO_URL_DEV", REMOTE_REPO_URL_PROD)
+    private val DEPENDENCIES_MAP: Map<String, Set<Pair<String, Boolean>>> = mapOf(
+        // key: package name, value: set of pairs (dependency package name, withVersionInClassifier)
+        "react-native-reanimated" to setOf(
+            "react-native-worklets" to true
+        ),
+        "react-native-gesture-handler" to setOf(
+            "react-native-reanimated" to false,
+            "react-native-svg" to false
+        )
+    );
 
 
     override fun apply(project: Project) {
@@ -40,39 +52,30 @@ class PrebuildsPlugin : Plugin<Project> {
             val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
             logger.lifecycle("RNRepo Plugin has been applied to project!")
 
-            // Add SWM Maven repository with AAR artifacts
-            project.repositories.apply {
-                maven { repo ->
-                    if (project.hasProperty("RNREPO_USE_DEV_REPO") &&
-                        project.property("RNREPO_USE_DEV_REPO").toString().toBoolean()) {
-                        repo.name = REMOTE_REPO_NAME_DEV
-                        repo.url = URI(REMOTE_REPO_URL_DEV)
-                        project.logger.lifecycle("[RNRepo] Using DEV remote repository: $REMOTE_REPO_URL_DEV")
-                    } else {
-                        repo.name = REMOTE_REPO_NAME_PROD
-                        repo.url = URI(REMOTE_REPO_URL_PROD)
-                    }
-                }
-            }
+            addRepositoryIfNotExists(project.rootProject.repositories, REMOTE_REPO_URL, REMOTE_REPO_NAME)
 
             // Check what packages are in project and which are we supporting
             REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project.rootProject)
+            if (!getReactNativeVersion(extension)) {
+                logger.error("[RNRepo] Could not determine React Native version, aborting RNRepo plugin setup.")
+                return
+            }
+            getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(project.rootProject, extension)
-            findPackagesWithVersions(project, extension)
+            setupSupportedPackages(project.rootProject, extension)
 
-            // Add dependencies for supported packages
-            extension.packages.forEach { packageItem ->
+            // Setup 
+            extension.supportedPackages.forEach { packageItem ->
                 project.logger.info("[RNRepo] Adding dependency for ${packageItem.name} version ${packageItem.version}")
-                project.dependencies.add("implementation", "org.rnrepo.public:${packageItem.module}:${packageItem.version}:rn${extension.reactNativeVersion}@aar")
+                project.dependencies.add("implementation", "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar")
             }
 
             // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
-            extension.packages.forEach { packageItem ->
+            extension.supportedPackages.forEach { packageItem ->
                 if (packageItem.name == "react-native-reanimated") {
                     val androidExtension = project.extensions.getByName("android") as? BaseExtension
                     androidExtension?.let { android ->
                         val packagingOptions = android.packagingOptions
-                        val excludedPatterns = packagingOptions.excludes
 
                         packagingOptions.apply {
                             pickFirsts += "lib/arm64-v8a/libworklets.so"
@@ -87,20 +90,37 @@ class PrebuildsPlugin : Plugin<Project> {
             }
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
-            extension.packages.forEach { packageItem ->
-                val subproject = project.rootProject.findProject(":${packageItem.name}")
+            extension.supportedPackages.forEach { packageItem ->
+                val subProject = project.rootProject.findProject(":${packageItem.name}")
                 val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                val codegenTaskExists = subproject?.tasks?.findByName(codegenTaskName) != null
-                if (codegenTaskExists) {
-                    project.logger.info("Adding dependency on task :${packageItem.name}:$codegenTaskName")
-                    project.tasks.named("preBuild", Task::class.java).configure { it.dependsOn(":${packageItem.name}:$codegenTaskName") }
+                if (subProject == null) {
+                    println("ℹ️ Plugin: Skipping dependency for unknown module '${packageItem.name}'.")
+                    return@forEach
+                }
+                val libraryModuleName = packageItem.name
+                val libraryProject = project.findProject(":$libraryModuleName")
+                if (libraryProject != null) {
+                    subProject.evaluationDependsOn(":$libraryModuleName")
+                    subProject.afterEvaluate {
+                        val codegenTask = libraryProject.tasks.findByName(codegenTaskName)
+                        if (codegenTask != null) {
+                            subProject.tasks.named("preBuild").configure { preBuildTask ->
+                                preBuildTask.dependsOn(codegenTask)
+                            }
+                            println("✅ Plugin: Linked ${libraryModuleName}:${codegenTaskName} to ${subProject.name}:preBuild")
+                        } else {
+                            println("ℹ️ Plugin: Skipping dependency for ${libraryModuleName}. CodeGen task '$codegenTaskName' not found.")
+                        }
+                    }
+                } else {
+                    println("ℹ️ Plugin: Skipping dependency for unknown module '$libraryModuleName'.")
                 }
             }
 
             // Add substitution for supported packages
             project.afterEvaluate {
-                extension.packages.forEach { packageItem ->
-                    val module = "org.rnrepo.public:${packageItem.module}:${packageItem.version}-rn${extension.reactNativeVersion}"
+                extension.supportedPackages.forEach { packageItem ->
+                    val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}${packageItem.classifier}"
                     project.logger.info("[RNRepo] Adding substitution for ${packageItem.name} using $module")
                     project.configurations.all { config ->
                         config.resolutionStrategy.dependencySubstitution {
@@ -110,6 +130,23 @@ class PrebuildsPlugin : Plugin<Project> {
                     }
                 }
             }
+        }
+    }
+
+    private fun getProperty(propertyName: String, defaultValue: String): String {
+        return System.getProperty(propertyName) ?: System.getenv(propertyName) ?: defaultValue
+    }
+
+    private fun addRepositoryIfNotExists(repositories: RepositoryHandler, repoUrl: String, repoName: String?) {
+        val isRepositoryAdded = repositories.any { repo ->
+            (repo as? MavenArtifactRepository)?.url?.toString() == repoUrl
+        }
+        if (!isRepositoryAdded) {
+            repositories.maven { repo ->
+                repo.url = URI(repoUrl)
+                if (repoName != null) repo.name = repoName
+            }
+            logger.info("[RNRepo] Added Maven repository: $repoUrl")
         }
     }
 
@@ -227,111 +264,135 @@ class PrebuildsPlugin : Plugin<Project> {
      * @return True if the package is available, false otherwise.
      */
     private fun isPackageAvailable(
-        gradlePackageName: String,
-        packageVersion: String,
-        RNVersion: String
+        packageItem: PackageItem,
+        RNVersion: String,
+        repositories: RepositoryHandler
     ): Boolean {
         val cachePath = Paths.get(System.getProperty("user.home"), ".gradle", "caches", "modules-2", "files-2.1").toString()
-        val groupPath = "org.rnrepo.public${File.separator}$gradlePackageName"
-        val artifactPath = "${packageVersion}-rn$RNVersion"
+        val groupPath = "org.rnrepo.public${File.separator}${packageItem.name}"
+        val artifactPath = "${packageItem.version}-rn$RNVersion"
 
         // Construct the local path expected for the .aar file in cache
         val filePathInCache = Paths.get(cachePath, groupPath, artifactPath).toString()
         val cacheFile = File(filePathInCache)
         // Check if the directory for this package and version exists in the cache
         if (cacheFile.exists() && cacheFile.isDirectory) {
-            logger.info("[RNRepo] Package $gradlePackageName version $packageVersion is cached in Gradle cache.")
+            logger.info("[RNRepo] Package ${packageItem.name} version ${packageItem.version} is cached in Gradle cache.")
             return true
         }
 
-        val urlString = "https://packages.rnrepo.org/releases/org/rnrepo/public/${gradlePackageName}/${packageVersion}/${gradlePackageName}-${packageVersion}-rn${RNVersion}.aar"
-        var connection: HttpURLConnection? = null
-        return try {
-            connection = URL(urlString).openConnection() as HttpURLConnection
-            connection.requestMethod = "HEAD"
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
-            logger.info("[RNRepo] Checking availability of package $gradlePackageName version $packageVersion at $urlString")
-            connection.responseCode == HttpURLConnection.HTTP_OK
-        } catch (e: Exception) {
-            logger.error("[RNRepo] Error checking package availability for $gradlePackageName version $packageVersion: ${e.message}")
-            false
-        } finally {
-            connection?.disconnect()
+        // for each repository check if package exists by sending HEAD request
+        repositories.forEach { repoUnchecked ->
+            val repo = repoUnchecked as? MavenArtifactRepository ?: return@forEach
+            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar" // todo(rolkrado): handle classifier
+            var connection: HttpURLConnection? = null
+            try {
+                connection = URL(urlString).openConnection() as HttpURLConnection
+                connection.requestMethod = "HEAD"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                logger.info("[RNRepo] Checking availability of package ${packageItem.name} version ${packageItem.version} at $urlString")
+                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    return true
+                }
+            } catch (e: Exception) {
+                logger.error("[RNRepo] Error checking package availability for ${packageItem.name} version ${packageItem.version}: ${e.message}")
+            } finally {
+                connection?.disconnect()
+            }
         }
+        return false
     }
 
-    private fun checkPackageDir(dir: File, packagesList: MutableList<PackageItem>, extension: PackagesManager) {
-        val packageJsonFile = File(dir, "package.json")
-        val androidDir = File(dir, "android")
-        if (!packageJsonFile.exists() || !androidDir.exists()) {
-            logger.info("[RNRepo] No package.json or android directory in ${dir.name}, skipping.")
-            return
+    private fun getPackageNameAndVersion(packageJson: File): PackageItem? {
+        if (!packageJson.exists()) {
+            logger.info("[RNRepo] package.json not found at ${packageJson.absolutePath}, skipping.")
+            return null
         }
-        try {
-            logger.info("[RNRepo] Found package.json in ${dir.name}")
-            val json = JsonSlurper().parse(packageJsonFile) as Map<String, Any>
+        runCatching {
+            val json = JsonSlurper().parse(packageJson) as Map<String, Any>
             val packageName = json["name"] as? String
             val packageVersion = json["version"] as? String
             if (packageName != null && packageVersion != null) {
                 val gradlePackageName = packageName.replace("@", "").replace("/", "_")
-                if (isPackageAvailable(gradlePackageName, packageVersion, extension.reactNativeVersion) &&
-                    isPackageNotDenied(packageName, extension)) {
-                    packagesList.add(PackageItem(gradlePackageName, packageVersion))
-                    logger.lifecycle("[RNRepo] Found supported package: $packageName version $packageVersion")
-                }
+                logger.info("[RNRepo] Found package: $packageName version $packageVersion")
+                return PackageItem(gradlePackageName, packageVersion)
             }
-        } catch (e: Exception) {
-            logger.error("[RNRepo] Error parsing package.json in ${dir.name}: ${e.message}")
+        }.onFailure { e ->
+            logger.error("[RNRepo] Error parsing package.json in ${packageJson.absolutePath}: ${e.message}")
+        }
+        return null
+    }
+
+    private fun getProjectPackages(allprojects: Set<Project>, extension: PackagesManager) {
+        extension.projectPackages = allprojects
+            .map { it.projectDir }
+            .filter { it.absolutePath.contains("node_modules") }
+            .map { File(it.parentFile, "package.json") }
+            .filter { it.exists() }
+            .mapNotNull { getPackageNameAndVersion(it) }
+            .toSet()
+    }
+
+    private fun getReactNativeVersion(extension: PackagesManager): Boolean {
+        // find react-native package.json
+        val reactNativePackageJsonFile = Paths.get(REACT_NATIVE_ROOT_DIR?.absolutePath, "node_modules", "react-native", "package.json").toFile()
+        if (!reactNativePackageJsonFile.exists()) {
+            logger.error("[RNRepo] react-native package.json not found in ${reactNativePackageJsonFile.absolutePath}. Try setting 'reactNativeRootDir' in gradle.properties.")
+            return false
+        }
+        // parse version
+        val reactNativeVersionInfo = getPackageNameAndVersion(reactNativePackageJsonFile)
+        return reactNativeVersionInfo?.let {
+            extension.reactNativeVersion = it.version
+            logger.lifecycle("[RNRepo] Detected React Native version: ${extension.reactNativeVersion}")
+            true
+        } ?: run {
+            logger.error("[RNRepo] Failed to parse version from react-native package.json.")
+            false
         }
     }
 
-    private fun findPackagesWithVersions(rootProject: Project, extension: PackagesManager) {
-        // iter over node_modules/<package>/package.json
-        val node_modulesDir = File(REACT_NATIVE_ROOT_DIR, "node_modules")
-        if (!node_modulesDir.exists()) {
-            logger.error("[RNRepo] node_modules directory not found: ${node_modulesDir.absolutePath}. Run your command from YourProjectDir or YourProjectDir/android")
-            return
-        }
+    private fun changeNameToSuffix(packageName: String): String {
+        return packageName
+            .split('/').last() // remove organization
+            .replace("react-native-", "") // remove prefix
+            .replace(Regex("[-@]"), "") // remove - and @
+    }
 
-        // find react-native version
-        val rnPackageJsonPath = Paths.get(node_modulesDir.absolutePath, "react-native", "package.json").toString()
-        val rnPackageJsonFile = File(rnPackageJsonPath)
-        if (!rnPackageJsonFile.exists()) {
-            logger.error("[RNRepo] react-native package.json not found in node_modules/react-native")
-            return
-        }
-        try {
-            val json = JsonSlurper().parse(rnPackageJsonFile) as Map<String, Any>
-            val rnVersion = json["version"] as? String
-            if (rnVersion != null) {
-                extension.reactNativeVersion = rnVersion
-                logger.info("[RNRepo] Detected React Native version: $rnVersion")
-            } else {
-                logger.error("[RNRepo] Could not find version field in react-native package.json")
-                return
+    private fun addClassifierToPackage(packageItem: PackageItem, extension: PackagesManager) {
+        DEPENDENCIES_MAP[packageItem.name]?.sortedBy { it.first } // Correcting to sort pairs by the name part
+            ?.forEach { (dependencyName, withVersionInClassifier) ->
+                extension.projectPackages.find { it.name == dependencyName }?.let { dependencyPackage ->
+                    val suffix = changeNameToSuffix(dependencyPackage.name)
+                    packageItem.classifier += if (withVersionInClassifier) {
+                        "-with-$suffix${dependencyPackage.version}"
+                    } else {
+                        "-with-$suffix"
+                    }
+                }
             }
-        } catch (e: Exception) {
-            logger.error("[RNRepo] Error parsing react-native package.json: ${e.message}")
-            return
+    }
+
+    private fun setupSupportedPackages(rootProject: Project, extension: PackagesManager) {
+        extension.projectPackages.forEach { packageItem ->
+            addClassifierToPackage(packageItem, extension)
         }
 
+        extension.supportedPackages = extension.projectPackages.filter { packageItem ->
+            isPackageNotDenied(packageItem.name, extension) &&
+            isPackageAvailable(
+                packageItem,
+                extension.reactNativeVersion,
+                rootProject.repositories
+            )
+        }.toSet()
         val packagesWithVersions = mutableListOf<PackageItem>()
 
-        // get all projects paths that contain node_modules in path
-        val projectNodeModulesPaths = rootProject.rootProject.allprojects.mapNotNull { proj ->
-            val relPath = proj.projectDir.absolutePath.replace("${File.separator}android", "")
-            if (relPath.contains("node_modules")) {
-                logger.info("[RNRepo] Project in build: ${proj.name} at $relPath")
-                relPath
-            } else {
-                null
-            }
-        }.toSet()
 
-        projectNodeModulesPaths.forEach { path ->
-            checkPackageDir(File(path), packagesWithVersions, extension)
-        }
+        // projectNodeModulesPaths.forEach { path ->
+        //    checkPackageDir(File(path), packagesWithVersions, extension, rootProject.repositories.filterIsInstance<MavenArtifactRepository>())
+        // }
 
         // Todo(rolkrado): add more generic way to handle dependencies between packages 
         // special handling for gesture-handler
@@ -339,11 +400,11 @@ class PrebuildsPlugin : Plugin<Project> {
         if (gestureHandlerItem != null) {
             val reanimatedItem = packagesWithVersions.find { it.name == "react-native-reanimated" }
             if (reanimatedItem != null) {
-                gestureHandlerItem.module += "with-reanimated${reanimatedItem.version}"
+                gestureHandlerItem.classifier += "-with-reanimated"
             }
             val svgItem = packagesWithVersions.find { it.name == "react-native-svg" }
             if (svgItem != null) {
-                gestureHandlerItem.module += "with-svg${svgItem.version}"
+                gestureHandlerItem.classifier += "-with-svg"
             }
         }
         // special handling for reanimated
@@ -351,10 +412,10 @@ class PrebuildsPlugin : Plugin<Project> {
         if (reanimatedItem != null) {
             val workletsItem = packagesWithVersions.find { it.name == "react-native-worklets" }
             if (workletsItem != null) {
-                reanimatedItem.module += "with-worklets${workletsItem.version}"
+                reanimatedItem.classifier += "-with-worklets${workletsItem.version}"
             }
         }
-        extension.packages = packagesWithVersions
+        //extension.supportedPackages = packagesWithVersions
     }
 }
 

@@ -2,12 +2,17 @@
   "react-native-reanimated": {
     "android": [
       {
-        "versionMatcher": ["4.1.3"],
+        "versionMatcher": ["4.1.*"],
+        "reactNativeVersion": "0.81.4",
+        "withWorkletsVersion": ["0.5.*", "0.6.*"]
+      },
+      {
+        "versionMatcher": ["4.0.*"],
         "reactNativeVersion": "0.81.4",
         "requiredDependency": [
           {
             "name": "react-native-worklets",
-            "version": ["0.5.1"]
+            "version": ["0.4.*"]
           }
         ]
       }
@@ -17,13 +22,7 @@
     "android": [
       {
         "versionMatcher": ["2.28.0"],
-        "reactNativeVersion": "0.81.4",
-        "additionalDependency": [
-          {
-            "name": "react-native-reanimated",
-            "version": ["4.0.0"]
-          }
-        ]
+        "reactNativeVersion": "0.81.4"
       }
     ]
   },

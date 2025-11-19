@@ -3,15 +3,17 @@ plugins {
     id 'maven-publish'
     id 'java-gradle-plugin'
     id 'signing'
+    id 'com.diffplug.spotless' version '6.20.0'
 }
 
 group = 'org.rnrepo.tools'
 
 // Fixed version in code - automatically appends -SNAPSHOT for local publishes
-def baseVersion = '0.0.1'
-def isLocalPublish = project.gradle.startParameter.taskNames.any {
-    it.contains("MavenLocal")
-}
+def baseVersion = '11.0.1'
+def isLocalPublish = false;
+// project.gradle.startParameter.taskNames.any {
+//     it.contains("MavenLocal")
+// }
 version = baseVersion + (isLocalPublish ? '-SNAPSHOT' : '')
 
 repositories {
@@ -66,7 +68,7 @@ publishing {
         mavenLocal()
         maven {
             name "rnrepo"
-            url "https://packages.rnrepo.org/releases"
+            url "https://repo.swmtest.xyz/releases"
             credentials {
                 username = project.properties["mavenUsername"]
                 password = project.properties["mavenPassword"]

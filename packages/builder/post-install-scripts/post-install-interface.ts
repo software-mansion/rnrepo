@@ -6,6 +6,7 @@ export interface PostInstallScript {
     (
         libraryName: string,
         libraryVersion: string,
-        reactNativeVersion: string
+        reactNativeVersion: string,
+        additionalLibraries: string[]
     ): void;
 }

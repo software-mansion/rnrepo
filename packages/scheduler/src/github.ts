@@ -83,7 +83,7 @@ export async function scheduleLibraryBuild(
   platform: Platform,
   reactNativeVersion: string,
   additionalLibraries: string = '',
-  ref: string = 'main'
+  ref: string = 'rolkrado/building-postinstall' // DO NOT MERGE
 ): Promise<void> {
   const platformPrefix = platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
 

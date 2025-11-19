@@ -32,6 +32,23 @@ function allCombinations(stringList: Record<string, string[]>): string[][] {
   return combinations;
 }
 
+function getCartesianSet(packageAndVersions: Record<string, string[]>): string[][] {
+  // Generate the Cartesian product of the input sets
+  const cartesianSet: string[][] = [[]];
+  for (let i=1; i<=Object.keys(packageAndVersions).length; i++) {
+    const key = Object.keys(packageAndVersions)[i-1];
+    const values = packageAndVersions[key];
+    const tempSet: string[][] = [];
+    for (const existingCombination of cartesianSet) {
+      for (const value of values) {
+        tempSet.push([...existingCombination, `${key}@${value}`]);
+      }
+    }
+    cartesianSet.push(...tempSet);
+  }
+  return cartesianSet;
+}
+
 async function getDependencyList(
   platformConfig: PlatformConfigOptions,
   dependencyType: "requiredDependency" | "additionalDependency"
@@ -44,11 +61,7 @@ async function getDependencyList(
     const matchingVersions = await findMatchingVersionsFromNPM(lib, versions);
     libraries[lib] = matchingVersions.map(v => v.version);
   }
-  let combinations = allCombinations(libraries);
-  if (dependencyType == "additionalDependency") {
-    combinations.push([""]);
-  }
-  return combinations;
+  return dependencyType === "requiredDependency" ? allCombinations(libraries) : getCartesianSet(libraries);
 }
 
 export async function processLibrary(
@@ -112,7 +125,7 @@ export async function processLibrary(
                 rnVersion,
                 platform
               );
-              if (alreadyScheduled) {
+              if (alreadyScheduled && false) { // DO NOT MERGE
                 const platformPrefix =
                   platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
                 console.log(
@@ -140,7 +153,7 @@ export async function processLibrary(
                   platform,
                   rnVersion,
                   allLibs.join(","),
-                  "rolkrado/building-postinstall"
+                  "rolkrado/building-postinstall" // TODO: change to 'main' after testing
                 );
               } catch (error) {
                 console.error(
