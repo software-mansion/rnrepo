@@ -67,7 +67,7 @@ publishing {
         mavenLocal()
         maven {
             name "rnrepo"
-            url "https://repo.swmtest.xyz/releases"
+            url "https://packages.rnrepo.org/releases"
             credentials {
                 username = project.properties["mavenUsername"]
                 password = project.properties["mavenPassword"]
