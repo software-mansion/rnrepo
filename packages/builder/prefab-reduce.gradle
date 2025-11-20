@@ -1,6 +1,7 @@
 allprojects { project ->
-    if (project.plugins.hasPlugin("com.android.library")) {
-        project.afterEvaluate {
+    project.afterEvaluate {
+        if (project.plugins.hasPlugin("com.android.library")) {
+            println("Configuring prefab reduce for project: ${project.name}")
             project.android {
                 buildTypes {
                     release {
