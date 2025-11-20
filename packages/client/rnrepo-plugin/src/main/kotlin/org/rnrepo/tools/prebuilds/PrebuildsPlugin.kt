@@ -268,7 +268,7 @@ class PrebuildsPlugin : Plugin<Project> {
         repositories.forEach { repoUnchecked ->
             val repo = repoUnchecked as? MavenArtifactRepository ?: return@forEach
             if (repo.url.scheme != "http" && repo.url.scheme != "https") return@forEach
-            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar" // todo(rolkrado): handle classifier
+            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
             var connection: HttpURLConnection? = null
             try {
                 connection = URL(urlString).openConnection() as HttpURLConnection

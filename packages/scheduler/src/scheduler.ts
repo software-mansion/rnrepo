@@ -64,7 +64,7 @@ export async function processLibrary(
               platform,
               workletsVersion
             );
-            if (alreadyScheduled && false) { // DO NOT MERGE
+            if (alreadyScheduled) {
               const platformPrefix =
                 platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
               console.log(
@@ -93,7 +93,7 @@ export async function processLibrary(
                 platform,
                 rnVersion,
                 workletsVersion,
-                "rolkrado/building-postinstall" // TODO: change to 'main' after testing
+                "main"
               );
             } catch (error) {
               console.error(
