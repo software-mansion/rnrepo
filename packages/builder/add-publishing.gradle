@@ -108,6 +108,11 @@ gradle.projectsEvaluated {
                         println "⏱️  bundleReleaseAar (wall clock, deps included) completed in ${String.format('%.3f', seconds)} seconds"
                     }
                 }
+                // add generatePomFileForReleasePublication dependsOn bundleReleaseAarTask for build duration variable
+                def generatePomFileTask = project.tasks.findByName('generatePomFileForReleasePublication')
+                if (generatePomFileTask && bundleReleaseAarTask) {
+                    generatePomFileTask.dependsOn(bundleReleaseAarTask)
+                }
             } catch (Exception e) {
                 println "Warning: Could not configure publishing for ${project.name}: ${e.message}"
             }
