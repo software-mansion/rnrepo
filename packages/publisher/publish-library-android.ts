@@ -159,6 +159,19 @@ async function main() {
       `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
     );
 
+    // Pull build duration from pom file
+    let buildDurationSeconds: number | null = null;
+    const pomContent = await Bun.file(pomFile).text();
+    const durationMatch = pomContent.match(
+      /<rnrepo\.buildDurationSeconds>(.+?)<\/rnrepo\.buildDurationSeconds>/
+    );
+    if (durationMatch) {
+      buildDurationSeconds = parseFloat(durationMatch[1].replace(',', '.'));
+      console.log(`⏱️  Build duration seconds: ${buildDurationSeconds}`);
+    } else {
+      console.warn('⚠️  Build duration not found in POM file');
+    }
+
     // Update Supabase status to 'completed' after publish is fully complete
     try {
       const githubRunUrl =
@@ -174,6 +187,7 @@ async function main() {
         {
           githubRunUrl: githubRunUrl,
           workletsVersion: workletsVersion || null,
+          buildDurationSeconds: buildDurationSeconds || undefined
         }
       );
       console.log('✓ Database status updated to completed');
