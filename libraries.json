@@ -1,62 +1,84 @@
 {
   "react-native-reanimated": {
-    "android": {
-      "versionMatcher": ["4.1.3"],
-      "reactNativeVersion": "0.81.4"
-    }
+    "android": [
+      {
+        "versionMatcher": ["4.1.3"],
+        "reactNativeVersion": "0.81.4",
+        "withWorkletsVersion": ["0.5.1"]
+      }
+    ]
   },
   "react-native-gesture-handler": {
-    "android": {
-      "versionMatcher": ["2.28.0"],
-      "reactNativeVersion": "0.81.4"
-    }
+    "postInstallScriptPath": "post-install-scripts/react-native-gesture-handler/react-native-gesture-handler.ts",
+    "android": [
+      {
+        "versionMatcher": ["2.28.0"],
+        "reactNativeVersion": "0.81.4"
+      }
+    ]
   },
   "@react-native-async-storage/async-storage": {
-    "android": {
-      "reactNativeVersion": "0.81.4",
-      "versionMatcher": ["2.2.0"]
-    }
+    "android": [
+      {
+        "reactNativeVersion": "0.81.4",
+        "versionMatcher": ["2.2.0"]
+      }
+    ]
   },
   "@react-native-community/netinfo": {
-    "android": {
-      "reactNativeVersion": "0.81.4",
-      "versionMatcher": ["11.4.1"]
-    }
+    "android": [
+      {
+        "reactNativeVersion": "0.81.4",
+        "versionMatcher": ["11.4.1"]
+      }
+    ]
   },
   "@react-native-masked-view/masked-view": {
-    "android": {
-      "reactNativeVersion": "0.81.4",
-      "versionMatcher": ["0.3.2"]
-    }
+    "android": [
+      {
+        "reactNativeVersion": "0.81.4",
+        "versionMatcher": ["0.3.2"]
+      }
+    ]
   },
   "@shopify/react-native-skia": {
-    "android": {
-      "reactNativeVersion": "0.81.4",
-      "versionMatcher": ["2.2.12"]
-    }
+    "android": [
+      {
+        "reactNativeVersion": "0.81.4",
+        "versionMatcher": ["2.2.12"]
+      }
+    ]
   },
   "@zoontek/react-native-navigation-bar": {
-    "android": {
-      "reactNativeVersion": "0.81.4",
-      "versionMatcher": ["1.0.1"]
-    }
+    "android": [
+      {
+        "reactNativeVersion": "0.81.4",
+        "versionMatcher": ["1.0.1"]
+      }
+    ]
   },
   "react-native-safe-area-context": {
-    "android": {
-      "reactNativeVersion": "0.81.4",
-      "versionMatcher": ["5.6.1"]
-    }
+    "android": [
+      {
+        "reactNativeVersion": "0.81.4",
+        "versionMatcher": ["5.6.1"]
+      }
+    ]
   },
   "react-native-screens": {
-    "android": {
-      "reactNativeVersion": "0.81.4",
-      "versionMatcher": ["4.16.0"]
-    }
+    "android": [
+      {
+        "reactNativeVersion": "0.81.4",
+        "versionMatcher": ["4.16.0"]
+      }
+    ]
   },
   "react-native-worklets": {
-    "android": {
-      "reactNativeVersion": "0.81.4",
-      "versionMatcher": ["0.5.1"]
-    }
+    "android": [
+      {
+        "reactNativeVersion": "0.81.4",
+        "versionMatcher": ["0.5.1"]
+      }
+    ]
   }
 }

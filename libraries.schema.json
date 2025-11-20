@@ -32,9 +32,21 @@
           "type": "string",
           "description": "Only consider package versions published after this date (ISO 8601 format: YYYY-MM-DD)",
           "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "withWorkletsVersion": {
+          "description": "react-native-worklets versions that should be included as a required dependency",
+          "$ref": "#/$defs/versionPattern"
         }
       },
       "additionalProperties": false
+    },
+    "platformConfigsList": {
+      "type": "array",
+      "description": "List of platform configurations",
+      "items": {
+        "$ref": "#/$defs/platformConfig"
+      },
+      "minItems": 1
     }
   },
   "additionalProperties": {
@@ -54,6 +66,10 @@
         "description": "Only consider package versions published after this date (ISO 8601 format: YYYY-MM-DD). Can be overridden per platform.",
         "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
       },
+      "postInstallScriptPath": {
+        "type": "string",
+        "description": "Path to post-install script"
+      },
       "android": {
         "anyOf": [
           {
@@ -62,8 +78,8 @@
             "description": "Disable Android builds"
           },
           {
-            "$ref": "#/$defs/platformConfig",
-            "description": "Android platform configuration (overrides library-level defaults)"
+            "$ref": "#/$defs/platformConfigsList",
+            "description": "Android platform configurations list (overrides library-level defaults)"
           }
         ]
       },
@@ -75,8 +91,8 @@
             "description": "Disable iOS builds"
           },
           {
-            "$ref": "#/$defs/platformConfig",
-            "description": "iOS platform configuration (overrides library-level defaults)"
+            "$ref": "#/$defs/platformConfigsList",
+            "description": "iOS platform configurations list (overrides library-level defaults)"
           }
         ]
       }

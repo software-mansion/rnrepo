@@ -7,4 +7,7 @@ import reactNativeVersions from '../../../react-native-versions.json';
 export { reactNativeVersions };
 
 // Re-export types
-export type { LibraryConfig } from './types';
+export type { LibraryConfig, PlatformConfig, PlatformConfigOptions } from './types';
+
+// Export utility functions
+export { convertToGradleProjectName } from './utils';

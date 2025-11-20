@@ -23,6 +23,7 @@
       "name": "@rnrepo/builder",
       "version": "0.1.0",
       "dependencies": {
+        "@rnrepo/config": "workspace:*",
         "commander": "^13.1.0",
         "zx": "^8.6.0",
       },
@@ -60,6 +61,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@octokit/rest": "^22.0.0",
+        "@rnrepo/config": "workspace:*",
         "@rnrepo/database": "workspace:*",
         "commander": "^13.1.0",
         "zx": "^8.6.0",

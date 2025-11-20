@@ -2,6 +2,7 @@ import { $ } from 'bun';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
+import { convertToGradleProjectName } from '@rnrepo/config';
 
 /**
  * Build Library Android Script
@@ -12,14 +13,15 @@ import { join } from 'path';
  * @param libraryVersion - Version of the library from NPM
  * @param reactNativeVersion - React Native version to use for building
  * @param workDir - Working directory where "app" (RN project) and "outputs" (AAR files) will be created
+ * @param workletsVersion - (Optional) react-native-worklets version to install
  */
 
-const [libraryName, libraryVersion, reactNativeVersion, workDir] =
+const [libraryName, libraryVersion, reactNativeVersion, workDir, workletsVersion] =
   process.argv.slice(2);
 
 if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   console.error(
-    'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir>'
+    'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir> [<worklets-version>]'
   );
   process.exit(1);
 }
@@ -42,7 +44,7 @@ const GITHUB_BUILD_URL = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs
 console.log('📦 Building Android library:');
 console.log(`   Library: ${libraryName}@${libraryVersion}`);
 console.log(`   React Native: ${reactNativeVersion}`);
-console.log('');
+console.log(`${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`);
 
 try {
   await buildLibrary();
@@ -52,26 +54,23 @@ try {
   process.exit(1);
 }
 
-async function installWorkletsIfNeeded(appDir: string) {
-  if (libraryName === 'react-native-reanimated') {
-    if (libraryVersion.startsWith('4.0.')) {
-      console.log('📦 Installing react-native-worklets@0.4.0...');
-      await $`npm install react-native-worklets@0.4.0 --save-exact`
-        .cwd(appDir)
-        .quiet();
-    } else if (libraryVersion.startsWith('4.1.')) {
-      console.log('📦 Installing react-native-worklets@0.5.0...');
-      await $`npm install react-native-worklets@0.5.0 --save-exact`
-        .cwd(appDir)
-        .quiet();
-    }
+async function postInstallSetup(appDir: string) {
+  const libraryJsonPath = join(
+    __dirname,
+    '..',
+    '..',
+    'libraries.json'
+  );
+  const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
+  const scriptPath = libraryJson[libraryName]?.postInstallScriptPath as string | undefined;
+  if (scriptPath && existsSync(scriptPath)) {
+    $.cwd(appDir);
+    const fullScriptPath = join(__dirname, '..', '..', scriptPath);
+    await $`bun run ${fullScriptPath}`;
+    console.log(`✓ Executed post-install script for ${libraryName}`);
+  } else {
+    console.log(`ℹ️ No post-install script found for ${libraryName}`);
   }
-}
-
-function convertToGradleProjectName(packageName: string): string {
-  // Convert npm package name to Gradle project name following React Native's pattern
-  // @react-native-community/slider -> react-native-community_slider
-  return packageName.replace(/^@/, '').replace(/\//g, '_');
 }
 
 function getCpuInfo() {
@@ -80,6 +79,7 @@ function getCpuInfo() {
 
 async function buildAAR(appDir: string, license: AllowedLicense) {
   const gradleProjectName = convertToGradleProjectName(libraryName);
+  const classifier = `rn${reactNativeVersion}${workletsVersion ? `-worklets${workletsVersion}` : ''}`;
   const packagePath = join(appDir, 'node_modules', libraryName);
   const androidPath = join(appDir, 'android');
   const settingsPath = join(androidPath, 'settings.gradle');
@@ -132,7 +132,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
       --init-script ${addPrefabReduceGradleScriptPath} \
       -PrnrepoArtifactId=${gradleProjectName} \
       -PrnrepoPublishVersion=${libraryVersion} \
-      -PrnrepoClassifier=rn${reactNativeVersion} \
+      -PrnrepoClassifier=${classifier} \
       -PrnrepoCpuInfo=${getCpuInfo()} \
       -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
       -PrnrepoLicenseName=${license} \
@@ -149,7 +149,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     }
     const aarPath = join(
       mavenLocalLibraryLocationPath,
-      `${gradleProjectName}-${libraryVersion}-rn${reactNativeVersion}.aar`
+      `${gradleProjectName}-${libraryVersion}-${classifier}.aar`
     );
     if (!existsSync(aarPath)) {
       throw new Error(`AAR file not found at ${aarPath}`);
@@ -213,8 +213,14 @@ async function buildLibrary() {
     // Extract license name from the library's package.json
     const license = extractAndVerifyLicense(appDir);
 
-    // Install worklets if needed for reanimated
-    await installWorkletsIfNeeded(appDir);
+    // Perform any library-specific setup after installing
+    await postInstallSetup(appDir);
+
+    // Install react-native-worklets if specified
+    if (workletsVersion) {
+      console.log(`📦 Installing react-native-worklets@${workletsVersion}...`);
+      await $`npm install react-native-worklets@${workletsVersion} --save-exact`.quiet();
+    }
 
     // Install all dependencies
     console.log('📦 Installing all dependencies...');

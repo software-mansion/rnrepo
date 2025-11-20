@@ -2,6 +2,7 @@ import {
   libraries,
   reactNativeVersions,
   type LibraryConfig,
+  type PlatformConfigOptions,
 } from '@rnrepo/config';
 import type { Platform } from '@rnrepo/database';
 import {
@@ -11,57 +12,6 @@ import {
 } from './npm';
 import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
-
-function getVersionMatcherForPlatform(
-  libraryName: string,
-  config: LibraryConfig,
-  platform: Platform
-): string | string[] | undefined {
-  const platformConfig = config[platform];
-
-  if (platformConfig === false) {
-    return undefined;
-  }
-
-  if (
-    typeof platformConfig === 'object' &&
-    platformConfig.versionMatcher !== undefined
-  ) {
-    return platformConfig.versionMatcher;
-  }
-
-  return config.versionMatcher;
-}
-
-function getReactNativeMatcherForPlatform(
-  config: LibraryConfig,
-  platform: Platform
-): string | string[] | undefined {
-  const platformConfig = config[platform];
-  if (platformConfig === false) return undefined;
-  if (
-    typeof platformConfig === 'object' &&
-    platformConfig.reactNativeVersion !== undefined
-  ) {
-    return platformConfig.reactNativeVersion;
-  }
-  return config.reactNativeVersion;
-}
-
-function getPublishedAfterDateForPlatform(
-  config: LibraryConfig,
-  platform: Platform
-): string | undefined {
-  const platformConfig = config[platform];
-  if (platformConfig === false) return undefined;
-  if (
-    typeof platformConfig === 'object' &&
-    platformConfig.publishedAfterDate !== undefined
-  ) {
-    return platformConfig.publishedAfterDate;
-  }
-  return config.publishedAfterDate;
-}
 
 export async function processLibrary(
   libraryName: string,
@@ -78,93 +28,95 @@ export async function processLibrary(
 
   for (const platform of platforms) {
     if (config[platform] === false) continue;
+    // Add empty config to run from global versions
+    config[platform] = (config[platform] || [{}]) as PlatformConfigOptions[];
+ 
+    for (const configEntry of config[platform]) {
+      const pkgMatcher = configEntry.versionMatcher ?? config.versionMatcher;
+      if (!pkgMatcher) continue;
+      const reactNativeMatcher = configEntry.reactNativeVersion ?? config.reactNativeVersion;
+      if (!reactNativeMatcher) continue;
+      const publishedAfterDate = configEntry.publishedAfterDate ?? config.publishedAfterDate;
+      const workletsMatchingVersions = await findMatchingVersionsFromNPM(
+        'react-native-worklets',
+        configEntry.withWorkletsVersion
+      );
+      const matchingVersions = await findMatchingVersionsFromNPM(
+        libraryName,
+        pkgMatcher,
+        publishedAfterDate
+      );
 
-    const pkgMatcher = getVersionMatcherForPlatform(
-      libraryName,
-      config,
-      platform
-    );
-    if (!pkgMatcher) continue;
+      for (const pkgVersionInfo of matchingVersions) {
+        const pkgVersion = pkgVersionInfo.version;
 
-    const reactNativeMatcher = getReactNativeMatcherForPlatform(
-      config,
-      platform
-    );
-    if (!reactNativeMatcher) continue;
+        for (const rnVersion of rnVersions) {
+          if (!matchesVersionPattern(rnVersion, reactNativeMatcher)) {
+            continue;
+          }
 
-    const publishedAfterDate = getPublishedAfterDateForPlatform(
-      config,
-      platform
-    );
+          for (const workletsVersionInfo of workletsMatchingVersions.length > 0 ? workletsMatchingVersions : [null]) {
+            const workletsVersion = workletsVersionInfo?.version;
+            const alreadyScheduled = await isBuildAlreadyScheduled(
+              libraryName,
+              pkgVersion,
+              rnVersion,
+              platform,
+              workletsVersion
+            );
+            if (alreadyScheduled) {
+              const platformPrefix =
+                platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
+              console.log(
+                platformPrefix,
+                '⏭️  Skipping',
+                libraryName,
+                pkgVersion,
+                'with React Native',
+                rnVersion,
+                workletsVersion ? 'and worklets version: ' + workletsVersion : '',
+                '- already scheduled or completed'
+              );
+              continue;
+            }
 
-    const matchingVersions = await findMatchingVersionsFromNPM(
-      libraryName,
-      pkgMatcher,
-      publishedAfterDate
-    );
+            if (limit !== undefined && scheduledCount >= limit) {
+              console.log(`\n⏸️  Reached scheduling limit of ${limit}. Stopping.`);
+              return scheduledCount;
+            }
 
-    for (const pkgVersionInfo of matchingVersions) {
-      const pkgVersion = pkgVersionInfo.version;
+            // Schedule the build
+            try {
+              await scheduleLibraryBuild(
+                libraryName,
+                pkgVersion,
+                platform,
+                rnVersion,
+                workletsVersion,
+                'main'
+              );
+            } catch (error) {
+              console.error(
+                `Failed to schedule build for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${workletsVersion ? ', worklets ' + workletsVersion : ''}):`,
+                error
+              );
+              continue;
+            }
 
-      for (const rnVersion of rnVersions) {
-        if (!matchesVersionPattern(rnVersion, reactNativeMatcher)) {
-          continue;
+            // Create build record in Supabase (without run URL - will be updated later)
+            try {
+              await createBuildRecord(libraryName, pkgVersion, rnVersion, platform, undefined, workletsVersion);
+            } catch (error) {
+              console.error(
+                `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${workletsVersion ? ', worklets ' + workletsVersion : ''}):`,
+                error
+              );
+              // Continue anyway - the record might have been created by another process
+            }
+
+            scheduledCount++;
+          }
         }
-
-        const alreadyScheduled = await isBuildAlreadyScheduled(
-          libraryName,
-          pkgVersion,
-          rnVersion,
-          platform
-        );
-        if (alreadyScheduled) {
-          const platformPrefix =
-            platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
-          console.log(
-            platformPrefix,
-            '⏭️  Skipping',
-            libraryName,
-            pkgVersion,
-            'with React Native',
-            rnVersion,
-            '- already scheduled or completed'
-          );
-          continue;
-        }
-
-        if (limit !== undefined && scheduledCount >= limit) {
-          console.log(`\n⏸️  Reached scheduling limit of ${limit}. Stopping.`);
-          return scheduledCount;
-        }
-
-        // Schedule the build
-        try {
-          await scheduleLibraryBuild(
-            libraryName,
-            pkgVersion,
-            platform,
-            rnVersion
-          );
-        } catch (error) {
-          console.error(
-            `Failed to schedule build for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
-            error
-          );
-          continue;
-        }
-
-        // Create build record in Supabase (without run URL - will be updated later)
-        try {
-          await createBuildRecord(libraryName, pkgVersion, rnVersion, platform);
-        } catch (error) {
-          console.error(
-            `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}):`,
-            error
-          );
-          // Continue anyway - the record might have been created by another process
-        }
-
-        scheduledCount++;
       }
     }
   }

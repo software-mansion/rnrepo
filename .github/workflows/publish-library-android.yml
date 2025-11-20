@@ -81,8 +81,8 @@ jobs:
             <servers>
               <server>
                 <id>RNRepo</id>
-                <username>${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME_DEV }}</username>
-                <password><![CDATA[${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN_DEV }}]]></password>
+                <username>${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}</username>
+                <password><![CDATA[${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}]]></password>
               </server>
             </servers>
           </settings>
@@ -93,9 +93,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          MAVEN_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME_DEV }}
-          MAVEN_PASSWORD: ${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN_DEV }}
-          MAVEN_REPOSITORY_URL: ${{ secrets.RNREPO_SWM_REPOSITORY_URL_DEV }}
+          MAVEN_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}
+          MAVEN_REPOSITORY_URL: ${{ secrets.RNREPO_SWM_REPOSITORY_URL }}
           MAVEN_GPG_KEY: ${{ secrets.GPG_KEY_ID }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

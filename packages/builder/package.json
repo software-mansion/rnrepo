@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "commander": "^13.1.0",
+    "@rnrepo/config": "workspace:*",
     "zx": "^8.6.0"
   },
   "devDependencies": {
