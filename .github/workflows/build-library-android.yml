@@ -1,6 +1,6 @@
 name: Build Android Library
 
-run-name: Build for Android ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ format('{0}{1}', inputs.react_native_version, inputs.worklets_version != '' && format(' with worklets@{0}', inputs.worklets_version) || '') }}
+run-name: Build for Android ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}${{ inputs.worklets_version && format(' with worklets@{0}', inputs.worklets_version) || '' }}
 
 on:
   workflow_dispatch:

@@ -63,7 +63,6 @@ async function postInstallSetup(appDir: string) {
   if (existsSync(scriptPath)) {
     $.cwd(appDir);
     await $`bun run ${scriptPath}`.quiet();
-    
     console.log(`✓ Executed post-install script for ${libraryName}`);
   } else {
     console.log(`ℹ️ No post-install script found for ${libraryName}`);

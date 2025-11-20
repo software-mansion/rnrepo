@@ -29,7 +29,7 @@ export async function processLibrary(
   for (const platform of platforms) {
     if (config[platform] === false) continue;
     // Add empty config to run from global versions
-    config[platform] = (config[platform] || [{}]) as PlatformConfigOptions[]; 
+    config[platform] = (config[platform] || [{}]) as PlatformConfigOptions[];
  
     for (const configEntry of config[platform]) {
       const pkgMatcher = configEntry.versionMatcher ?? config.versionMatcher;
@@ -93,7 +93,7 @@ export async function processLibrary(
                 platform,
                 rnVersion,
                 workletsVersion,
-                "main"
+                'main'
               );
             } catch (error) {
               console.error(

@@ -53,7 +53,7 @@ class PrebuildsPlugin : Plugin<Project> {
             }
             getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(project.rootProject, extension)
-            setupSupportedPackages(project.rootProject, extension)
+            setupSupportedPackages(project, extension)
 
             // Setup 
             extension.supportedPackages.forEach { packageItem ->
@@ -93,7 +93,6 @@ class PrebuildsPlugin : Plugin<Project> {
                             it.dependsOn(libraryCodegenTaskProvider)
                         }
                         logger.lifecycle("✅ Plugin: Successfully linked ${packageItem.name}:${codegenTaskName} to ${project.name}:preBuild")
-                        
                     } catch (e: Exception) {
                         logger.lifecycle("⚠️ Plugin: Failed to find or link task :${packageItem.name}:$codegenTaskName. Error: ${e.message}")
                     }
@@ -253,7 +252,7 @@ class PrebuildsPlugin : Plugin<Project> {
     ): Boolean {
         val cachePath = Paths.get(System.getProperty("user.home"), ".gradle", "caches", "modules-2", "files-2.1").toString()
         val groupPath = "org.rnrepo.public${File.separator}${packageItem.name}"
-        val artifactPath = "${packageItem.version}-rn$RNVersion"
+        val artifactPath = "${packageItem.version}"
 
         // Construct the local path expected for the .aar file in cache
         val filePathInCache = Paths.get(cachePath, groupPath, artifactPath).toString()
@@ -366,14 +365,14 @@ class PrebuildsPlugin : Plugin<Project> {
         return true
     }
 
-    private fun setupSupportedPackages(rootProject: Project, extension: PackagesManager) {
+    private fun setupSupportedPackages(project: Project, extension: PackagesManager) {
         extension.supportedPackages = extension.projectPackages.filter { packageItem ->
             isPackageNotDenied(packageItem.name, extension) &&
             isSpecificCheckPassed(packageItem, extension) &&
             isPackageAvailable(
                 packageItem,
                 extension.reactNativeVersion,
-                rootProject.findProject("app")!!.repositories
+                project.repositories
             )
         }.toSet()
         logger.lifecycle("[RNRepo] Supported packages for prebuilt AARs: ${extension.supportedPackages.map { "\n  - ${it.name}@${it.version}${it.classifier}" }}")
