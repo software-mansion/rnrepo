@@ -55,14 +55,18 @@ try {
 }
 
 async function postInstallSetup(appDir: string) {
-  const scriptPath = join(
+  const libraryJsonPath = join(
     __dirname,
-    'post-install-scripts',
-    convertToGradleProjectName(libraryName) + '.ts'
+    '..',
+    '..',
+    'libraries.json'
   );
-  if (existsSync(scriptPath)) {
+  const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
+  const scriptPath = libraryJson[libraryName]?.postInstallScriptPath as string | undefined;
+  if (scriptPath && existsSync(scriptPath)) {
     $.cwd(appDir);
-    await $`bun run ${scriptPath}`.quiet();
+    const fullScriptPath = join(__dirname, '..', '..', scriptPath);
+    await $`bun run ${fullScriptPath}`;
     console.log(`✓ Executed post-install script for ${libraryName}`);
   } else {
     console.log(`ℹ️ No post-install script found for ${libraryName}`);
