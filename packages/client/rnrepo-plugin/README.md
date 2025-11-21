@@ -32,20 +32,45 @@ cd packages/client/rnrepo-plugin
 
 **Note:** Local publishes automatically append a `-SNAPSHOT` suffix to the version (e.g., `0.0.1` becomes `0.0.1-SNAPSHOT`).
 
-## Using RNRepo in dev mode
-- add to `<RNProjectRoot/android/gradle.properties`:
-```
+## Env variables:
+
+#### Using RNRepo in dev mode:
+Add the following to `<RNProjectRoot/android/gradle.properties` to use the provided remote repository:
+```gradle
 RNREPO_REPO_URL_DEV=<YOUR_DEV_REPO_URL>
 // example:
 RNREPO_REPO_URL_DEV=https://packages.rnrepo.org/releases
 ```
-- this will make the plugin use DEV remote repository instead of PROD
 
-## Setting React Native root directory
-- you can set the React Native root directory by adding the following to your `gradle.properties`:
-```
+#### Setting React Native root directory
+You can set the React Native root directory by adding the following to your `gradle.properties`:
+```gradle
 REACT_NATIVE_ROOT_DIR=<PATH_TO_YOUR_REACT_NATIVE_ROOT_DIRECTORY>
 // example:
 REACT_NATIVE_ROOT_DIR=../react-native
 ```
 This will make the plugin use the specified React Native root directory instead of trying to locate it automatically. By default it looks for the directory containing `node_modules` and react-native libraries inside.
+
+#### Disabling the RNRepo plugin
+You can disable the RNRepo plugin execution by setting the `DISABLE_RNREPO` to `true`. This can be done in multiple ways:
+1. **Gradle Command Line**: When running your Gradle command, append the following flag:
+   ```bash
+   ./gradlew assembleDebug -DDISABLE_RNREPO=true
+   ```
+2. **gradle.properties**: Add the following line to your `gradle.properties` file:
+   ```gradle
+   DISABLE_RNREPO=true
+   ```
+3. **Environment Variable**: Set the `DISABLE_RNREPO` environment variable to `true` in your system or CI environment.
+   ```bash
+   DISABLE_RNREPO=true ./gradlew assembleDebug
+   ```
+
+## Unittests
+
+To run the unittests for the RNRepo plugin, navigate to the plugin's directory and execute the test task:
+
+```bash
+cd packages/client/rnrepo-plugin
+./gradlew test
+```

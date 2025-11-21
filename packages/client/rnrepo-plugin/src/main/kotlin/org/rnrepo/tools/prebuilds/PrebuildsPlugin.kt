@@ -145,8 +145,8 @@ class PrebuildsPlugin : Plugin<Project> {
      *    The plugin execution will be enabled unless the environment variable "DISABLE_RNREPO" is explicitly set to "true" (ignoring case).
      *    If "DISABLE_RNREPO" is set to "true", the plugin execution will be disabled; if it's unset or set to any other value, the execution will proceed.
      *
-     * 3. **System Property check**: Looks at the "DISABLE_RNREPO" system property.
-     *    Similar to the environment variable, if the system property "DISABLE_RNREPO" is set to "true" (case insensitive), the plugin will not execute.
+     * 3. **Project Property check**: Looks at the "DISABLE_RNREPO" project property.
+     *    Similar to the environment variable, if the project property "DISABLE_RNREPO" is set to "true" (case insensitive), the plugin will not execute.
      *    By default, if this property is not set, it defaults to "false", thereby enabling the plugin execution.
      *
      * @param project The Gradle project context providing access to configuration and execution parameters.
@@ -156,10 +156,9 @@ class PrebuildsPlugin : Plugin<Project> {
         val isBuildingCommand: Boolean = project.gradle.startParameter.taskNames.any {
             it.contains("assemble") || it.contains("build") || it.contains("install")
         }
-        val isEnvEnabled: Boolean = System.getenv("DISABLE_RNREPO")?.equals("true", ignoreCase = true)?.not() ?: true
-        val isPropertyEnabled: Boolean = System.getProperty("DISABLE_RNREPO", "false").equals("true", ignoreCase = true).not()
-        project.logger.info("[RNRepo] Building command: $isBuildingCommand, Env enabled: $isEnvEnabled, Property enabled: $isPropertyEnabled")
-        return isBuildingCommand && isEnvEnabled && isPropertyEnabled
+        val isPropertyEnabled = getProperty(project, "DISABLE_RNREPO", "false").equals("true", ignoreCase = true).not()
+        project.logger.info("[RNRepo] Building command: $isBuildingCommand, env/project.property: $isPropertyEnabled")
+        return isBuildingCommand && isPropertyEnabled
     }
 
     /**

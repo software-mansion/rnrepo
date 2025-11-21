@@ -24,6 +24,14 @@ dependencies {
     implementation gradleApi()
     implementation 'com.android.tools.build:gradle:8.1.0'
     implementation 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22'
+    
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.2'
+    testImplementation 'org.junit.platform:junit-platform-suite:1.9.2'
+    testImplementation 'io.mockk:mockk:1.13.5'
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+    testImplementation gradleTestKit()
 }
 
 java {
@@ -82,4 +90,8 @@ signing {
     setRequired(!publishingToMavenLocal)
     useInMemoryPgpKeys(project.findProperty("signingKey"), project.findProperty("signingPassword"))
     sign publishing.publications.release
+}
+
+tasks.test {
+    useJUnitPlatform() 
 }
