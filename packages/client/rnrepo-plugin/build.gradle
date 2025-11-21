@@ -31,41 +31,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
-// Generate build-time constants
-def generatedSourcesDir = file("$buildDir/generated/sources/kotlin/main")
-sourceSets.main.kotlin.srcDirs += generatedSourcesDir
-
-task generateBuildConstants {
-    def outputDir = file(generatedSourcesDir)
-    def outputFile = file("$outputDir/org/rnrepo/tools/prebuilds/BuildConstants.kt")
-
-    outputs.dir(outputDir)
-    outputs.file(outputFile)
-
-    doLast {
-        def repositoryUrl = project.properties["mavenRepositoryUrl"]
-        if (!repositoryUrl) {
-            throw new GradleException("mavenRepositoryUrl property is required but not set. Please provide it via -PmavenRepositoryUrl=... or in gradle.properties")
-        }
-
-        outputDir.mkdirs()
-        outputFile.parentFile.mkdirs()
-
-        outputFile.text = """package org.rnrepo.tools.prebuilds
-
-/**
- * Build-time constants generated during plugin compilation.
- * DO NOT EDIT - This file is auto-generated.
- */
-object BuildConstants {
-    const val REPOSITORY_URL = "${repositoryUrl}"
-}
-"""
-    }
-}
-
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    dependsOn generateBuildConstants
     kotlinOptions {
         jvmTarget = "11"
     }
