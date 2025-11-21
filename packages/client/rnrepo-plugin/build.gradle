@@ -31,7 +31,36 @@ java {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
+// Generate build-time constants
+def generatedSourcesDir = file("$buildDir/generated/sources/kotlin/main")
+sourceSets.main.kotlin.srcDirs += generatedSourcesDir
+
+task generateBuildConstants {
+    def outputDir = file(generatedSourcesDir)
+    def outputFile = file("$outputDir/org/rnrepo/tools/prebuilds/BuildConstants.kt")
+
+    outputs.dir(outputDir)
+    outputs.file(outputFile)
+
+    doLast {
+        outputDir.mkdirs()
+        outputFile.parentFile.mkdirs()
+
+        outputFile.text = """package org.rnrepo.tools.prebuilds
+
+/**
+ * Build-time constants generated during plugin compilation.
+ * DO NOT EDIT - This file is auto-generated.
+ */
+object BuildConstants {
+    const val PLUGIN_VERSION = "${project.version}"
+}
+"""
+    }
+}
+
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    dependsOn generateBuildConstants
     kotlinOptions {
         jvmTarget = "11"
     }
