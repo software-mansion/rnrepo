@@ -8,7 +8,6 @@ import type { Platform } from '@rnrepo/database';
 import {
   matchesVersionPattern,
   findMatchingVersionsFromNPM,
-  type NpmVersionInfo,
 } from './npm';
 import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';

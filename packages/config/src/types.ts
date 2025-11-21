@@ -1,5 +1,3 @@
-import type { Platform } from '@rnrepo/database';
-
 export interface PlatformConfigOptions {
   versionMatcher?: string | string[];
   reactNativeVersion?: string | string[];

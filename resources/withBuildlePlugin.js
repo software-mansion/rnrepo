@@ -1,7 +1,4 @@
-const {
-  withProjectBuildGradle,
-  withAppBuildGradle,
-} = require('@expo/config-plugins');
+import { withProjectBuildGradle, withAppBuildGradle } from '@expo/config-plugins';
 
 const classpathRegex = /(classpath.*)/;
 const rnrepoClasspath = 'classpath("org.rnrepo.tools:prebuilds-plugin:+")';
