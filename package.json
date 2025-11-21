@@ -18,7 +18,8 @@
     "publisher": "bun run packages/publisher",
     "validate": "bun run packages/config/src/validate.ts",
     "lint-client": "./packages/client/rnrepo-plugin/gradlew -p packages/client/rnrepo-plugin spotlessCheck -q",
-    "lint-ts": "eslint . --ext .ts,.tsx --ignore-pattern ios-resources"
+    "lint-ts": "eslint . --ext .ts,.tsx --ignore-pattern ios-resources",
+    "test-client": "./packages/client/rnrepo-plugin/gradlew -p packages/client/rnrepo-plugin test --info"
   },
   "author": "",
   "license": "ISC",

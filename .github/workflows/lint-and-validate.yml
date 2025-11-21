@@ -1,15 +1,15 @@
-name: Lint and Validate
+name: Lint, Test and Validate
 
-run-name: Lint sources and Validate json
+run-name: Lint, test sources and validate json
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
-  # pull_request:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   lint-and-validate:
@@ -38,4 +38,9 @@ jobs:
 
       - name: ✅ Validate JSON files
         run: bun run validate
-    
+      
+      - name: 🧪 Run client tests
+        run: bun run test-client
+
+      - name: 🧪 Run ts tests
+        run: bun test
