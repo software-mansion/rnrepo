@@ -3,7 +3,6 @@ name: Lint, Test and Validate
 run-name: Lint, test sources and validate json
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
