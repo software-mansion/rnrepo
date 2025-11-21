@@ -15,11 +15,10 @@
   "include": [
     "packages/**/*",
     "ios-resources/**/*",
-    "post-install-scripts/**/*",
+    "post-install-scripts/**/*"
   ],
   "exclude": [
     "node_modules",
-    "**/node_modules",
-    "react-conf-app"
+    "**/node_modules"
   ]
 }

@@ -35,6 +35,17 @@ cd packages/client/rnrepo-plugin
 ## Using RNRepo in dev mode
 - add to `<RNProjectRoot/android/gradle.properties`:
 ```
-RNREPO_REPO_URL_DEV = <YOUR_DEV_REPO_URL>
+RNREPO_REPO_URL_DEV=<YOUR_DEV_REPO_URL>
+// example:
+RNREPO_REPO_URL_DEV=https://packages.rnrepo.org/releases
 ```
 - this will make the plugin use DEV remote repository instead of PROD
+
+## Setting React Native root directory
+- you can set the React Native root directory by adding the following to your `gradle.properties`:
+```
+REACT_NATIVE_ROOT_DIR=<PATH_TO_YOUR_REACT_NATIVE_ROOT_DIRECTORY>
+// example:
+REACT_NATIVE_ROOT_DIR=../react-native
+```
+This will make the plugin use the specified React Native root directory instead of trying to locate it automatically. By default it looks for the directory containing `node_modules` and react-native libraries inside.

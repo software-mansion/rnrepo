@@ -8,7 +8,6 @@ import type { Platform } from '@rnrepo/database';
 import {
   matchesVersionPattern,
   findMatchingVersionsFromNPM,
-  type NpmVersionInfo,
 } from './npm';
 import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
@@ -29,9 +28,9 @@ export async function processLibrary(
   for (const platform of platforms) {
     if (config[platform] === false) continue;
     // Add empty config to run from global versions
-    config[platform] = (config[platform] || [{}]) as PlatformConfigOptions[];
+    const configPlatformList = Array.isArray(config[platform]) ? config[platform] as PlatformConfigOptions[] : [{}];
  
-    for (const configEntry of config[platform]) {
+    for (const configEntry of configPlatformList) {
       const pkgMatcher = configEntry.versionMatcher ?? config.versionMatcher;
       if (!pkgMatcher) continue;
       const reactNativeMatcher = configEntry.reactNativeVersion ?? config.reactNativeVersion;
@@ -100,7 +99,7 @@ export async function processLibrary(
                 `Failed to schedule build for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${workletsVersion ? ', worklets ' + workletsVersion : ''}):`,
                 error
               );
-              continue;
+              return Promise.reject(error);
             }
 
             // Create build record in Supabase (without run URL - will be updated later)

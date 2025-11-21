@@ -1,5 +1,5 @@
 import { $ } from 'bun';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
 import { convertToGradleProjectName } from '@rnrepo/config';
@@ -82,7 +82,6 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
   const classifier = `rn${reactNativeVersion}${workletsVersion ? `-worklets${workletsVersion}` : ''}`;
   const packagePath = join(appDir, 'node_modules', libraryName);
   const androidPath = join(appDir, 'android');
-  const settingsPath = join(androidPath, 'settings.gradle');
 
   // Validate that package exists
   if (!existsSync(packagePath)) {
