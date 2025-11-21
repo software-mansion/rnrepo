@@ -2,7 +2,7 @@
   "react-native-reanimated": {
     "android": [
       {
-        "versionMatcher": ["4.1.3"],
+        "versionMatcher": ["4.1.*"],
         "reactNativeVersion": "0.81.4",
         "withWorkletsVersion": ["0.5.1"]
       }
