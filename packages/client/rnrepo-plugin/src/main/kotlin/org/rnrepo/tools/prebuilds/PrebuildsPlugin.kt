@@ -22,7 +22,7 @@ data class PackageItem(val name: String, val version: String, var classifier: St
  * Logger wrapper that automatically prefixes all messages with [RNRepo 📦]
  */
 private class PrefixedLogger(private val delegate: Logger) {
-    fun info(message: String) = delegate.lifecycle("[RNRepo 📦] $message")
+    fun info(message: String) = delegate.info("[RNRepo 📦] $message")
     fun lifecycle(message: String) = delegate.lifecycle("[RNRepo 📦] $message")
     fun warn(message: String) = delegate.warn("[RNRepo 📦] $message")
     fun error(message: String) = delegate.error("[RNRepo 📦] $message")
