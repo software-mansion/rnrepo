@@ -271,11 +271,11 @@ class PrebuildsPlugin : Plugin<Project> {
         RNVersion: String,
         repositories: RepositoryHandler
     ): Boolean {
-        val aritfactDir = Paths.get(System.getProperty("user.home"), ".gradle", "caches", "modules-2", "files-2.1", "org.rnrepo.public", "${packageItem.name}", "${packageItem.version}").toFile()
-        if (aritfactDir.exists() && aritfactDir.isDirectory) {
+        val artifactDir = Paths.get(System.getProperty("user.home"), ".gradle", "caches", "modules-2", "files-2.1", "org.rnrepo.public", "${packageItem.name}", "${packageItem.version}").toFile()
+        if (artifactDir.exists() && artifactDir.isDirectory) {
             val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
-            // search for artifactName in all directories inside aritfactDir
-            val isArtifactCached = aritfactDir.listFiles()?.any { hashDir ->
+            // search for artifactName in all directories inside artifactDir
+            val isArtifactCached = artifactDir.listFiles()?.any { hashDir ->
                 hashDir.isDirectory && File(hashDir, artifactName).exists()
             } ?: false
             if (isArtifactCached) {
