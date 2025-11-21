@@ -69,10 +69,10 @@ class PrebuildsPlugin : Plugin<Project> {
                         val packagingOptions = android.packagingOptions
 
                         packagingOptions.apply {
-                            pickFirsts += "lib/arm64-v8a/libworklets.so"
-                            pickFirsts += "lib/armeabi-v7a/libworklets.so"
-                            pickFirsts += "lib/x86/libworklets.so"
-                            pickFirsts += "lib/x86_64/libworklets.so"
+                            jniLibs.pickFirsts += "lib/arm64-v8a/libworklets.so"
+                            jniLibs.pickFirsts += "lib/armeabi-v7a/libworklets.so"
+                            jniLibs.pickFirsts += "lib/x86/libworklets.so"
+                            jniLibs.pickFirsts += "lib/x86_64/libworklets.so"
                         }
                     } ?: run {
                         project.logger.warn("The Android Gradle Plugin is not applied to this project.")
@@ -153,7 +153,8 @@ class PrebuildsPlugin : Plugin<Project> {
      */
     private fun shouldPluginExecute(project: Project): Boolean {
         val isBuildingCommand: Boolean = project.gradle.startParameter.taskNames.any {
-            it.contains("assemble") || it.contains("build") || it.contains("install")}
+            it.contains("assemble") || it.contains("build") || it.contains("install")
+        }
         val isEnvEnabled: Boolean = System.getenv("DISABLE_RNREPO")?.equals("true", ignoreCase = true)?.not() ?: true
         val isPropertyEnabled: Boolean = System.getProperty("DISABLE_RNREPO", "false").equals("true", ignoreCase = true).not()
         project.logger.info("[RNRepo] Building command: $isBuildingCommand, Env enabled: $isEnvEnabled, Property enabled: $isPropertyEnabled")
@@ -202,7 +203,9 @@ class PrebuildsPlugin : Plugin<Project> {
             return
         }
         try {
+            @Suppress("UNCHECKED_CAST")
             val json = JsonSlurper().parse(configFile) as Map<String, Any>
+            @Suppress("UNCHECKED_CAST")
             val denyList = json["denyList"] as? List<String>
             if (denyList != null) {
                 project.logger.lifecycle("[RNRepo] Loaded deny list from config: $denyList")
@@ -293,6 +296,7 @@ class PrebuildsPlugin : Plugin<Project> {
             return null
         }
         runCatching {
+            @Suppress("UNCHECKED_CAST")
             val json = JsonSlurper().parse(packageJson) as Map<String, Any>
             val packageName = json["name"] as? String
             val packageVersion = json["version"] as? String
@@ -342,6 +346,7 @@ class PrebuildsPlugin : Plugin<Project> {
     ): Boolean {
         when (packageItem.name) {
             "react-native-gesture-handler" -> {
+                // Todo(rolkrado): remove svg when patch will be merged
                 val dependencyPackages = listOf("react-native-reanimated", "react-native-svg")
                 dependencyPackages.forEach { depName ->
                     val depItem = extension.projectPackages.find { it.name == depName }
