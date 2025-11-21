@@ -271,17 +271,17 @@ class PrebuildsPlugin : Plugin<Project> {
         RNVersion: String,
         repositories: RepositoryHandler
     ): Boolean {
-        val cachePath = Paths.get(System.getProperty("user.home"), ".gradle", "caches", "modules-2", "files-2.1").toString()
-        val groupPath = "org.rnrepo.public${File.separator}${packageItem.name}"
-        val artifactPath = "${packageItem.version}"
-
-        // Construct the local path expected for the .aar file in cache
-        val filePathInCache = Paths.get(cachePath, groupPath, artifactPath).toString()
-        val cacheFile = File(filePathInCache)
-        // Check if the directory for this package and version exists in the cache
-        if (cacheFile.exists() && cacheFile.isDirectory) {
-            logger.info("[RNRepo] Package ${packageItem.name} version ${packageItem.version} is cached in Gradle cache.")
-            return true
+        val aritfactDir = Paths.get(System.getProperty("user.home"), ".gradle", "caches", "modules-2", "files-2.1", "org.rnrepo.public", "${packageItem.name}", "${packageItem.version}").toFile()
+        if (aritfactDir.exists() && aritfactDir.isDirectory) {
+            val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
+            // search for artifactName in all directories inside aritfactDir
+            val isArtifactCached = aritfactDir.listFiles()?.any { hashDir ->
+                hashDir.isDirectory && File(hashDir, artifactName).exists()
+            } ?: false
+            if (isArtifactCached) {
+                logger.info("[RNRepo] Package ${packageItem.name} version ${packageItem.version} is cached in Gradle cache.")
+                return true
+            }
         }
 
         // for each repository check if package exists by sending HEAD request
