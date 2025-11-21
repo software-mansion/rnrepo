@@ -32,19 +32,16 @@ class PrebuildsPlugin : Plugin<Project> {
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
     // remote repo URL with AARs
     private val REMOTE_REPO_NAME = "RNRepoMavenRepository"
-    private val REMOTE_REPO_URL_PROD = "https://packages.rnrepo.org/releases"
-
 
     override fun apply(project: Project) {
         if (shouldPluginExecute(project)) {
             val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
             logger.lifecycle("RNRepo Plugin has been applied to project!")
 
-            // setup for dev repo if needed
-            val REMOTE_REPO_URL = getProperty(project, "RNREPO_REPO_URL_DEV", REMOTE_REPO_URL_PROD)
-            logger.info("[RNRepo] Using remote repo URL: $REMOTE_REPO_URL")
-            addRepositoryIfNotExists(project.rootProject.repositories, REMOTE_REPO_URL, REMOTE_REPO_NAME)
-            addRepositoryIfNotExists(project.repositories, REMOTE_REPO_URL, REMOTE_REPO_NAME)
+            // Repository URL is baked into plugin at build time via BuildConstants
+            logger.info("[RNRepo] Using remote repo URL: ${BuildConstants.REPOSITORY_URL}")
+            addRepositoryIfNotExists(project.rootProject.repositories, BuildConstants.REPOSITORY_URL, REMOTE_REPO_NAME)
+            addRepositoryIfNotExists(project.repositories, BuildConstants.REPOSITORY_URL, REMOTE_REPO_NAME)
 
             // Check what packages are in project and which are we supporting
             REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project)
@@ -56,7 +53,7 @@ class PrebuildsPlugin : Plugin<Project> {
             loadDenyList(project.rootProject, extension)
             setupSupportedPackages(project, extension)
 
-            // Setup 
+            // Setup
             extension.supportedPackages.forEach { packageItem ->
                 project.logger.info("[RNRepo] Adding dependency for ${packageItem.name} version ${packageItem.version}")
                 project.dependencies.add("implementation", "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar")

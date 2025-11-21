@@ -22,6 +22,7 @@ jobs:
           ./gradlew publishReleasePublicationToRnrepoRepository --no-daemon \
           -PmavenUsername=${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }} \
           -PmavenPassword=${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }} \
+          -PmavenRepositoryUrl=${{ secrets.RNREPO_SWM_REPOSITORY_URL }} \
           -PsigningKey="${{ secrets.GPG_PRIVATE_KEY }}" \
           -PsigningPassword="${{ secrets.GPG_PASSPHRASE }}"
         working-directory: ./packages/client/rnrepo-plugin
