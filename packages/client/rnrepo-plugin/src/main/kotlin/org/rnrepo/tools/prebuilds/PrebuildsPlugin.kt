@@ -33,8 +33,6 @@ class PrebuildsPlugin : Plugin<Project> {
     // remote repo URL with AARs
     private val REMOTE_REPO_NAME = "RNRepoMavenRepository"
     private val REMOTE_REPO_URL_PROD = "https://packages.rnrepo.org/releases"
-    // setup for dev repo if needed
-    private val REMOTE_REPO_URL = getProperty("RNREPO_REPO_URL_DEV", REMOTE_REPO_URL_PROD)
 
 
     override fun apply(project: Project) {
@@ -42,11 +40,14 @@ class PrebuildsPlugin : Plugin<Project> {
             val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
             logger.lifecycle("RNRepo Plugin has been applied to project!")
 
+            // setup for dev repo if needed
+            val REMOTE_REPO_URL = getProperty(project, "RNREPO_REPO_URL_DEV", REMOTE_REPO_URL_PROD)
+            logger.info("[RNRepo] Using remote repo URL: $REMOTE_REPO_URL")
             addRepositoryIfNotExists(project.rootProject.repositories, REMOTE_REPO_URL, REMOTE_REPO_NAME)
             addRepositoryIfNotExists(project.repositories, REMOTE_REPO_URL, REMOTE_REPO_NAME)
 
             // Check what packages are in project and which are we supporting
-            REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project.rootProject)
+            REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project)
             if (!getReactNativeVersion(extension)) {
                 logger.error("[RNRepo] Could not determine React Native version, aborting RNRepo plugin setup.")
                 return
@@ -115,8 +116,8 @@ class PrebuildsPlugin : Plugin<Project> {
         }
     }
 
-    private fun getProperty(propertyName: String, defaultValue: String): String {
-        return System.getProperty(propertyName) ?: System.getenv(propertyName) ?: defaultValue
+    private fun getProperty(project: Project, propertyName: String, defaultValue: String): String {
+        return project.findProperty(propertyName) as? String ?: System.getenv(propertyName) ?: defaultValue
     }
 
     private fun addRepositoryIfNotExists(repositories: RepositoryHandler, repoUrl: String, repoName: String?) {
@@ -164,7 +165,7 @@ class PrebuildsPlugin : Plugin<Project> {
     /**
      * Retrieves the root directory of the React Native project.
      *
-     * This function first checks for a custom property "reactNativeRootDir" in the Gradle root project.
+     * This function first checks for a custom property "REACT_NATIVE_ROOT_DIR" in the Gradle root project.
      * If the property is not set, it traverses up the directory hierarchy starting from the
      * root project directory to find the React Native root.
      * The React Native root is identified by the presence of the "node_modules/react-native" directory.
@@ -173,13 +174,20 @@ class PrebuildsPlugin : Plugin<Project> {
      * @param rootProject The Gradle root project context, usually named ':'.
      * @return The root directory of the React Native project as a [File] object.
      */
-    private fun getReactNativeRoot(rootProject: Project): File {
-        if (rootProject.findProperty("reactNativeRootDir") != null) {
-            val path = rootProject.property("reactNativeRootDir").toString()
-            logger.lifecycle("[RNRepo] Using reactNativeRootDir from gradle property: $path")
-            return File(path)
+    private fun getReactNativeRoot(project: Project): File {
+        // User defined path via gradle property
+        val reactNativeRootDirProperty = getProperty(project, "REACT_NATIVE_ROOT_DIR", "")
+        if (reactNativeRootDirProperty != "") {
+            val file = File(reactNativeRootDirProperty)
+            if (file.exists() && file.isDirectory) {
+                logger.lifecycle("[RNRepo] Using REACT_NATIVE_ROOT_DIR from gradle property: $reactNativeRootDirProperty")
+                return file
+            } else {
+                throw GradleException("[RNRepo] REACT_NATIVE_ROOT_DIR path from gradle property does not exist or is not a directory: $reactNativeRootDirProperty")
+            }
         }
-        var currentDirName = rootProject.rootDir
+        // Auto-detect by traversing up the directory tree
+        var currentDirName: File? = project.rootProject.rootDir
         while (currentDirName != null) {
             if (File(currentDirName, "node_modules${File.separator}react-native").exists()) {
                 logger.lifecycle("[RNRepo] Found React Native root directory at: ${currentDirName.absolutePath}")
@@ -187,7 +195,17 @@ class PrebuildsPlugin : Plugin<Project> {
             }
             currentDirName = currentDirName.parentFile
         }
-        throw GradleException("[RNRepo] Could not find React Native root directory from project root: ${rootProject.rootDir.absolutePath}. Please set 'reactNativeRootDir' in gradle.properties.")
+        // We're in non standard setup, e.g. monorepo - try to use node resolver to locate the react-native package.
+        val processBuilder = ProcessBuilder()
+        val maybeRnPackagePath = processBuilder.apply {
+            command("node", "--print", "require.resolve('react-native/package.json')")
+            directory(project.rootProject.rootDir)
+        }.start().inputStream.bufferedReader().readText().trim()
+        if (maybeRnPackagePath.isNotEmpty() && File(maybeRnPackagePath).exists()) {
+            logger.lifecycle("[RNRepo] Found react-native package via node resolver at: $maybeRnPackagePath")
+            return File(maybeRnPackagePath).parentFile.parentFile
+        }
+        throw GradleException("[RNRepo] Could not find React Native root directory from project root: ${project.rootProject.rootDir.absolutePath}. Please set 'REACT_NATIVE_ROOT_DIR' in gradle.properties.")
     }
 
     /**
@@ -325,7 +343,7 @@ class PrebuildsPlugin : Plugin<Project> {
         // find react-native package.json
         val reactNativePackageJsonFile = Paths.get(REACT_NATIVE_ROOT_DIR?.absolutePath, "node_modules", "react-native", "package.json").toFile()
         if (!reactNativePackageJsonFile.exists()) {
-            logger.error("[RNRepo] react-native package.json not found in ${reactNativePackageJsonFile.absolutePath}. Try setting 'reactNativeRootDir' in gradle.properties.")
+            logger.error("[RNRepo] react-native package.json not found in ${reactNativePackageJsonFile.absolutePath}. Try setting 'REACT_NATIVE_ROOT_DIR' in gradle.properties.")
             return false
         }
         // parse version
