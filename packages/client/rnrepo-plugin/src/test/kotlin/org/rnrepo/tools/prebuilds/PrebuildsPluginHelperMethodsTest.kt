@@ -109,7 +109,6 @@ class PrebuildsPluginHelperMethodsTest {
         // Then
         assertThat(result).isEqualTo(tempDir)
 
-        // Cleanup
     }
 
     @Test
