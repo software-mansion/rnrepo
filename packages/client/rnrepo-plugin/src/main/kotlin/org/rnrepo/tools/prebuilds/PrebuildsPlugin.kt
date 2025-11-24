@@ -18,6 +18,17 @@ import org.gradle.api.artifacts.dsl.RepositoryHandler
 
 data class PackageItem(val name: String, val version: String, var classifier: String = "")
 
+/**
+ * Logger wrapper that automatically prefixes all messages with [RNRepo 📦]
+ */
+private class PrefixedLogger(private val delegate: Logger) {
+    fun info(message: String) = delegate.info("[RNRepo 📦] $message")
+    fun lifecycle(message: String) = delegate.lifecycle("[RNRepo 📦] $message")
+    fun warn(message: String) = delegate.warn("[RNRepo 📦] $message")
+    fun error(message: String) = delegate.error("[RNRepo 📦] $message")
+    fun debug(message: String) = delegate.debug("[RNRepo 📦] $message")
+}
+
 open class PackagesManager {
     var projectPackages: Set<PackageItem> = mutableSetOf()
     var supportedPackages: Set<PackageItem> = mutableSetOf()
@@ -26,39 +37,29 @@ open class PackagesManager {
 }
 
 class PrebuildsPlugin : Plugin<Project> {
-    private val logger: Logger = Logging.getLogger("PrebuildsPlugin")
+    private val logger: PrefixedLogger = PrefixedLogger(Logging.getLogger("PrebuildsPlugin"))
     private var REACT_NATIVE_ROOT_DIR: File? = null
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
-    // remote repo URL with AARs
-    private val REMOTE_REPO_NAME = "RNRepoMavenRepository"
-    private val REMOTE_REPO_URL_PROD = "https://packages.rnrepo.org/releases"
-
 
     override fun apply(project: Project) {
         if (shouldPluginExecute(project)) {
             val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
-            logger.lifecycle("RNRepo Plugin has been applied to project!")
-
-            // setup for dev repo if needed
-            val REMOTE_REPO_URL = getProperty(project, "RNREPO_REPO_URL_DEV", REMOTE_REPO_URL_PROD)
-            logger.info("[RNRepo] Using remote repo URL: $REMOTE_REPO_URL")
-            addRepositoryIfNotExists(project.rootProject.repositories, REMOTE_REPO_URL, REMOTE_REPO_NAME)
-            addRepositoryIfNotExists(project.repositories, REMOTE_REPO_URL, REMOTE_REPO_NAME)
+            logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
 
             // Check what packages are in project and which are we supporting
             REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project)
             if (!getReactNativeVersion(extension)) {
-                logger.error("[RNRepo] Could not determine React Native version, aborting RNRepo plugin setup.")
+                logger.error("Could not determine React Native version, aborting RNRepo plugin setup.")
                 return
             }
             getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(project.rootProject, extension)
             setupSupportedPackages(project, extension)
 
-            // Setup 
+            // Setup
             extension.supportedPackages.forEach { packageItem ->
-                project.logger.info("[RNRepo] Adding dependency for ${packageItem.name} version ${packageItem.version}")
+                logger.info("Adding dependency for ${packageItem.name} version ${packageItem.version}")
                 project.dependencies.add("implementation", "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar")
             }
 
@@ -76,7 +77,7 @@ class PrebuildsPlugin : Plugin<Project> {
                             jniLibs.pickFirsts += "lib/x86_64/libworklets.so"
                         }
                     } ?: run {
-                        project.logger.warn("The Android Gradle Plugin is not applied to this project.")
+                        logger.warn("The Android Gradle Plugin is not applied to this project.")
                     }
                 }
             }
@@ -93,9 +94,9 @@ class PrebuildsPlugin : Plugin<Project> {
                         appPreBuildTaskProvider.configure {
                             it.dependsOn(libraryCodegenTaskProvider)
                         }
-                        logger.lifecycle("✅ Plugin: Successfully linked ${packageItem.name}:${codegenTaskName} to ${project.name}:preBuild")
+                        logger.lifecycle("✅ Successfully linked ${packageItem.name}:${codegenTaskName} to ${project.name}:preBuild")
                     } catch (e: Exception) {
-                        logger.lifecycle("⚠️ Plugin: Failed to find or link task :${packageItem.name}:$codegenTaskName. Error: ${e.message}")
+                        logger.lifecycle("⚠️ Failed to find or link task :${packageItem.name}:$codegenTaskName. Error: ${e.message}")
                     }
                 }
             }
@@ -104,7 +105,7 @@ class PrebuildsPlugin : Plugin<Project> {
             project.afterEvaluate {
                 extension.supportedPackages.forEach { packageItem ->
                     val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}${packageItem.classifier}"
-                    project.logger.info("[RNRepo] Adding substitution for ${packageItem.name} using $module")
+                    logger.lifecycle("Adding substitution for ${packageItem.name} using $module")
                     project.configurations.all { config ->
                         config.resolutionStrategy.dependencySubstitution {
                             it.substitute(it.project(":${packageItem.name}"))
@@ -129,7 +130,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 repo.url = URI(repoUrl)
                 if (repoName != null) repo.name = repoName
             }
-            logger.info("[RNRepo] Added Maven repository: $repoUrl")
+            logger.info("Added Maven repository: $repoUrl")
         }
     }
 
@@ -137,17 +138,13 @@ class PrebuildsPlugin : Plugin<Project> {
      * Determines whether the plugin should execute based on the current build command and environment variable.
      * By default plugin is considered as enabled.
      *
-     * This function evaluates three main conditions:
-     * 1. **Task command check**: Checks if the current task command includes "assemble" or "build".
+     * This function evaluates two main conditions:
+     * 1. **Task command check**: Checks if the current task command includes "assemble", "build", or "install".
      *    This looks at the task names passed to Gradle at runtime to see if any involve building or assembling the project.
      *
      * 2. **Environment Variable check**: Inspects the "DISABLE_RNREPO" environment variable.
-     *    The plugin execution will be enabled unless the environment variable "DISABLE_RNREPO" is explicitly set to "true" (ignoring case).
-     *    If "DISABLE_RNREPO" is set to "true", the plugin execution will be disabled; if it's unset or set to any other value, the execution will proceed.
-     *
-     * 3. **Project Property check**: Looks at the "DISABLE_RNREPO" project property.
-     *    Similar to the environment variable, if the project property "DISABLE_RNREPO" is set to "true" (case insensitive), the plugin will not execute.
-     *    By default, if this property is not set, it defaults to "false", thereby enabling the plugin execution.
+     *    The plugin execution will be enabled unless the environment variable "DISABLE_RNREPO" is set (regardless of value).
+     *    If "DISABLE_RNREPO" is set to any value, the plugin execution will be disabled; if it's unset, the execution will proceed.
      *
      * @param project The Gradle project context providing access to configuration and execution parameters.
      * @return True if all conditions favor execution, otherwise false.
@@ -156,9 +153,9 @@ class PrebuildsPlugin : Plugin<Project> {
         val isBuildingCommand: Boolean = project.gradle.startParameter.taskNames.any {
             it.contains("assemble") || it.contains("build") || it.contains("install")
         }
-        val isPropertyEnabled = getProperty(project, "DISABLE_RNREPO", "false").equals("true", ignoreCase = true).not()
-        project.logger.info("[RNRepo] Building command: $isBuildingCommand, env/project.property: $isPropertyEnabled")
-        return isBuildingCommand && isPropertyEnabled
+        val isEnvEnabled: Boolean = System.getenv("DISABLE_RNREPO") == null
+        logger.info("Building command: $isBuildingCommand, Env enabled: $isEnvEnabled")
+        return isBuildingCommand && isEnvEnabled
     }
 
     /**
@@ -179,7 +176,7 @@ class PrebuildsPlugin : Plugin<Project> {
         if (reactNativeRootDirProperty != "") {
             val file = File(reactNativeRootDirProperty)
             if (file.exists() && file.isDirectory) {
-                logger.lifecycle("[RNRepo] Using REACT_NATIVE_ROOT_DIR from gradle property: $reactNativeRootDirProperty")
+                logger.lifecycle("Using REACT_NATIVE_ROOT_DIR from gradle property: $reactNativeRootDirProperty")
                 return file
             } else {
                 throw GradleException("[RNRepo] REACT_NATIVE_ROOT_DIR path from gradle property does not exist or is not a directory: $reactNativeRootDirProperty")
@@ -189,7 +186,7 @@ class PrebuildsPlugin : Plugin<Project> {
         var currentDirName: File? = project.rootProject.rootDir
         while (currentDirName != null) {
             if (File(currentDirName, "node_modules${File.separator}react-native").exists()) {
-                logger.lifecycle("[RNRepo] Found React Native root directory at: ${currentDirName.absolutePath}")
+                logger.lifecycle("Found React Native root directory at: ${currentDirName.absolutePath}")
                 return currentDirName
             }
             currentDirName = currentDirName.parentFile
@@ -201,7 +198,7 @@ class PrebuildsPlugin : Plugin<Project> {
             directory(project.rootProject.rootDir)
         }.start().inputStream.bufferedReader().readText().trim()
         if (maybeRnPackagePath.isNotEmpty() && File(maybeRnPackagePath).exists()) {
-            logger.lifecycle("[RNRepo] Found react-native package via node resolver at: $maybeRnPackagePath")
+            logger.lifecycle("Found react-native package via node resolver at: $maybeRnPackagePath")
             return File(maybeRnPackagePath).parentFile.parentFile
         }
         throw GradleException("[RNRepo] Could not find React Native root directory from project root: ${project.rootProject.rootDir.absolutePath}. Please set 'REACT_NATIVE_ROOT_DIR' in gradle.properties.")
@@ -216,7 +213,7 @@ class PrebuildsPlugin : Plugin<Project> {
     private fun loadDenyList(project: Project, extension: PackagesManager) {
         val configFile = File(REACT_NATIVE_ROOT_DIR, CONFIG_FILE_NAME)
         if (!configFile.exists()) {
-            project.logger.info("[RNRepo] Config file $CONFIG_FILE_NAME not found in React Native root: ${REACT_NATIVE_ROOT_DIR?.absolutePath}. Using empty deny list.")
+            logger.info("Config file $CONFIG_FILE_NAME not found in React Native root: ${REACT_NATIVE_ROOT_DIR?.absolutePath}. Using empty deny list.")
             return
         }
         try {
@@ -225,13 +222,13 @@ class PrebuildsPlugin : Plugin<Project> {
             @Suppress("UNCHECKED_CAST")
             val denyList = json["denyList"] as? List<String>
             if (denyList != null) {
-                project.logger.lifecycle("[RNRepo] Loaded deny list from config: $denyList")
+                logger.lifecycle("Loaded deny list from config: $denyList")
                 extension.denyList = denyList.toSet()
             } else {
-                project.logger.info("[RNRepo] No denyList found in config file. Using empty deny list.")
+                logger.info("No denyList found in config file. Using empty deny list.")
             }
         } catch (e: Exception) {
-            project.logger.error("[RNRepo] Error parsing $CONFIG_FILE_NAME: ${e.message}. Using empty deny list.")
+            logger.error("Error parsing $CONFIG_FILE_NAME: ${e.message}. Using empty deny list.")
         }
     }
 
@@ -248,7 +245,7 @@ class PrebuildsPlugin : Plugin<Project> {
         extension: PackagesManager
     ): Boolean {
         if (extension.denyList.contains(packageName)) {
-            logger.info("[RNRepo] Package $packageName is in deny list, skipping in RNRepo.")
+            logger.info("Package $packageName is in deny list, skipping in RNRepo.")
             return false
         }
         return true
@@ -278,7 +275,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 hashDir.isDirectory && File(hashDir, artifactName).exists()
             } ?: false
             if (isArtifactCached) {
-                logger.info("[RNRepo] Package ${packageItem.name} version ${packageItem.version} is cached in Gradle cache.")
+                logger.info("Package ${packageItem.name} version ${packageItem.version} is cached in Gradle cache.")
                 return true
             }
         }
@@ -294,12 +291,12 @@ class PrebuildsPlugin : Plugin<Project> {
                 connection.requestMethod = "HEAD"
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
-                logger.info("[RNRepo] Checking availability of package ${packageItem.name} version ${packageItem.version} at $urlString")
+                logger.info("Checking availability of package ${packageItem.name} version ${packageItem.version} at $urlString")
                 if (connection.responseCode == HttpURLConnection.HTTP_OK) {
                     return true
                 }
             } catch (e: Exception) {
-                logger.error("[RNRepo] Error checking package availability for ${packageItem.name} version ${packageItem.version}: ${e.message}")
+                logger.error("Error checking package availability for ${packageItem.name} version ${packageItem.version}: ${e.message}")
             } finally {
                 connection?.disconnect()
             }
@@ -309,7 +306,7 @@ class PrebuildsPlugin : Plugin<Project> {
 
     private fun getPackageNameAndVersion(packageJson: File): PackageItem? {
         if (!packageJson.exists()) {
-            logger.info("[RNRepo] package.json not found at ${packageJson.absolutePath}, skipping.")
+            logger.info("package.json not found at ${packageJson.absolutePath}, skipping.")
             return null
         }
         runCatching {
@@ -319,11 +316,11 @@ class PrebuildsPlugin : Plugin<Project> {
             val packageVersion = json["version"] as? String
             if (packageName != null && packageVersion != null) {
                 val gradlePackageName = packageName.replace("@", "").replace("/", "_")
-                logger.info("[RNRepo] Found package: $packageName version $packageVersion")
+                logger.info("Found package: $packageName version $packageVersion")
                 return PackageItem(gradlePackageName, packageVersion)
             }
         }.onFailure { e ->
-            logger.error("[RNRepo] Error parsing package.json in ${packageJson.absolutePath}: ${e.message}")
+            logger.error("Error parsing package.json in ${packageJson.absolutePath}: ${e.message}")
         }
         return null
     }
@@ -342,17 +339,17 @@ class PrebuildsPlugin : Plugin<Project> {
         // find react-native package.json
         val reactNativePackageJsonFile = Paths.get(REACT_NATIVE_ROOT_DIR?.absolutePath, "node_modules", "react-native", "package.json").toFile()
         if (!reactNativePackageJsonFile.exists()) {
-            logger.error("[RNRepo] react-native package.json not found in ${reactNativePackageJsonFile.absolutePath}. Try setting 'REACT_NATIVE_ROOT_DIR' in gradle.properties.")
+            logger.error("react-native package.json not found in ${reactNativePackageJsonFile.absolutePath}. Try setting 'REACT_NATIVE_ROOT_DIR' in gradle.properties.")
             return false
         }
         // parse version
         val reactNativeVersionInfo = getPackageNameAndVersion(reactNativePackageJsonFile)
         return reactNativeVersionInfo?.let {
             extension.reactNativeVersion = it.version
-            logger.lifecycle("[RNRepo] Detected React Native version: ${extension.reactNativeVersion}")
+            logger.lifecycle("Detected React Native version: ${extension.reactNativeVersion}")
             true
         } ?: run {
-            logger.error("[RNRepo] Failed to parse version from react-native package.json.")
+            logger.error("Failed to parse version from react-native package.json.")
             false
         }
     }
@@ -368,7 +365,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 dependencyPackages.forEach { depName ->
                     val depItem = extension.projectPackages.find { it.name == depName }
                     if (depItem == null) {
-                        logger.info("[RNRepo] react-native-gesture-handler: Not found $depName in project, using react-native-gesture-handler from sources.")
+                        logger.info("react-native-gesture-handler: Not found $depName in project, using react-native-gesture-handler from sources.")
                         return false
                     }
                 }
@@ -376,10 +373,10 @@ class PrebuildsPlugin : Plugin<Project> {
             "react-native-reanimated" -> {
                 val workletsItem = extension.projectPackages.find { it.name == "react-native-worklets" }
                 if (workletsItem != null) {
-                    logger.info("[RNRepo] react-native-reanimated: Found react-native-worklets@${workletsItem.version} in project, adding to classifier.")
+                    logger.info("react-native-reanimated: Found react-native-worklets@${workletsItem.version} in project, adding to classifier.")
                     packageItem.classifier += "-worklets${workletsItem.version}"
                 } else {
-                    logger.info("[RNRepo] react-native-reanimated: react-native-worklets not found in project, using react-native-reanimated from sources.")
+                    logger.info("react-native-reanimated: react-native-worklets not found in project, using react-native-reanimated from sources.")
                     return false
                 }
             }
@@ -397,7 +394,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 project.repositories
             )
         }.toSet()
-        logger.lifecycle("[RNRepo] Supported packages for prebuilt AARs: ${extension.supportedPackages.map { "\n  - ${it.name}@${it.version}${it.classifier}" }}")
+        logger.lifecycle("Found the following supported prebuilt packages: ${extension.supportedPackages.joinToString("") { "\n  - 📦 ${it.name}@${it.version}${it.classifier}" }}")
     }
 }
 

@@ -80,18 +80,29 @@ async function main() {
     }
 
     // Format: "Build for Android {library_name}@{library_version} RN@{react_native_version}( with worklets@{worklets_version})"
-    const match = buildRunName.match(/Build for Android (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?$/);
+    const match = buildRunName.match(
+      /Build for Android (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?$/
+    );
     if (!match) {
       throw new Error(`Could not parse workflow run name: ${buildRunName}`);
     }
 
-    const [, libraryName, libraryVersion, reactNativeVersion, _, workletsVersion] = match;
+    const [
+      ,
+      libraryName,
+      libraryVersion,
+      reactNativeVersion,
+      _,
+      workletsVersion,
+    ] = match;
 
     console.log('📤 Publishing library:');
     console.log(`   Build Run: ${buildRunName}`);
     console.log(`   Library: ${libraryName}@${libraryVersion}`);
     console.log(`   React Native: ${reactNativeVersion}`);
-    console.log(`${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`);
+    console.log(
+      `${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`
+    );
 
     const mavenLibraryName = convertToGradleProjectName(libraryName);
 
@@ -111,7 +122,9 @@ async function main() {
 
     const baseFileName = `${mavenLibraryName}-${libraryVersion}`;
     const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
-    const classifier = `rn${reactNativeVersion}${workletsVersion ? `-worklets${workletsVersion}` : ''}`;
+    const classifier = `rn${reactNativeVersion}${
+      workletsVersion ? `-worklets${workletsVersion}` : ''
+    }`;
     const aarFile = join(
       artifactsBasePath,
       `${baseFileName}-${classifier}.aar`
@@ -187,7 +200,7 @@ async function main() {
         {
           githubRunUrl: githubRunUrl,
           workletsVersion: workletsVersion || null,
-          buildDurationSeconds: buildDurationSeconds || undefined
+          buildDurationSeconds: buildDurationSeconds || undefined,
         }
       );
       console.log('✓ Database status updated to completed');
