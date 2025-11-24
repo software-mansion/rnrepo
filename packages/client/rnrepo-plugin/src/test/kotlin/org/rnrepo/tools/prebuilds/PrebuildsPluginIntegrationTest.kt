@@ -122,7 +122,7 @@ class PrebuildsPluginIntegrationTest {
         val localProperties = File(testProjectDir, "local.properties")
         val androidHome = System.getenv("ANDROID_HOME") 
             ?: System.getenv("ANDROID_SDK_ROOT")
-            ?: "/Users/radoslawrolka/Library/Android/sdk" // fallback path
+            ?: (System.getProperty("user.home") + "/Library/Android/sdk") // fallback path for macOS
         localProperties.writeText("""
             sdk.dir=$androidHome
         """.trimIndent())
