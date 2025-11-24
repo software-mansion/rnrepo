@@ -123,9 +123,6 @@ class PrebuildsPluginHelperMethodsTest {
         assertThat(result).isEqualTo(tempDir)
 
         // Cleanup
-        someSubDir.deleteRecursively()
-        reactNativeDir.deleteRecursively()
-        nodeModulesDir.deleteRecursively()
     }
 
     @Test
