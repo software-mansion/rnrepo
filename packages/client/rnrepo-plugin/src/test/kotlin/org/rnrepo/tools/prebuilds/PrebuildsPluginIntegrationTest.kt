@@ -31,7 +31,7 @@ class PrebuildsPluginIntegrationTest {
         // Skip tests if Android SDK is not available
         val androidHome = System.getenv("ANDROID_HOME") 
             ?: System.getenv("ANDROID_SDK_ROOT")
-            ?: "/Users/radoslawrolka/Library/Android/sdk"
+            ?: (System.getProperty("user.home") + "/Library/Android/sdk")
         
         if (!File(androidHome).exists()) {
             Assumptions.assumeTrue(false, "Android SDK not found at $androidHome")
