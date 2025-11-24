@@ -51,7 +51,7 @@ REACT_NATIVE_ROOT_DIR=../react-native
 ```
 This will make the plugin use the specified React Native root directory instead of trying to locate it automatically. By default it looks for the directory containing `node_modules` and react-native libraries inside.
 
-#### Disabling the RNRepo plugin 
+#### Disabling the RNRepo plugin
 You can disable the RNRepo plugin execution by setting the `DISABLE_RNREPO` environment variable to any value:
    ```bash
    DISABLE_RNREPO=true ./gradlew assembleDebug
