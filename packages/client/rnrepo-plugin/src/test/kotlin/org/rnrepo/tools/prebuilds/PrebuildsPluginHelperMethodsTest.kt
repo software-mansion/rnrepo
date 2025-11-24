@@ -3,24 +3,12 @@ package org.rnrepo.tools.prebuilds
 import io.mockk.*
 import org.assertj.core.api.Assertions.*
 import org.gradle.api.Project
-import org.gradle.api.artifacts.dsl.RepositoryHandler
-import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.logging.Logger
-import org.gradle.api.logging.Logging
-import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.CsvSource
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URI
-import java.net.URL
-import java.lang.System
-import io.mockk.mockkStatic
-import io.mockk.every
  
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PrebuildsPluginHelperMethodsTest {
