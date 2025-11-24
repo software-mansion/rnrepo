@@ -2,7 +2,6 @@ package org.rnrepo.tools.prebuilds
 
 import org.assertj.core.api.Assertions.*
 import org.gradle.testkit.runner.GradleRunner
-import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
