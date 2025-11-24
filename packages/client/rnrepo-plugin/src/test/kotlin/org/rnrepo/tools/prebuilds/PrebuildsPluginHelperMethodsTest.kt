@@ -42,7 +42,7 @@ class PrebuildsPluginHelperMethodsTest {
     }
 
     @Test
-    fun `shouldPluginExecute should return true when assemble* task have no DISABLE_RNREPO variables`() {
+    fun `shouldPluginExecute should return true when assemble* task has no DISABLE_RNREPO variables`() {
         // Given
         val mockProject = setupPluginExecution(listOf("assembleDebug"), null)
         
