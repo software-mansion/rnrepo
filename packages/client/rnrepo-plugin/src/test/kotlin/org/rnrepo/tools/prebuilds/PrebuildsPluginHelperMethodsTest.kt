@@ -65,7 +65,7 @@ class PrebuildsPluginHelperMethodsTest {
     }
 
     @Test
-    fun `shouldPluginExecute should return false when task name does not match patterns and have DISABLE_RNREPO=true variable`() {
+    fun `shouldPluginExecute should return false when task name does not match patterns and has DISABLE_RNREPO=true variable`() {
         // Given
         val mockProject = setupPluginExecution(listOf("clearCache"), "true")
 
