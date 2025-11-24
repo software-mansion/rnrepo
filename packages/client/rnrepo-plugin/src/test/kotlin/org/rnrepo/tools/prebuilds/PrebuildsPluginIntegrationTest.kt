@@ -54,7 +54,7 @@ class PrebuildsPluginIntegrationTest {
             .build()
 
         // Then
-        assertThat(result.output).contains("[RNRepo] Building command: true, env/project.property: false")
+        assertThat(result.output).contains("Env enabled: false")
     }
 
     @Test

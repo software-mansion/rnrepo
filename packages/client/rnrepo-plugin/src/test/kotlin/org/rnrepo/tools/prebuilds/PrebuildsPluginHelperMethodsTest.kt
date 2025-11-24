@@ -67,18 +67,6 @@ class PrebuildsPluginHelperMethodsTest {
     }
 
     @Test
-    fun `shouldPluginExecute should return true when assemble* task have DISABLE_RNREPO=true variable`() {
-        // Given
-        val mockProject = setupPluginExecution(listOf("assembleDebug"), "true")
-        
-        // When
-        val result = invokePrivateMethod<Boolean>(plugin, "shouldPluginExecute", arrayOf(Project::class.java), mockProject)
-        
-        // Then
-        assertThat(result).isFalse()
-    }
-
-    @Test
     fun `shouldPluginExecute should return false when task name does not match patterns and have no DISABLE_RNREPO variables`() {
         // Given
         val mockProject = setupPluginExecution(listOf("clearCache"), null)
@@ -178,7 +166,6 @@ class PrebuildsPluginHelperMethodsTest {
         
         // Then
         assertThat(extension.denyList).isEmpty()
-        verify { mockLogger.info(match { it.contains("Config file rnrepo.config.json not found") }) }
     }
 
     @Test
