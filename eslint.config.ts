@@ -5,14 +5,15 @@ import json from "@eslint/json";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
+  { ignores: ["**/build/**"] },
   { 
     files: ["**/*.{js,mjs,cjs,ts,mts,cts}"], 
     plugins: { js }, 
     extends: ["js/recommended"], 
     languageOptions: { globals: globals.node },
     rules: {
-      "@typescript-eslint/no-unused-vars": ["error", { "varsIgnorePattern": "_" }],
-    },
+      "@typescript-eslint/no-unused-vars": ["error", { "varsIgnorePattern": "_.*", "argsIgnorePattern": "_.*" }],
+    }
   },
   { files: ["**/*.js"], languageOptions: { sourceType: "commonjs" } },
   tseslint.configs.recommended,

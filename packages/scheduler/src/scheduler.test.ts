@@ -407,7 +407,7 @@ test('processLibrary - handles multiple package versions correctly', async () =>
 
   // Mock that 1.0.0 is already scheduled, but others are not
   mockIsBuildAlreadyScheduled.mockImplementation(
-    (pkg: string, version: string, rn: string, platform: string) => {
+    (pkg: string, version: string, _rn: string, _platform: string) => {
       return version === '1.0.0';
     }
   );
