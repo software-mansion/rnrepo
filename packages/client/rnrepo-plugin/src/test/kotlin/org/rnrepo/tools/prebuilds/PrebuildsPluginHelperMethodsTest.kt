@@ -13,7 +13,6 @@ import java.io.File
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PrebuildsPluginHelperMethodsTest {
 
-    // private lateinit var project: Project
     private lateinit var mockProject: Project
     private lateinit var plugin: PrebuildsPlugin
     private lateinit var mockLogger: Logger
