@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
- 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PrebuildsPluginHelperMethodsTest {
 
