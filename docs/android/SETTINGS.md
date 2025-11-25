@@ -23,6 +23,11 @@ You can create a `rnrepo.config.json` file in your React-Native root directory t
 
 ## Deleting RNRepo Cache
 // TODO(rolkrado): do we want to mention the gradle task here (and create such task)?
+You can force the RNRepo plugin to re-download all dependencies by running the following command:
+```bash
+./gradlew :app:assembleDebug --refresh-dependencies
+```
+
 RNRepo caches downloaded AAR files and metadata in the Gradle cache directory. If you need to clear the cache, you can delete the following directories:
 - `~/.gradle/caches/modules-2/metadata-2.107/descriptors/org.rnrepo.public`
 - `~/.gradle/caches/modules-2/files-2.1/org.rnrepo.public`
@@ -34,4 +39,14 @@ You can disable the RNRepo plugin using an environment variable `DISABLE_RNREPO`
 
 ```bash
 DISABLE_RNREPO=true ./gradlew :app:assembleDebug
+```
+
+## Logging
+To get more detailed logs from the RNRepo plugin during the build process, you can run the following command:
+```bash
+gradlew :app:assembleDebug --info
+```
+You can filter the logs to show only RNRepo related messages by using `grep`:
+```bash
+gradlew :app:assembleDebug --info | grep RNRepo
 ```
