@@ -28,6 +28,20 @@ apply plugin: "com.facebook.react.rootproject"
 +    }
 + }
 ```
+- Add rnrepo repository to `AwesomeProject/android/app/build.gradle`
+```diff
+  android {
+    ...
+  }
++ allprojects {
++    repositories {
++        maven {
++            name "RNRepoMavenRepository"
++            url "https://packages.rnrepo.org/releases"
++        }
++    }
++ }
+```
 
 - Add `rnrepo` plugin to `AwesomeProject/android/app/build.gradle`
 ```diff
