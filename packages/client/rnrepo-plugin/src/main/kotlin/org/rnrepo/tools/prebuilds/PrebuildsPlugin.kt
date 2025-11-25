@@ -118,7 +118,7 @@ class PrebuildsPlugin : Plugin<Project> {
     }
 
     private fun getProperty(project: Project, propertyName: String, defaultValue: String): String {
-        return project.findProperty(propertyName) as? String ?: System.getenv(propertyName) ?: defaultValue
+        return System.getenv(propertyName) ?: project.findProperty(propertyName) as? String ?: defaultValue
     }
 
     private fun addRepositoryIfNotExists(repositories: RepositoryHandler, repoUrl: String, repoName: String?) {
