@@ -102,7 +102,7 @@ class PrebuildsPlugin : Plugin<Project> {
 
             // Add substitution for supported packages for all projects and all configurations
             project.rootProject.allprojects.forEach { subproject ->
-                if (subproject == project.rootProject) return@forEach   
+                if (subproject == project.rootProject) return@forEach
                 val substitutionAction = Action<Project> { evaluatedProject ->
                     extension.supportedPackages.forEach { packageItem ->
                         val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
