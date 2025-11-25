@@ -45,6 +45,7 @@ sourceSets.main.kotlin.srcDirs += generatedSourcesDir
 task generateBuildConstants {
     def outputDir = file(generatedSourcesDir)
     def outputFile = file("$outputDir/org/rnrepo/tools/prebuilds/BuildConstants.kt")
+    def projectVersion = project.version.toString()
 
     outputs.dir(outputDir)
     outputs.file(outputFile)
@@ -60,7 +61,7 @@ task generateBuildConstants {
  * DO NOT EDIT - This file is auto-generated.
  */
 object BuildConstants {
-    const val PLUGIN_VERSION = "${project.version}"
+    const val PLUGIN_VERSION = "${projectVersion}"
 }
 """
     }
@@ -102,8 +103,8 @@ publishing {
     repositories {
         mavenLocal()
         maven {
-            name "rnrepo"
-            url project.properties["mavenRepositoryUrl"]
+            name = "rnrepo"
+            url = project.properties["mavenRepositoryUrl"]
             credentials {
                 username = project.properties["mavenUsername"]
                 password = project.properties["mavenPassword"]

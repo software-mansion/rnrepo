@@ -120,11 +120,10 @@ class PrebuildsPluginHelperMethodsTest {
             "denyList": ["react-native-vector-icons", "react-native-image-picker"]
         }
         """.trimIndent())
-        every { mockProject.rootProject } returns mockProject
         setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
         
         // When
-        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(Project::class.java, PackagesManager::class.java), mockProject, extension)
+        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
         
         // Then
         assertThat(extension.denyList).containsExactlyInAnyOrder(
@@ -137,14 +136,13 @@ class PrebuildsPluginHelperMethodsTest {
     fun `loadDenyList should handle missing config file gracefully`() {
         // Given
         val extension = PackagesManager()
-        every { mockProject.rootProject } returns mockProject
         
         // Mock getReactNativeRoot to return tempDir (no config file created)
         mockkObject(plugin)
         every { plugin["getReactNativeRoot"](mockProject) } returns tempDir
         
         // When
-        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(Project::class.java, PackagesManager::class.java), mockProject, extension)
+        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
         
         // Then
         assertThat(extension.denyList).isEmpty()

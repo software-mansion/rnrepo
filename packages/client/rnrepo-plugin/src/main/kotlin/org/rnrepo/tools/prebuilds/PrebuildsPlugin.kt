@@ -54,7 +54,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 return
             }
             getProjectPackages(project.rootProject.allprojects, extension)
-            loadDenyList(project.rootProject, extension)
+            loadDenyList(extension)
             setupSupportedPackages(project, extension)
 
             // Setup
@@ -207,10 +207,9 @@ class PrebuildsPlugin : Plugin<Project> {
     /**
      * Loads the deny list from the configuration file located in the React Native root directory.
      *
-     * @param project The Gradle project context.
      * @param extension The PackagesManager instance where the deny list will be stored.
      */
-    private fun loadDenyList(project: Project, extension: PackagesManager) {
+    private fun loadDenyList(extension: PackagesManager) {
         val configFile = File(REACT_NATIVE_ROOT_DIR, CONFIG_FILE_NAME)
         if (!configFile.exists()) {
             logger.info("Config file $CONFIG_FILE_NAME not found in React Native root: ${REACT_NATIVE_ROOT_DIR?.absolutePath}. Using empty deny list.")
