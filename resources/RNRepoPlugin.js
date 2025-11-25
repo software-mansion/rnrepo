@@ -75,5 +75,6 @@ export default function withCustomBuildSettings(config) {
   config = withClasspathDependency(config);
   config = withMavenRepository(config);
   config = withRnrepoPluginApplication(config);
+  config = withAllProjectsMavenRepository(config);
   return config;
 };
