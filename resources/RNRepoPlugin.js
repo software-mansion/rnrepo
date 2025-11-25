@@ -12,6 +12,28 @@ const mavenRepositoryBlock = `
 // Todo(radoslawrolka): change snapshots to releases when releasing
 const applyPluginrnrepo = 'apply plugin: "org.rnrepo.tools.prebuilds-plugin"';
 const applyPluginFacebook = 'apply plugin: "com.facebook.react"';
+const applyPluginFacebookRootProject = 'apply plugin: "com.facebook.react.rootproject"';
+const mavenAllProjectsBlock = `
+allprojects {
+    repositories {
+        maven {
+            name "RNRepoMavenRepository"
+            url "https://packages.rnrepo.org/snapshots"
+        }
+    }
+}`;
+
+function withAllProjectsMavenRepository(config) {
+  return withProjectBuildGradle(config, (config) => {
+    if (!config.modResults.contents.includes(mavenAllProjectsBlock)) {
+      config.modResults.contents = config.modResults.contents.replace(
+        applyPluginFacebookRootProject,
+        `${mavenAllProjectsBlock}\n\n${applyPluginFacebookRootProject}`
+      );
+    }
+    return config;
+  });
+}
 
 function withClasspathDependency(config) {
   return withProjectBuildGradle(config, (config) => {
