@@ -40,11 +40,11 @@ apply plugin: "com.facebook.react"
 ```
 
 ## Expo Plugin
-// TODO(rolkrado): add link to withBuildlePlugin.js when ready
+// TODO(rolkrado): add link to RNRepoPlugin.js when ready
 If you are using Expo, you can integrate the RNRepo plugin by adding a custom config plugin to your `app.json` or `app.config.ts` file.
 ```diff
  plugins: [
-+   "./withBuildlePlugin",
++   "./RNRepoPlugin",
  ]
 ```
-Make sure to copy the `withBuildlePlugin.js` file to your project root from this repository `resources/withBuildlePlugin.js`.
+Make sure to copy the `RNRepoPlugin.js` file to your project root from this repository `resources/RNRepoPlugin.js`.

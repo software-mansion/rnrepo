@@ -21,6 +21,17 @@ sed -i '' "/org.jetbrains.kotlin:kotlin-gradle-plugin/a\\
     classpath(\"org.rnrepo.tools:prebuilds-plugin:+\")
 " android/build.gradle
 
+sed -i '' "/apply plugin: \"com.facebook.react.rootproject\"/i\\
+allprojects {\\
+    repositories {\\
+        maven {\\
+            name \"RNRepoMavenRepository\"\\
+            url \"https://packages.rnrepo.org/releases\"\\
+        }\\
+    }\\
+}\\
+" android/build.gradle
+
 sed -i '' "/mavenCentral()/a\\
         maven {\\
             name \"RNRepoMavenRepository\"\\

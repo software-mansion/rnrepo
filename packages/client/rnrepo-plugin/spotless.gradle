@@ -8,6 +8,5 @@ spotless {
     trimTrailingWhitespace()
     indentWithSpaces()
     endWithNewline()
-    
   }
 }

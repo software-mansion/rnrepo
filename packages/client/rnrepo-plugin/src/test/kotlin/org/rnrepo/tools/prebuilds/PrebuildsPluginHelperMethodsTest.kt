@@ -1,7 +1,9 @@
 package org.rnrepo.tools.prebuilds
 
-import io.mockk.*
-import org.assertj.core.api.Assertions.*
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkObject
+import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
 import org.junit.jupiter.api.BeforeEach
@@ -9,13 +11,13 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PrebuildsPluginHelperMethodsTest {
-
     private lateinit var mockProject: Project
     private lateinit var plugin: PrebuildsPlugin
     private lateinit var mockLogger: Logger
-    
+
     @TempDir
     lateinit var tempDir: File
 
@@ -28,10 +30,13 @@ class PrebuildsPluginHelperMethodsTest {
         every { mockProject.logger } returns mockLogger
     }
 
-    fun setupPluginExecution(taskNames: List<String>, disableRnrepoValue: String?): Project {
+    fun setupPluginExecution(
+        taskNames: List<String>,
+        disableRnrepoValue: String?,
+    ): Project {
         val mockGradle = mockk<org.gradle.api.invocation.Gradle>()
         val mockStartParameter = mockk<org.gradle.StartParameter>()
-        
+
         every { mockProject.gradle } returns mockGradle
         every { mockGradle.startParameter } returns mockStartParameter
         every { mockStartParameter.taskNames } returns taskNames
@@ -44,10 +49,10 @@ class PrebuildsPluginHelperMethodsTest {
     fun `shouldPluginExecute should return true when assemble* task has no DISABLE_RNREPO variables`() {
         // Given
         val mockProject = setupPluginExecution(listOf("assembleDebug"), null)
-        
+
         // When
         val result = invokePrivateMethod<Boolean>(plugin, "shouldPluginExecute", arrayOf(Project::class.java), mockProject)
-        
+
         // Then
         assertThat(result).isTrue()
     }
@@ -56,10 +61,10 @@ class PrebuildsPluginHelperMethodsTest {
     fun `shouldPluginExecute should return false when task name does not match patterns and has no DISABLE_RNREPO variables`() {
         // Given
         val mockProject = setupPluginExecution(listOf("clearCache"), null)
-        
+
         // When
         val result = invokePrivateMethod<Boolean>(plugin, "shouldPluginExecute", arrayOf(Project::class.java), mockProject)
-        
+
         // Then
         assertThat(result).isFalse()
     }
@@ -71,7 +76,7 @@ class PrebuildsPluginHelperMethodsTest {
 
         // When
         val result = invokePrivateMethod<Boolean>(plugin, "shouldPluginExecute", arrayOf(Project::class.java), mockProject)
-        
+
         // Then
         assertThat(result).isFalse()
     }
@@ -93,7 +98,7 @@ class PrebuildsPluginHelperMethodsTest {
         // Given
         every { mockProject.findProperty("REACT_NATIVE_ROOT_DIR") } returns null
         every { mockProject.rootProject } returns mockProject
-        
+
         val nodeModulesDir = File(tempDir, "node_modules")
         val reactNativeDir = File(nodeModulesDir, "react-native")
         reactNativeDir.mkdirs()
@@ -107,7 +112,6 @@ class PrebuildsPluginHelperMethodsTest {
 
         // Then
         assertThat(result).isEqualTo(tempDir)
-
     }
 
     @Test
@@ -115,20 +119,22 @@ class PrebuildsPluginHelperMethodsTest {
         // Given
         val extension = PackagesManager()
         val configFile = File(tempDir, "rnrepo.config.json")
-        configFile.writeText("""
-        {
-            "denyList": ["react-native-vector-icons", "react-native-image-picker"]
-        }
-        """.trimIndent())
+        configFile.writeText(
+            """
+            {
+                "denyList": ["react-native-vector-icons", "react-native-image-picker"]
+            }
+            """.trimIndent(),
+        )
         setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
-        
+
         // When
         invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
-        
+
         // Then
         assertThat(extension.denyList).containsExactlyInAnyOrder(
-            "react-native-vector-icons", 
-            "react-native-image-picker"
+            "react-native-vector-icons",
+            "react-native-image-picker",
         )
     }
 
@@ -136,14 +142,14 @@ class PrebuildsPluginHelperMethodsTest {
     fun `loadDenyList should handle missing config file gracefully`() {
         // Given
         val extension = PackagesManager()
-        
+
         // Mock getReactNativeRoot to return tempDir (no config file created)
         mockkObject(plugin)
         every { plugin["getReactNativeRoot"](mockProject) } returns tempDir
-        
+
         // When
         invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
-        
+
         // Then
         assertThat(extension.denyList).isEmpty()
     }
@@ -153,11 +159,25 @@ class PrebuildsPluginHelperMethodsTest {
         // Given
         val extension = PackagesManager()
         extension.denyList = setOf("react-native-vector-icons", "react-native-image-picker")
-        
+
         // When
-        val result1 = invokePrivateMethod<Boolean>(plugin, "isPackageNotDenied", arrayOf(String::class.java, PackagesManager::class.java), "react-native-vector-icons", extension)
-        val result2 = invokePrivateMethod<Boolean>(plugin, "isPackageNotDenied", arrayOf(String::class.java, PackagesManager::class.java), "react-native-reanimated", extension)
-        
+        val result1 =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "isPackageNotDenied",
+                arrayOf(String::class.java, PackagesManager::class.java),
+                "react-native-vector-icons",
+                extension,
+            )
+        val result2 =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "isPackageNotDenied",
+                arrayOf(String::class.java, PackagesManager::class.java),
+                "react-native-reanimated",
+                extension,
+            )
+
         // Then
         assertThat(result1).isFalse()
         assertThat(result2).isTrue()
@@ -170,10 +190,17 @@ class PrebuildsPluginHelperMethodsTest {
         val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0")
         val workletsPackage = PackageItem("react-native-worklets", "1.0.0")
         extension.projectPackages = setOf(reanimatedPackage, workletsPackage)
-        
+
         // When
-        val result = invokePrivateMethod<Boolean>(plugin, "isSpecificCheckPassed", arrayOf(PackageItem::class.java, PackagesManager::class.java), reanimatedPackage, extension)
-        
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "isSpecificCheckPassed",
+                arrayOf(PackageItem::class.java, PackagesManager::class.java),
+                reanimatedPackage,
+                extension,
+            )
+
         // Then
         assertThat(result).isTrue()
         assertThat(reanimatedPackage.classifier).isEqualTo("-worklets1.0.0")
@@ -185,10 +212,17 @@ class PrebuildsPluginHelperMethodsTest {
         val extension = PackagesManager()
         val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0")
         extension.projectPackages = setOf(reanimatedPackage)
-        
+
         // When
-        val result = invokePrivateMethod<Boolean>(plugin, "isSpecificCheckPassed", arrayOf(PackageItem::class.java, PackagesManager::class.java), reanimatedPackage, extension)
-        
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "isSpecificCheckPassed",
+                arrayOf(PackageItem::class.java, PackagesManager::class.java),
+                reanimatedPackage,
+                extension,
+            )
+
         // Then
         assertThat(result).isFalse()
     }
@@ -201,10 +235,17 @@ class PrebuildsPluginHelperMethodsTest {
         val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0")
         val svgPackage = PackageItem("react-native-svg", "13.0.0")
         extension.projectPackages = setOf(gestureHandlerPackage, reanimatedPackage, svgPackage)
-        
+
         // When
-        val result = invokePrivateMethod<Boolean>(plugin, "isSpecificCheckPassed", arrayOf(PackageItem::class.java, PackagesManager::class.java), gestureHandlerPackage, extension)
-        
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "isSpecificCheckPassed",
+                arrayOf(PackageItem::class.java, PackagesManager::class.java),
+                gestureHandlerPackage,
+                extension,
+            )
+
         // Then
         assertThat(result).isTrue()
     }
@@ -213,16 +254,18 @@ class PrebuildsPluginHelperMethodsTest {
     fun `getPackageNameAndVersion should parse package json correctly`() {
         // Given
         val packageJson = File(tempDir, "package.json")
-        packageJson.writeText("""
+        packageJson.writeText(
+            """
             {
                 "name": "@react-native-community/slider",
                 "version": "4.4.2"
             }
-        """.trimIndent())
-        
+            """.trimIndent(),
+        )
+
         // When
         val result = invokePrivateMethod<PackageItem?>(plugin, "getPackageNameAndVersion", arrayOf(File::class.java), packageJson)
-        
+
         // Then
         assertThat(result).isNotNull
         assertThat(result?.name).isEqualTo("react-native-community_slider")
@@ -234,20 +277,20 @@ class PrebuildsPluginHelperMethodsTest {
     fun `getPackageNameAndVersion should handle missing package json`() {
         // Given
         val nonExistentFile = File(tempDir, "nonexistent.json")
-        
+
         // When
         val result = invokePrivateMethod<PackageItem?>(plugin, "getPackageNameAndVersion", arrayOf(File::class.java), nonExistentFile)
-        
+
         // Then
         assertThat(result).isNull()
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> invokePrivateMethod(
-        target: Any, 
+        target: Any,
         methodName: String,
         parameterTypes: Array<Class<*>>,
-        vararg args: Any
+        vararg args: Any,
     ): T {
         val method = target.javaClass.getDeclaredMethod(methodName, *parameterTypes)
         method.isAccessible = true
@@ -257,7 +300,7 @@ class PrebuildsPluginHelperMethodsTest {
     private fun setPrivateField(
         target: Any,
         fieldName: String,
-        value: Any
+        value: Any,
     ) {
         val field = target.javaClass.getDeclaredField(fieldName)
         field.isAccessible = true
