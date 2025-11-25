@@ -3,6 +3,7 @@ package org.rnrepo.tools.prebuilds
 import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import groovy.json.JsonSlurper
+import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -70,8 +71,8 @@ class PrebuildsPlugin : Plugin<Project> {
 
             // Setup
             extension.supportedPackages.forEach { packageItem ->
-                logger.info("Adding dependency for ${packageItem.name} version ${packageItem.version}")
-                project.dependencies.add(
+                addDependency(
+                    project,
                     "implementation",
                     "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
                 )
@@ -115,20 +116,42 @@ class PrebuildsPlugin : Plugin<Project> {
                 }
             }
 
-            // Add substitution for supported packages
-            project.afterEvaluate {
-                extension.supportedPackages.forEach { packageItem ->
-                    val module =
-                        "org.rnrepo.public:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}${packageItem.classifier}"
-                    logger.lifecycle("Adding substitution for ${packageItem.name} using $module")
-                    project.configurations.all { config ->
-                        config.resolutionStrategy.dependencySubstitution {
-                            it
-                                .substitute(it.project(":${packageItem.name}"))
-                                .using(it.module(module))
+            // Add substitution for supported packages for all projects and all configurations
+            project.rootProject.allprojects.forEach { subproject ->
+                if (subproject == project.rootProject) return@forEach
+                val substitutionAction =
+                    Action<Project> { evaluatedProject ->
+                        extension.supportedPackages.forEach { packageItem ->
+                            val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
+                            evaluatedProject.configurations.all { config ->
+                                config.resolutionStrategy.dependencySubstitution { substitutions ->
+                                    substitutions.all { dependencySubstitution ->
+                                        if (dependencySubstitution.requested.displayName.contains("${packageItem.name}")) {
+                                            dependencySubstitution.useTarget(substitutions.module(module))
+                                            dependencySubstitution.artifactSelection {
+                                                it.selectArtifact(
+                                                    "aar",
+                                                    "aar",
+                                                    "rn${extension.reactNativeVersion}${packageItem.classifier}",
+                                                )
+                                            }
+                                            logger.info(
+                                                "Adding substitution for ${packageItem.name} using $module " +
+                                                    "in config ${config.name} of project ${evaluatedProject.name}",
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                }
+                substitutionAction.execute(subproject)
+                // TODO(radoslawrolka): keeping in case of issues with afterEvaluate
+                // if (subproject.state.executed) {
+                //     substitutionAction.execute(subproject)
+                // } else {
+                //     subproject.afterEvaluate(substitutionAction)
+                // }
             }
         }
     }
@@ -138,6 +161,15 @@ class PrebuildsPlugin : Plugin<Project> {
         propertyName: String,
         defaultValue: String,
     ): String = System.getenv(propertyName) ?: project.findProperty(propertyName) as? String ?: defaultValue
+
+    private fun addDependency(
+        project: Project,
+        configurationName: String,
+        dependencyNotation: String,
+    ) {
+        project.dependencies.add(configurationName, dependencyNotation)
+        logger.info("Added dependency: $dependencyNotation to configuration: $configurationName in project ${project.name}")
+    }
 
     private fun addRepositoryIfNotExists(
         repositories: RepositoryHandler,
