@@ -48,5 +48,5 @@ gradlew :app:assembleDebug --info
 ```
 You can filter the logs to show only RNRepo related messages by using `grep`:
 ```bash
-gradlew :app:assembleDebug --info | grep RNRepo
+./gradlew :app:assembleDebug --info | grep RNRepo
 ```
