@@ -1,0 +1,50 @@
+name: Build Example App with Android Gradle Plugin
+
+run-name: Build Example App with Android Gradle Plugin
+
+on:
+  workflow_dispatch:
+  # TODO(radoslawrolka): enable on push/pr once published more libs
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  #   branches:
+  #     - main
+
+jobs:
+  build-example-app:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🏗 Build Example App
+        run: bun create expo example-app
+
+      # Todo(radoslawrolka): Change this step to use remote expo-plugin once it's published
+      - name: 🚧 Prepare Example App
+        run: |
+          cp ../resources/withBuildlePlugin.js .
+          awk '/"plugins": \[/{print; print "      \"./withBuildlePlugin.js\","; next}1' app.json > app.json.tmp && mv app.json.tmp app.json
+        working-directory: example-app
+
+      - name: 🛠 Expo Prebuild for Android
+        run: bun expo prebuild -p android
+        working-directory: example-app
+
+      - name: 🏗 Build Example App with Android Gradle Plugin
+        run: ./gradlew assembleDebug --configure-on-demand
+        working-directory: example-app/android
