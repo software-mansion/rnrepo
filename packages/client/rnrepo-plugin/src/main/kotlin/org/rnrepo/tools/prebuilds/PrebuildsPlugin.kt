@@ -1,16 +1,17 @@
 package org.rnrepo.tools.prebuilds
 
-import org.gradle.api.*
-import org.gradle.api.artifacts.*
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.GradleException
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
-import org.gradle.api.tasks.*
 import groovy.json.JsonSlurper
-import org.gradle.kotlin.dsl.*
 import java.io.File
-import java.net.*
-import java.nio.file.*
+import java.net.URI
+import java.net.HttpURLConnection
+import java.net.URL
+import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
-import com.android.build.gradle.*
+import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
@@ -104,7 +105,8 @@ class PrebuildsPlugin : Plugin<Project> {
             // Add substitution for supported packages
             project.afterEvaluate {
                 extension.supportedPackages.forEach { packageItem ->
-                    val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}${packageItem.classifier}"
+                    val module = 
+                        "org.rnrepo.public:${packageItem.name}:${packageItem.version}-rn${extension.reactNativeVersion}${packageItem.classifier}"
                     logger.lifecycle("Adding substitution for ${packageItem.name} using $module")
                     project.configurations.all { config ->
                         config.resolutionStrategy.dependencySubstitution {
@@ -283,7 +285,8 @@ class PrebuildsPlugin : Plugin<Project> {
         repositories.forEach { repoUnchecked ->
             val repo = repoUnchecked as? MavenArtifactRepository ?: return@forEach
             if (repo.url.scheme != "http" && repo.url.scheme != "https") return@forEach
-            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
+            val urlString = 
+                "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
             var connection: HttpURLConnection? = null
             try {
                 connection = URL(urlString).openConnection() as HttpURLConnection

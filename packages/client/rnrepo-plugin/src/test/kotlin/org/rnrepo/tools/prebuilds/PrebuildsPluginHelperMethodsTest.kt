@@ -1,7 +1,9 @@
 package org.rnrepo.tools.prebuilds
 
-import io.mockk.*
-import org.assertj.core.api.Assertions.*
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkObject
+import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
 import org.junit.jupiter.api.BeforeEach
