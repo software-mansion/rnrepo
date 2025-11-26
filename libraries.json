@@ -4,7 +4,7 @@
       {
         "versionMatcher": ["4.1.*"],
         "reactNativeVersion": "0.81.4",
-        "withWorkletsVersion": ["0.5.1", "0.6.1"]
+        "withWorkletsVersion": ["0.5.1"]
       }
     ]
   },
