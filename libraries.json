@@ -218,6 +218,7 @@
     ]
   },
   "@react-native-firebase/perf": {
+    "postInstallScriptPath": "postInstallScripts/@react-native-firebase/perf/react-native-firebase_perf.ts",
     "android": [
       {
         "reactNativeVersion": "0.81.4",
