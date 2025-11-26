@@ -517,7 +517,9 @@ class PrebuildsPlugin : Plugin<Project> {
         if (unavailablePackages.isNotEmpty()) {
             logger.lifecycle(
                 "Packages not substituted – will fallback to building from sources: ${
-                    unavailablePackages.joinToString("") { "\n  - ❓ ${it.name}@${it.version}${it.classifier} for React Native ${extension.reactNativeVersion}" }
+                    unavailablePackages.joinToString(
+                        separator = "\n  - ❓ ",
+                    ) { "${it.name}@${it.version}${it.classifier} for React Native ${extension.reactNativeVersion}" }
                 }",
             )
         }
