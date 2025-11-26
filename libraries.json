@@ -81,27 +81,11 @@
       }
     ]
   },
-  "@fullstory/react-native": {
-    "android": [
-      {
-        "reactNativeVersion": "0.81.4",
-        "versionMatcher": ["1.7.8"]
-      }
-    ]
-  },
   "lottie-react-native": {
     "android": [
       {
         "reactNativeVersion": "0.81.4",
         "versionMatcher": ["7.2.3"]
-      }
-    ]
-  },
-  "@onfido/react-native-sdk": {
-    "android": [
-      {
-        "reactNativeVersion": "0.81.4",
-        "versionMatcher": ["15.1.0"]
       }
     ]
   },
@@ -265,14 +249,6 @@
       {
         "reactNativeVersion": "0.81.4",
         "versionMatcher": ["7.1.2"]
-      }
-    ]
-  },
-  "react-native-image-size": {
-    "android": [
-      {
-        "reactNativeVersion": "0.81.4",
-        "versionMatcher": ["1.1.3"]
       }
     ]
   },
