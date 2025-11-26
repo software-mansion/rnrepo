@@ -194,6 +194,7 @@
     ]
   },
   "@react-native-firebase/analytics": {
+    "postInstallScriptPath": "postInstallScripts/@react-native-firebase/analytics/react-native-firebase_analytics.ts",
     "android": [
       {
         "reactNativeVersion": "0.81.4",
