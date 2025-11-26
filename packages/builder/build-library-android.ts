@@ -67,6 +67,9 @@ async function installSetup(appDir: string, phase: "preInstall" | "postInstall")
   if (scriptPath && existsSync(scriptPath)) {
     const fullScriptPath = join(__dirname, '..', '..', scriptPath);
     if (scriptPath.endsWith('.gradle')) {
+      if (phase === 'preInstall') {
+        throw new Error('Gradle scripts are only supported in postInstall phase');
+      }
       postinstallGradleScriptPath = fullScriptPath;
       console.log(`✓ Using postInstall Gradle script for ${libraryName}`);
     } else if (scriptPath.endsWith('.ts') || scriptPath.endsWith('.js')) {
