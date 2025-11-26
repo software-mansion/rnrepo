@@ -55,7 +55,7 @@ try {
   process.exit(1);
 }
 
-async function postInstallSetup(appDir: string) {
+async function installSetup(appDir: string, phase: "preInstall" | "postInstall") {
   const libraryJsonPath = join(
     __dirname,
     '..',
@@ -63,19 +63,19 @@ async function postInstallSetup(appDir: string) {
     'libraries.json'
   );
   const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
-  const scriptPath = libraryJson[libraryName]?.postInstallScriptPath as string | undefined;
+  const scriptPath = libraryJson[libraryName]?.[phase + "ScriptPath"] as string | undefined;
   if (scriptPath && existsSync(scriptPath)) {
     const fullScriptPath = join(__dirname, '..', '..', scriptPath);
     if (scriptPath.endsWith('.gradle')) {
       postinstallGradleScriptPath = fullScriptPath
-      console.log(`✓ Using post-install Gradle script for ${libraryName}`);
+      console.log(`✓ Using postInstall Gradle script for ${libraryName}`);
     } else if (scriptPath.endsWith('.ts') ||scriptPath.endsWith('.js')) {
       $.cwd(appDir);
       await $`bun run ${fullScriptPath}`;
-      console.log(`✓ Executed post-install script for ${libraryName}`);
+      console.log(`✓ Executed ${phase} script for ${libraryName}`);
     }
   } else {
-    console.log(`ℹ️ No post-install script found for ${libraryName}`);
+    console.log(`ℹ️ No ${phase} script found for ${libraryName}`);
   }
 }
 
@@ -212,6 +212,9 @@ async function buildLibrary() {
     await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`.quiet();
     $.cwd(appDir);
 
+    // Perform any library-specific setup before installing
+    await installSetup(appDir, "preInstall");
+
     // Install the library
     console.log(`📦 Installing ${libraryName}@${libraryVersion}...`);
     await $`npm install ${libraryName}@${libraryVersion} --save-exact`.quiet();
@@ -220,7 +223,7 @@ async function buildLibrary() {
     const license = extractAndVerifyLicense(appDir);
 
     // Perform any library-specific setup after installing
-    await postInstallSetup(appDir);
+    await installSetup(appDir, "postInstall");
 
     // Install react-native-worklets if specified
     if (workletsVersion) {

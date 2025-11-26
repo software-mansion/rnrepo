@@ -9,7 +9,7 @@
     ]
   },
   "react-native-gesture-handler": {
-    "postInstallScriptPath": "post-install-scripts/react-native-gesture-handler/react-native-gesture-handler.ts",
+    "postInstallScriptPath": "postInstallScripts/react-native-gesture-handler/react-native-gesture-handler.ts",
     "android": [
       {
         "versionMatcher": ["2.28.0"],
@@ -274,6 +274,7 @@
     ]
   },
   "react-native-key-command": {
+    "preInstallScriptPath": "preInstallScripts/react-native-key-command/react-native-key-command.ts",
     "android": [
       {
         "reactNativeVersion": "0.81.4",
@@ -402,7 +403,7 @@
     ]
   },
   "@rnmapbox/maps": {
-    "postInstallScriptPath": "post-install-scripts/@rnmapbox/maps/rnmapbox_maps.gradle",
+    "postInstallScriptPath": "postInstallScripts/@rnmapbox/maps/rnmapbox_maps.gradle",
     "android": [
       {
         "reactNativeVersion": "0.81.4",
