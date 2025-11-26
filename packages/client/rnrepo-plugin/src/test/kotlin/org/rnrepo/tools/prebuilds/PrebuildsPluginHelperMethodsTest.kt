@@ -187,7 +187,7 @@ class PrebuildsPluginHelperMethodsTest {
     fun `isSpecificCheckPassed should handle react-native-reanimated with worklets`() {
         // Given
         val extension = PackagesManager()
-        val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0")
+        val reanimatedPackage = PackageItem("react-native-reanimated", "4.5.0")
         val workletsPackage = PackageItem("react-native-worklets", "1.0.0")
         extension.projectPackages = setOf(reanimatedPackage, workletsPackage)
 
@@ -210,7 +210,7 @@ class PrebuildsPluginHelperMethodsTest {
     fun `isSpecificCheckPassed should handle react-native-reanimated without worklets`() {
         // Given
         val extension = PackagesManager()
-        val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0")
+        val reanimatedPackage = PackageItem("react-native-reanimated", "4.5.0")
         extension.projectPackages = setOf(reanimatedPackage)
 
         // When
@@ -225,6 +225,27 @@ class PrebuildsPluginHelperMethodsTest {
 
         // Then
         assertThat(result).isFalse()
+    }
+
+    @Test
+    fun `isSpecificCheckPassed should handle react-native-reanimated3 without worklets`() {
+        // Given
+        val extension = PackagesManager()
+        val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0")
+        extension.projectPackages = setOf(reanimatedPackage)
+
+        // When
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "isSpecificCheckPassed",
+                arrayOf(PackageItem::class.java, PackagesManager::class.java),
+                reanimatedPackage,
+                extension,
+            )
+
+        // Then
+        assertThat(result).isTrue()
     }
 
     @Test
