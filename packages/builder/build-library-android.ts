@@ -18,6 +18,7 @@ import { convertToGradleProjectName } from '@rnrepo/config';
 
 const [libraryName, libraryVersion, reactNativeVersion, workDir, workletsVersion] =
   process.argv.slice(2);
+let postinstallGradleScriptPath: string = "";
 
 if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   console.error(
@@ -64,10 +65,15 @@ async function postInstallSetup(appDir: string) {
   const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
   const scriptPath = libraryJson[libraryName]?.postInstallScriptPath as string | undefined;
   if (scriptPath && existsSync(scriptPath)) {
-    $.cwd(appDir);
     const fullScriptPath = join(__dirname, '..', '..', scriptPath);
-    await $`bun run ${fullScriptPath}`;
-    console.log(`✓ Executed post-install script for ${libraryName}`);
+    if (scriptPath.endsWith('.gradle')) {
+      postinstallGradleScriptPath = fullScriptPath
+      console.log(`✓ Using post-install Gradle script for ${libraryName}`);
+    } else if (scriptPath.endsWith('.ts') ||scriptPath.endsWith('.js')) {
+      $.cwd(appDir);
+      await $`bun run ${fullScriptPath}`;
+      console.log(`✓ Executed post-install script for ${libraryName}`);
+    }
   } else {
     console.log(`ℹ️ No post-install script found for ${libraryName}`);
   }
@@ -129,6 +135,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
       --no-daemon \
       --init-script ${addPublishingGradleScriptPath} \
       --init-script ${addPrefabReduceGradleScriptPath} \
+      ${postinstallGradleScriptPath ? { raw: "--init-script " + postinstallGradleScriptPath} : ""} \
       -PrnrepoArtifactId=${gradleProjectName} \
       -PrnrepoPublishVersion=${libraryVersion} \
       -PrnrepoClassifier=${classifier} \

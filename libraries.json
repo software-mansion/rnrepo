@@ -402,6 +402,7 @@
     ]
   },
   "@rnmapbox/maps": {
+    "postInstallScriptPath": "post-install-scripts/@rnmapbox/maps/rnmapbox_maps.gradle",
     "android": [
       {
         "reactNativeVersion": "0.81.4",
