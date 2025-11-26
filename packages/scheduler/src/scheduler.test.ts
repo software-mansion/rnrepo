@@ -277,7 +277,7 @@ test('processLibrary - filters by RN version pattern', async () => {
   expect(mockScheduleLibraryBuild).toHaveBeenCalledTimes(4);
   // Verify the RN versions in the calls
   const calls = mockScheduleLibraryBuild.mock.calls;
-  const rnVersions = calls.map((call: any[]) => call[3] as string);
+  const rnVersions = calls.map((call) => call[3] as string);
   expect(rnVersions.filter((v: string) => v === '0.81.5')).toHaveLength(2); // Android + iOS
   expect(rnVersions.filter((v: string) => v === '0.82.1')).toHaveLength(2); // Android + iOS
   expect(rnVersions).not.toContain('0.79.7');
@@ -409,7 +409,7 @@ test('processLibrary - handles multiple package versions correctly', async () =>
   expect(mockScheduleLibraryBuild).toHaveBeenCalledTimes(8);
   // Verify all calls are for versions 1.1.0 or 1.2.0
   const calls = mockScheduleLibraryBuild.mock.calls;
-  const versions = calls.map((call: any[]) => call[1] as string);
+  const versions = calls.map((call) => call[1] as string);
   expect(versions).not.toContain('1.0.0');
   expect(versions.filter((v: string) => v === '1.1.0')).toHaveLength(4); // 2 RN versions * 2 platforms
   expect(versions.filter((v: string) => v === '1.2.0')).toHaveLength(4); // 2 RN versions * 2 platforms
