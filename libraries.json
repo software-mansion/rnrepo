@@ -210,6 +210,7 @@
     ]
   },
   "@react-native-firebase/crashlytics": {
+    "postInstallScriptPath": "postInstallScripts/@react-native-firebase/crashlytics/react-native-firebase_crashlytics.ts",
     "android": [
       {
         "reactNativeVersion": "0.81.4",
