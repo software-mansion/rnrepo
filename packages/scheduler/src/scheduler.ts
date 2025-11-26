@@ -5,37 +5,36 @@ import {
   type PlatformConfigOptions,
 } from '@rnrepo/config';
 import type { Platform } from '@rnrepo/database';
-import {
-  matchesVersionPattern,
-  findMatchingVersionsFromNPM,
-} from './npm';
+import { matchesVersionPattern, findMatchingVersionsFromNPM } from './npm';
 import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
 export async function processLibrary(
   libraryName: string,
   config: LibraryConfig,
-  rnVersionsOverride?: string[],
   limit?: number,
   currentCount: number = 0
 ): Promise<number> {
   console.log(`\n📦 Processing: ${libraryName}`);
 
   const platforms: Platform[] = ['android', 'ios'];
-  const rnVersions = (rnVersionsOverride ?? reactNativeVersions) as string[];
+  const rnVersions = reactNativeVersions as string[];
   let scheduledCount = currentCount;
 
   for (const platform of platforms) {
     if (config[platform] === false) continue;
     // Add empty config to run from global versions
-    const configPlatformList = Array.isArray(config[platform]) ? config[platform] as PlatformConfigOptions[] : [{}];
- 
+    const configPlatformList = Array.isArray(config[platform])
+      ? (config[platform] as PlatformConfigOptions[])
+      : [{}];
+
     for (const configEntry of configPlatformList) {
       const pkgMatcher = configEntry.versionMatcher ?? config.versionMatcher;
       if (!pkgMatcher) continue;
-      const reactNativeMatcher = configEntry.reactNativeVersion ?? config.reactNativeVersion;
-      if (!reactNativeMatcher) continue;
-      const publishedAfterDate = configEntry.publishedAfterDate ?? config.publishedAfterDate;
+      const reactNativeMatcher =
+        configEntry.reactNativeVersion ?? config.reactNativeVersion;
+      const publishedAfterDate =
+        configEntry.publishedAfterDate ?? config.publishedAfterDate;
       const workletsMatchingVersions = await findMatchingVersionsFromNPM(
         'react-native-worklets',
         configEntry.withWorkletsVersion
@@ -50,11 +49,17 @@ export async function processLibrary(
         const pkgVersion = pkgVersionInfo.version;
 
         for (const rnVersion of rnVersions) {
-          if (!matchesVersionPattern(rnVersion, reactNativeMatcher)) {
+          // If reactNativeMatcher is not set, accept any version
+          if (
+            reactNativeMatcher &&
+            !matchesVersionPattern(rnVersion, reactNativeMatcher)
+          ) {
             continue;
           }
 
-          for (const workletsVersionInfo of workletsMatchingVersions.length > 0 ? workletsMatchingVersions : [null]) {
+          for (const workletsVersionInfo of workletsMatchingVersions.length > 0
+            ? workletsMatchingVersions
+            : [null]) {
             const workletsVersion = workletsVersionInfo?.version;
             const alreadyScheduled = await isBuildAlreadyScheduled(
               libraryName,
@@ -73,14 +78,18 @@ export async function processLibrary(
                 pkgVersion,
                 'with React Native',
                 rnVersion,
-                workletsVersion ? 'and worklets version: ' + workletsVersion : '',
+                workletsVersion
+                  ? 'and worklets version: ' + workletsVersion
+                  : '',
                 '- already scheduled or completed'
               );
               continue;
             }
 
             if (limit !== undefined && scheduledCount >= limit) {
-              console.log(`\n⏸️  Reached scheduling limit of ${limit}. Stopping.`);
+              console.log(
+                `\n⏸️  Reached scheduling limit of ${limit}. Stopping.`
+              );
               return scheduledCount;
             }
 
@@ -96,7 +105,9 @@ export async function processLibrary(
               );
             } catch (error) {
               console.error(
-                `Failed to schedule build for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${workletsVersion ? ', worklets ' + workletsVersion : ''}):`,
+                `Failed to schedule build for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${
+                  workletsVersion ? ', worklets ' + workletsVersion : ''
+                }):`,
                 error
               );
               return Promise.reject(error);
@@ -104,10 +115,19 @@ export async function processLibrary(
 
             // Create build record in Supabase (without run URL - will be updated later)
             try {
-              await createBuildRecord(libraryName, pkgVersion, rnVersion, platform, undefined, workletsVersion);
+              await createBuildRecord(
+                libraryName,
+                pkgVersion,
+                rnVersion,
+                platform,
+                undefined,
+                workletsVersion
+              );
             } catch (error) {
               console.error(
-                `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${workletsVersion ? ', worklets ' + workletsVersion : ''}):`,
+                `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${
+                  workletsVersion ? ', worklets ' + workletsVersion : ''
+                }):`,
                 error
               );
               // Continue anyway - the record might have been created by another process
@@ -139,7 +159,6 @@ export async function runScheduler(limit?: number) {
     const count = await processLibrary(
       libraryName,
       config,
-      undefined,
       limit,
       totalScheduled
     );
