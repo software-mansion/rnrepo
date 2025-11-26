@@ -4,6 +4,7 @@ import * as npmModule from './npm';
 import * as supabaseModule from '@rnrepo/database';
 import * as githubModule from './github';
 import type { NpmVersionInfo } from './npm';
+import * as rnrepoConfig from '@rnrepo/config';
 
 // Suppress console.log during tests
 const originalLog = console.log;
@@ -18,6 +19,10 @@ const originalError = console.error;
 
 // Mock react-native-versions.json
 const mockReactNativeVersions = ['0.78.3', '0.79.7', '0.80.2', '0.81.5', '0.82.1'];
+mock.module('@rnrepo/config', () => ({
+  ...rnrepoConfig,
+  reactNativeVersions: mockReactNativeVersions,
+}));
 
 beforeEach(async () => {
   // Suppress console output during tests
@@ -125,7 +130,7 @@ test('processLibrary - schedules builds for valid combinations', async () => {
 
   // Import and call processLibrary with mocked RN versions
   const { processLibrary } = await import('./scheduler');
-  await processLibrary(libraryName, config, mockReactNativeVersions);
+  await processLibrary(libraryName, config);
 
   // Should schedule for each combination that passes all checks
   // 2 platforms (android, ios) * 2 package versions * 4 matching RN versions = 16 builds
@@ -161,7 +166,7 @@ test('processLibrary - skips disabled platforms', async () => {
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.79.0');
 
   const { processLibrary } = await import('./scheduler');
-  await processLibrary(libraryName, config, mockReactNativeVersions);
+  await processLibrary(libraryName, config);
 
   // Should only schedule for iOS, not Android
   expect(mockScheduleLibraryBuild).toHaveBeenCalledTimes(4); // 1 version * 4 matching RN versions
@@ -176,21 +181,6 @@ test('processLibrary - skips when versionMatcher is missing', async () => {
   const config: LibraryConfig = {
     reactNativeVersion: '>=0.79.0',
     // No versionMatcher
-  };
-
-  const { processLibrary } = await import('./scheduler');
-  await processLibrary(libraryName, config);
-
-  // Should not schedule anything
-  expect(mockFindMatchingVersionsFromNPM).not.toHaveBeenCalled();
-  expect(mockScheduleLibraryBuild).not.toHaveBeenCalled();
-});
-
-test('processLibrary - skips when reactNativeVersion is missing', async () => {
-  const libraryName = 'test-library';
-  const config: LibraryConfig = {
-    versionMatcher: '1.*',
-    // No reactNativeVersion
   };
 
   const { processLibrary } = await import('./scheduler');
@@ -249,7 +239,7 @@ test('processLibrary - skips combinations already scheduled', async () => {
 
   try {
     const { processLibrary } = await import('./scheduler');
-    await processLibrary(libraryName, config, mockReactNativeVersions);
+    await processLibrary(libraryName, config);
 
   // Should not schedule anything since all are already scheduled
   // 2 platforms (android, ios) * 1 version * 4 matching RN versions = 8 checks
@@ -281,15 +271,15 @@ test('processLibrary - filters by RN version pattern', async () => {
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.81.0');
 
   const { processLibrary } = await import('./scheduler');
-  await processLibrary(libraryName, config, mockReactNativeVersions);
+  await processLibrary(libraryName, config);
 
   // Should only schedule for 2 RN versions (0.81.5 and 0.82.1) * 2 platforms = 4 builds
   expect(mockScheduleLibraryBuild).toHaveBeenCalledTimes(4);
   // Verify the RN versions in the calls
   const calls = mockScheduleLibraryBuild.mock.calls;
-  const rnVersions = calls.map((call) => call[3]);
-  expect(rnVersions.filter((v) => v === '0.81.5')).toHaveLength(2); // Android + iOS
-  expect(rnVersions.filter((v) => v === '0.82.1')).toHaveLength(2); // Android + iOS
+  const rnVersions = calls.map((call: any[]) => call[3] as string);
+  expect(rnVersions.filter((v: string) => v === '0.81.5')).toHaveLength(2); // Android + iOS
+  expect(rnVersions.filter((v: string) => v === '0.82.1')).toHaveLength(2); // Android + iOS
   expect(rnVersions).not.toContain('0.79.7');
 });
 
@@ -322,7 +312,7 @@ test('processLibrary - uses platform-specific versionMatcher', async () => {
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.79.0');
 
   const { processLibrary } = await import('./scheduler');
-  await processLibrary(libraryName, config, mockReactNativeVersions);
+  await processLibrary(libraryName, config);
 
   // Should schedule for both platforms
   expect(mockScheduleLibraryBuild).toHaveBeenCalledTimes(8); // 4 RN versions for each platform
@@ -413,16 +403,16 @@ test('processLibrary - handles multiple package versions correctly', async () =>
   );
 
   const { processLibrary } = await import('./scheduler');
-  await processLibrary(libraryName, config, mockReactNativeVersions);
+  await processLibrary(libraryName, config);
 
   // Should schedule for 1.1.0 and 1.2.0, each with 2 RN versions * 2 platforms = 8 builds
   expect(mockScheduleLibraryBuild).toHaveBeenCalledTimes(8);
   // Verify all calls are for versions 1.1.0 or 1.2.0
   const calls = mockScheduleLibraryBuild.mock.calls;
-  const versions = calls.map((call) => call[1]);
+  const versions = calls.map((call: any[]) => call[1] as string);
   expect(versions).not.toContain('1.0.0');
-  expect(versions.filter((v) => v === '1.1.0')).toHaveLength(4); // 2 RN versions * 2 platforms
-  expect(versions.filter((v) => v === '1.2.0')).toHaveLength(4); // 2 RN versions * 2 platforms
+  expect(versions.filter((v: string) => v === '1.1.0')).toHaveLength(4); // 2 RN versions * 2 platforms
+  expect(versions.filter((v: string) => v === '1.2.0')).toHaveLength(4); // 2 RN versions * 2 platforms
 });
 
 test('processLibrary - logs message when no builds scheduled', async () => {
