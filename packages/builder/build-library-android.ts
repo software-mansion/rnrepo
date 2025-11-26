@@ -67,9 +67,9 @@ async function installSetup(appDir: string, phase: "preInstall" | "postInstall")
   if (scriptPath && existsSync(scriptPath)) {
     const fullScriptPath = join(__dirname, '..', '..', scriptPath);
     if (scriptPath.endsWith('.gradle')) {
-      postinstallGradleScriptPath = fullScriptPath
+      postinstallGradleScriptPath = fullScriptPath;
       console.log(`✓ Using postInstall Gradle script for ${libraryName}`);
-    } else if (scriptPath.endsWith('.ts') ||scriptPath.endsWith('.js')) {
+    } else if (scriptPath.endsWith('.ts') || scriptPath.endsWith('.js')) {
       await $`bun run ${fullScriptPath}`.cwd(appDir);
       console.log(`✓ Executed ${phase} script for ${libraryName}`);
     }
