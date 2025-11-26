@@ -70,6 +70,10 @@
         "type": "string",
         "description": "Path to post-install script"
       },
+      "preInstallScriptPath": {
+        "type": "string",
+        "description": "Path to pre-install script"
+      },
       "android": {
         "anyOf": [
           {

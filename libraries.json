@@ -11,7 +11,7 @@
     ]
   },
   "react-native-gesture-handler": {
-    "postInstallScriptPath": "post-install-scripts/react-native-gesture-handler/react-native-gesture-handler.ts",
+    "postInstallScriptPath": "postInstallScripts/react-native-gesture-handler/react-native-gesture-handler.ts",
     "android": [
       {
         "versionMatcher": ["2.28.0"]
@@ -81,27 +81,11 @@
       }
     ]
   },
-  "@fullstory/react-native": {
-    "android": [
-      {
-        "reactNativeVersion": "0.81.4",
-        "versionMatcher": ["1.7.8"]
-      }
-    ]
-  },
   "lottie-react-native": {
     "android": [
       {
         "reactNativeVersion": "0.81.4",
-        "versionMatcher": ["6.5.1"]
-      }
-    ]
-  },
-  "@onfido/react-native-sdk": {
-    "android": [
-      {
-        "reactNativeVersion": "0.81.4",
-        "versionMatcher": ["15.1.0"]
+        "versionMatcher": ["7.2.3"]
       }
     ]
   },
@@ -194,6 +178,7 @@
     ]
   },
   "@react-native-firebase/analytics": {
+    "postInstallScriptPath": "postInstallScripts/@react-native-firebase/analytics/react-native-firebase_analytics.ts",
     "android": [
       {
         "reactNativeVersion": "0.81.4",
@@ -210,6 +195,7 @@
     ]
   },
   "@react-native-firebase/crashlytics": {
+    "postInstallScriptPath": "postInstallScripts/@react-native-firebase/crashlytics/react-native-firebase_crashlytics.ts",
     "android": [
       {
         "reactNativeVersion": "0.81.4",
@@ -218,6 +204,7 @@
     ]
   },
   "@react-native-firebase/perf": {
+    "postInstallScriptPath": "postInstallScripts/@react-native-firebase/perf/react-native-firebase_perf.ts",
     "android": [
       {
         "reactNativeVersion": "0.81.4",
@@ -265,15 +252,8 @@
       }
     ]
   },
-  "react-native-image-size": {
-    "android": [
-      {
-        "reactNativeVersion": "0.81.4",
-        "versionMatcher": ["1.1.3"]
-      }
-    ]
-  },
   "react-native-key-command": {
+    "preInstallScriptPath": "preInstallScripts/react-native-key-command/react-native-key-command.ts",
     "android": [
       {
         "reactNativeVersion": "0.81.4",
@@ -397,6 +377,7 @@
     ]
   },
   "@rnmapbox/maps": {
+    "postInstallScriptPath": "postInstallScripts/@rnmapbox/maps/rnmapbox_maps.gradle",
     "android": [
       {
         "reactNativeVersion": "0.81.4",

@@ -18,6 +18,7 @@ import { convertToGradleProjectName } from '@rnrepo/config';
 
 const [libraryName, libraryVersion, reactNativeVersion, workDir, workletsVersion] =
   process.argv.slice(2);
+let postinstallGradleScriptPath: string = "";
 
 if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   console.error(
@@ -54,7 +55,7 @@ try {
   process.exit(1);
 }
 
-async function postInstallSetup(appDir: string) {
+async function installSetup(appDir: string, phase: "preInstall" | "postInstall") {
   const libraryJsonPath = join(
     __dirname,
     '..',
@@ -62,14 +63,21 @@ async function postInstallSetup(appDir: string) {
     'libraries.json'
   );
   const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
-  const scriptPath = libraryJson[libraryName]?.postInstallScriptPath as string | undefined;
+  const scriptPath = libraryJson[libraryName]?.[phase + "ScriptPath"] as string | undefined;
   if (scriptPath && existsSync(scriptPath)) {
-    $.cwd(appDir);
     const fullScriptPath = join(__dirname, '..', '..', scriptPath);
-    await $`bun run ${fullScriptPath}`;
-    console.log(`✓ Executed post-install script for ${libraryName}`);
+    if (scriptPath.endsWith('.gradle')) {
+      if (phase === 'preInstall') {
+        throw new Error('Gradle scripts are only supported in postInstall phase');
+      }
+      postinstallGradleScriptPath = fullScriptPath;
+      console.log(`✓ Using postInstall Gradle script for ${libraryName}`);
+    } else if (scriptPath.endsWith('.ts') || scriptPath.endsWith('.js')) {
+      await $`bun run ${fullScriptPath}`.cwd(appDir);
+      console.log(`✓ Executed ${phase} script for ${libraryName}`);
+    }
   } else {
-    console.log(`ℹ️ No post-install script found for ${libraryName}`);
+    console.log(`ℹ️ No ${phase} script found for ${libraryName}`);
   }
 }
 
@@ -129,6 +137,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
       --no-daemon \
       --init-script ${addPublishingGradleScriptPath} \
       --init-script ${addPrefabReduceGradleScriptPath} \
+      ${postinstallGradleScriptPath ? { raw: "--init-script " + postinstallGradleScriptPath} : ""} \
       -PrnrepoArtifactId=${gradleProjectName} \
       -PrnrepoPublishVersion=${libraryVersion} \
       -PrnrepoClassifier=${classifier} \
@@ -205,6 +214,9 @@ async function buildLibrary() {
     await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`.quiet();
     $.cwd(appDir);
 
+    // Perform any library-specific setup before installing
+    await installSetup(appDir, "preInstall");
+
     // Install the library
     console.log(`📦 Installing ${libraryName}@${libraryVersion}...`);
     await $`npm install ${libraryName}@${libraryVersion} --save-exact`.quiet();
@@ -213,7 +225,7 @@ async function buildLibrary() {
     const license = extractAndVerifyLicense(appDir);
 
     // Perform any library-specific setup after installing
-    await postInstallSetup(appDir);
+    await installSetup(appDir, "postInstall");
 
     // Install react-native-worklets if specified
     if (workletsVersion) {

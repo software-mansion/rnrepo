@@ -15,7 +15,8 @@
   "include": [
     "packages/**/*",
     "ios-resources/**/*",
-    "post-install-scripts/**/*"
+    "postInstallScripts/**/*",
+    "preInstallScripts/**/*"
   ],
   "exclude": [
     "node_modules",
