@@ -3,7 +3,7 @@
     "android": [
       {
         "versionMatcher": ["4.1.*"],
-        "withWorkletsVersion": ["0.5.1"]
+        "withWorkletsVersion": ["0.5.1", "0.6.1"]
       },
       {
         "versionMatcher": ["~3.19.1"]
