@@ -93,7 +93,7 @@
     "android": [
       {
         "reactNativeVersion": "0.81.4",
-        "versionMatcher": ["6.5.1"]
+        "versionMatcher": ["7.2.3"]
       }
     ]
   },
