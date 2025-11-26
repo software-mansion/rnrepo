@@ -467,6 +467,12 @@ class PrebuildsPlugin : Plugin<Project> {
                 }
             }
             "react-native-reanimated" -> {
+                if (packageItem.version.startsWith("3.")) {
+                    logger.info(
+                        "react-native-reanimated: Version ${packageItem.version} is 3.x, no worklets package needed.",
+                    )
+                    return true
+                }
                 val workletsItem = extension.projectPackages.find { it.name == "react-native-worklets" }
                 if (workletsItem != null) {
                     logger.info(
