@@ -24,20 +24,20 @@ data class PackageItem(
 )
 
 /**
- * Logger wrapper that automatically prefixes all messages with [RNRepo 📦]
+ * Logger wrapper that automatically prefixes all messages with [📦 RNRepo]
  */
 private class PrefixedLogger(
     private val delegate: Logger,
 ) {
-    fun info(message: String) = delegate.info("[RNRepo 📦] $message")
+    fun info(message: String) = delegate.info("[📦 RNRepo] $message")
 
-    fun lifecycle(message: String) = delegate.lifecycle("[RNRepo 📦] $message")
+    fun lifecycle(message: String) = delegate.lifecycle("[📦 RNRepo] $message")
 
-    fun warn(message: String) = delegate.warn("[RNRepo 📦] $message")
+    fun warn(message: String) = delegate.warn("[📦 RNRepo] $message")
 
-    fun error(message: String) = delegate.error("[RNRepo 📦] $message")
+    fun error(message: String) = delegate.error("[📦 RNRepo] $message")
 
-    fun debug(message: String) = delegate.debug("[RNRepo 📦] $message")
+    fun debug(message: String) = delegate.debug("[📦 RNRepo] $message")
 }
 
 open class PackagesManager {
@@ -67,7 +67,7 @@ class PrebuildsPlugin : Plugin<Project> {
             }
             getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(extension)
-            setupSupportedPackages(project, extension)
+            determineSupportedPackages(project, extension)
 
             // Setup
             extension.supportedPackages.forEach { packageItem ->
@@ -484,25 +484,42 @@ class PrebuildsPlugin : Plugin<Project> {
         return true
     }
 
-    private fun setupSupportedPackages(
+    private fun determineSupportedPackages(
         project: Project,
         extension: PackagesManager,
     ) {
-        extension.supportedPackages =
-            extension.projectPackages
-                .filter { packageItem ->
-                    isPackageNotDenied(packageItem.name, extension) &&
-                        isSpecificCheckPassed(packageItem, extension) &&
-                        isPackageAvailable(
-                            packageItem,
-                            extension.reactNativeVersion,
-                            project.repositories,
-                        )
-                }.toSet()
+        val supportedPackages = mutableSetOf<PackageItem>()
+        val unavailablePackages = mutableListOf<PackageItem>()
+
+        extension.projectPackages.forEach { packageItem ->
+            if (!isPackageNotDenied(packageItem.name, extension)) return@forEach
+            if (!isSpecificCheckPassed(packageItem, extension)) return@forEach
+            if (
+                isPackageAvailable(
+                    packageItem,
+                    extension.reactNativeVersion,
+                    project.repositories,
+                )
+            ) {
+                supportedPackages += packageItem
+            } else {
+                unavailablePackages += packageItem
+            }
+        }
+
+        extension.supportedPackages = supportedPackages
         logger.lifecycle(
             "Found the following supported prebuilt packages: ${extension.supportedPackages.joinToString(
                 "",
             ) { "\n  - 📦 ${it.name}@${it.version}${it.classifier}" }}",
         )
+
+        if (unavailablePackages.isNotEmpty()) {
+            logger.lifecycle(
+                "Packages not substituted – will fallback to building from sources: ${
+                    unavailablePackages.joinToString("") { "\n  - ❓ ${it.name}@${it.version}${it.classifier} for React Native ${extension.reactNativeVersion}" }
+                }",
+            )
+        }
     }
 }
