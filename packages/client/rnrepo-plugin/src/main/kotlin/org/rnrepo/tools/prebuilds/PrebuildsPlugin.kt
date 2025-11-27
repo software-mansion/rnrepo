@@ -301,7 +301,7 @@ class PrebuildsPlugin : Plugin<Project> {
     }
 
     /**
-     * Checks if a specific package is not in the deny list.
+     * Checks if a specific package is not in the deny list or excluded by other rules.
      *
      * @param packageName The name of the package to check.
      * @param extension The PackagesManager instance containing the deny list.
@@ -316,19 +316,28 @@ class PrebuildsPlugin : Plugin<Project> {
             logger.info("Package $packageName is in deny list, skipping in RNRepo.")
             return false
         }
+        if (packageName.startsWith("expo")) {
+            logger.info("Package $packageName is an Expo package, skipping in RNRepo.")
+            return false
+        }
         return true
     }
 
     /**
-     * Checks if a specific package is available in the remote repository.
+     * Checks if a specific package is available in the remote repository or local cache.
+     * 
+     * This function is thread-safe and can be called in parallel for multiple packages.
+     * It first checks the local Gradle cache for better performance, then queries
+     * remote repositories via HTTP HEAD requests in parallel.
+     * 
+     * When checking remote repositories, all HTTP/HTTPS repositories are queried
+     * simultaneously using parallel streams for maximum performance.
      *
-     * This function performs a HEAD request to determine if the specified package version is present for the given React Native (RN) version.
-     *
-     * @param gradlePackageName The name of the package to check.
-     * @param packageVersion The version of the package.
+     * @param packageItem The package to check (with name, version, and classifier)
      * @param RNVersion The React Native version that the package is intended for.
+     * @param repositories The repository handler to check against
      *
-     * @return True if the package is available, false otherwise.
+     * @return True if the package is available in any repository, false otherwise.
      */
     private fun isPackageAvailable(
         packageItem: PackageItem,
@@ -360,12 +369,25 @@ class PrebuildsPlugin : Plugin<Project> {
             }
         }
 
-        // for each repository check if package exists by sending HEAD request
-        repositories.forEach { repoUnchecked ->
-            val repo = repoUnchecked as? MavenArtifactRepository ?: return@forEach
-            if (repo.url.scheme != "http" && repo.url.scheme != "https") return@forEach
-            val urlString =
-                "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
+        // Collect all HTTP/HTTPS repositories to check
+        val httpRepositories = repositories.mapNotNull { repoUnchecked ->
+            val repo = repoUnchecked as? MavenArtifactRepository ?: return@mapNotNull null
+            if (repo.url.scheme == "http" || repo.url.scheme == "https") {
+                repo
+            } else {
+                null
+            }
+        }
+
+        if (httpRepositories.isEmpty()) {
+            return false
+        }
+
+        // Check all repositories in parallel using parallel streams
+        val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
+        
+        return httpRepositories.parallelStream().anyMatch { repo ->
+            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/$artifactName"
             var connection: HttpURLConnection? = null
             try {
                 connection = URL(urlString).openConnection() as HttpURLConnection
@@ -373,16 +395,18 @@ class PrebuildsPlugin : Plugin<Project> {
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
                 logger.info("Checking availability of package ${packageItem.name} version ${packageItem.version} at $urlString")
-                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                    return true
+                val isAvailable = connection.responseCode == HttpURLConnection.HTTP_OK
+                if (isAvailable) {
+                    logger.info("✓ Package ${packageItem.name}@${packageItem.version} found at ${repo.url}")
                 }
+                isAvailable
             } catch (e: Exception) {
-                logger.error("Error checking package availability for ${packageItem.name} version ${packageItem.version}: ${e.message}")
+                logger.error("Error checking package availability for ${packageItem.name} version ${packageItem.version} at ${repo.url}: ${e.message}")
+                false
             } finally {
                 connection?.disconnect()
             }
         }
-        return false
     }
 
     private fun getPackageNameAndVersion(packageJson: File): PackageItem? {
@@ -490,14 +514,26 @@ class PrebuildsPlugin : Plugin<Project> {
         return true
     }
 
+    /**
+     * Determines which packages are available as prebuilt AARs.
+     * 
+     * This function processes packages in parallel using Java's parallel streams for better performance.
+     * Each package is checked independently against:
+     * 1. Deny list
+     * 2. Specific package requirements (e.g., worklets for reanimated)
+     * 3. Availability in repositories (local cache or remote)
+     * 
+     * Thread-safe collections (ConcurrentHashMap.KeySet and ConcurrentLinkedQueue) are used
+     * to safely collect results from parallel processing.
+     */
     private fun determineSupportedPackages(
         project: Project,
         extension: PackagesManager,
     ) {
-        val supportedPackages = mutableSetOf<PackageItem>()
-        val unavailablePackages = mutableListOf<PackageItem>()
+        val supportedPackages = java.util.concurrent.ConcurrentHashMap.newKeySet<PackageItem>()
+        val unavailablePackages = java.util.concurrent.ConcurrentLinkedQueue<PackageItem>()
 
-        extension.projectPackages.forEach { packageItem ->
+        extension.projectPackages.parallelStream().forEach { packageItem ->
             if (!isPackageNotDenied(packageItem.name, extension)) return@forEach
             if (!isSpecificCheckPassed(packageItem, extension)) return@forEach
             if (
@@ -507,9 +543,9 @@ class PrebuildsPlugin : Plugin<Project> {
                     project.repositories,
                 )
             ) {
-                supportedPackages += packageItem
+                supportedPackages.add(packageItem)
             } else {
-                unavailablePackages += packageItem
+                unavailablePackages.add(packageItem)
             }
         }
 
