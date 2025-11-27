@@ -325,11 +325,11 @@ class PrebuildsPlugin : Plugin<Project> {
 
     /**
      * Checks if a specific package is available in the remote repository or local cache.
-     * 
+     *
      * This function is thread-safe and can be called in parallel for multiple packages.
      * It first checks the local Gradle cache for better performance, then queries
      * remote repositories via HTTP HEAD requests in parallel.
-     * 
+     *
      * When checking remote repositories, all HTTP/HTTPS repositories are queried
      * simultaneously using parallel streams for maximum performance.
      *
@@ -344,6 +344,7 @@ class PrebuildsPlugin : Plugin<Project> {
         RNVersion: String,
         repositories: RepositoryHandler,
     ): Boolean {
+        val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
         val artifactDir =
             Paths
                 .get(
@@ -357,7 +358,6 @@ class PrebuildsPlugin : Plugin<Project> {
                     "${packageItem.version}",
                 ).toFile()
         if (artifactDir.exists() && artifactDir.isDirectory) {
-            val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
             // search for artifactName in all directories inside artifactDir
             val isArtifactCached =
                 artifactDir.listFiles()?.any { hashDir ->
@@ -370,22 +370,20 @@ class PrebuildsPlugin : Plugin<Project> {
         }
 
         // Collect all HTTP/HTTPS repositories to check
-        val httpRepositories = repositories.mapNotNull { repoUnchecked ->
-            val repo = repoUnchecked as? MavenArtifactRepository ?: return@mapNotNull null
-            if (repo.url.scheme == "http" || repo.url.scheme == "https") {
-                repo
-            } else {
-                null
+        val httpRepositories =
+            repositories.mapNotNull { repoUnchecked ->
+                val repo = repoUnchecked as? MavenArtifactRepository ?: return@mapNotNull null
+                if (repo.url.scheme == "http" || repo.url.scheme == "https") {
+                    repo
+                } else {
+                    null
+                }
             }
-        }
 
         if (httpRepositories.isEmpty()) {
             return false
         }
 
-        // Check all repositories in parallel using parallel streams
-        val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
-        
         return httpRepositories.parallelStream().anyMatch { repo ->
             val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/$artifactName"
             var connection: HttpURLConnection? = null
@@ -401,7 +399,9 @@ class PrebuildsPlugin : Plugin<Project> {
                 }
                 isAvailable
             } catch (e: Exception) {
-                logger.error("Error checking package availability for ${packageItem.name} version ${packageItem.version} at ${repo.url}: ${e.message}")
+                logger.error(
+                    "Error checking package availability for ${packageItem.name} version ${packageItem.version} at ${repo.url}: ${e.message}",
+                )
                 false
             } finally {
                 connection?.disconnect()
@@ -516,13 +516,13 @@ class PrebuildsPlugin : Plugin<Project> {
 
     /**
      * Determines which packages are available as prebuilt AARs.
-     * 
+     *
      * This function processes packages in parallel using Java's parallel streams for better performance.
      * Each package is checked independently against:
      * 1. Deny list
      * 2. Specific package requirements (e.g., worklets for reanimated)
      * 3. Availability in repositories (local cache or remote)
-     * 
+     *
      * Thread-safe collections (ConcurrentHashMap.KeySet and ConcurrentLinkedQueue) are used
      * to safely collect results from parallel processing.
      */
@@ -530,7 +530,9 @@ class PrebuildsPlugin : Plugin<Project> {
         project: Project,
         extension: PackagesManager,
     ) {
-        val supportedPackages = java.util.concurrent.ConcurrentHashMap.newKeySet<PackageItem>()
+        val supportedPackages =
+            java.util.concurrent.ConcurrentHashMap
+                .newKeySet<PackageItem>()
         val unavailablePackages = java.util.concurrent.ConcurrentLinkedQueue<PackageItem>()
 
         extension.projectPackages.parallelStream().forEach { packageItem ->
