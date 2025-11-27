@@ -3,7 +3,6 @@ package org.rnrepo.tools.prebuilds
 import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import groovy.json.JsonSlurper
-import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -16,6 +15,8 @@ import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
 import java.nio.file.Paths
+import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 
 data class PackageItem(
     val name: String,
@@ -42,7 +43,8 @@ private class PrefixedLogger(
 
 open class PackagesManager {
     var projectPackages: Set<PackageItem> = mutableSetOf()
-    var supportedPackages: Set<PackageItem> = mutableSetOf()
+    var eligiblePackages: Set<PackageItem> = mutableSetOf()
+    val supportedPackages: MutableSet<PackageItem> = Collections.synchronizedSet(mutableSetOf())
     var reactNativeVersion: String = ""
     var denyList: Set<String> = setOf()
 }
@@ -50,6 +52,8 @@ open class PackagesManager {
 class PrebuildsPlugin : Plugin<Project> {
     private val logger: PrefixedLogger = PrefixedLogger(Logging.getLogger("PrebuildsPlugin"))
     private var REACT_NATIVE_ROOT_DIR: File? = null
+    private val availabilityCache = ConcurrentHashMap<String, Boolean>()
+    private val activatedPackages = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
 
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
@@ -58,6 +62,9 @@ class PrebuildsPlugin : Plugin<Project> {
         if (shouldPluginExecute(project)) {
             val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
+            availabilityCache.clear()
+            activatedPackages.clear()
+            extension.supportedPackages.clear()
 
             // Check what packages are in project and which are we supporting
             REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project)
@@ -67,19 +74,10 @@ class PrebuildsPlugin : Plugin<Project> {
             }
             getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(extension)
-            determineSupportedPackages(project, extension)
-
-            // Setup
-            extension.supportedPackages.forEach { packageItem ->
-                addDependency(
-                    project,
-                    "implementation",
-                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
-                )
-            }
+            determineSupportedPackages(extension)
 
             // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
-            extension.supportedPackages.forEach { packageItem ->
+            extension.eligiblePackages.forEach { packageItem ->
                 if (packageItem.name == "react-native-reanimated") {
                     val androidExtension = project.extensions.getByName("android") as? BaseExtension
                     androidExtension?.let { android ->
@@ -98,7 +96,7 @@ class PrebuildsPlugin : Plugin<Project> {
             }
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
-            extension.supportedPackages.forEach { packageItem ->
+            extension.eligiblePackages.forEach { packageItem ->
                 val codegenTaskName = "generateCodegenArtifactsFromSchema"
                 project.evaluationDependsOn(":${packageItem.name}")
                 project.afterEvaluate {
@@ -116,44 +114,92 @@ class PrebuildsPlugin : Plugin<Project> {
                 }
             }
 
-            // Add substitution for supported packages for all projects and all configurations
-            project.rootProject.allprojects.forEach { subproject ->
-                if (subproject == project.rootProject) return@forEach
-                val substitutionAction =
-                    Action<Project> { evaluatedProject ->
-                        extension.supportedPackages.forEach { packageItem ->
-                            val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
-                            evaluatedProject.configurations.all { config ->
-                                config.resolutionStrategy.dependencySubstitution { substitutions ->
-                                    substitutions.all { dependencySubstitution ->
-                                        if (dependencySubstitution.requested.displayName.contains("${packageItem.name}")) {
-                                            dependencySubstitution.useTarget(substitutions.module(module))
-                                            dependencySubstitution.artifactSelection {
-                                                it.selectArtifact(
-                                                    "aar",
-                                                    "aar",
-                                                    "rn${extension.reactNativeVersion}${packageItem.classifier}",
-                                                )
-                                            }
-                                            logger.info(
-                                                "Adding substitution for ${packageItem.name} using $module " +
-                                                    "in config ${config.name} of project ${evaluatedProject.name}",
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                substitutionAction.execute(subproject)
-                // TODO(radoslawrolka): keeping in case of issues with afterEvaluate
-                // if (subproject.state.executed) {
-                //     substitutionAction.execute(subproject)
-                // } else {
-                //     subproject.afterEvaluate(substitutionAction)
-                // }
+            registerTaskScopedSubstitutions(project, extension)
+            project.gradle.buildFinished {
+                if (extension.supportedPackages.isEmpty()) {
+                    logger.lifecycle("No prebuilts were used in this build.")
+                } else {
+                    logger.lifecycle(
+                        "Prebuilts were used for the following packages:${
+                        extension.supportedPackages.joinToString("") { supported ->
+                            "\n  - 📦 ${supported.name}@${supported.version}${supported.classifier}"
+                        }"
+                    )
+                }
             }
         }
+    }
+
+    private fun registerTaskScopedSubstitutions(
+        project: Project,
+        extension: PackagesManager,
+    ) {
+        val eligiblePackages = extension.eligiblePackages
+        if (eligiblePackages.isEmpty()) {
+            logger.lifecycle("No eligible packages found for RNRepo substitution.")
+            return
+        }
+
+        val packagesByName = eligiblePackages.associateBy { it.name }
+        project.rootProject.allprojects.forEach { subproject ->
+            if (subproject == project.rootProject) return@forEach
+            subproject.configurations.configureEach { config ->
+                config.resolutionStrategy.dependencySubstitution { substitutions ->
+                    substitutions.all { dependencySubstitution ->
+                        val packageEntry =
+                            packagesByName.entries.firstOrNull { (packageName, _) ->
+                                dependencySubstitution.requested.displayName.contains(packageName)
+                            } ?: return@all
+
+                        val packageItem = packageEntry.value
+                        val cacheKey = availabilityCacheKey(packageItem, extension.reactNativeVersion)
+                        val isPackageAvailable =
+                            availabilityCache.computeIfAbsent(cacheKey) {
+                                (
+                                    packageItem,isPackageAvailable
+                                    extension.reactNativeVersion,
+                                    subproject.repositories,
+                                )
+                            }
+                        if (!isPackageAvailable) {
+                            return@all
+                        }
+
+                        onPackageActivated(extension, packageItem)
+
+                        val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
+                        dependencySubstitution.useTarget(substitutions.module(module))
+                        dependencySubstitution.artifactSelection {
+                            it.selectArtifact(
+                                "aar",
+                                "aar",
+                                "rn${extension.reactNativeVersion}${packageItem.classifier}",
+                            )
+                        }
+                        logger.info(
+                            "Adding substitution for ${packageItem.name} using $module in config ${config.name} of project ${subproject.name}",
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun availabilityCacheKey(
+        packageItem: PackageItem,
+        RNVersion: String,
+    ): String = "${packageItem.name}:${packageItem.version}:$RNVersion:${packageItem.classifier}"
+
+    private fun onPackageActivated(
+        extension: PackagesManager,
+        packageItem: PackageItem,
+    ) {
+        val key = availabilityCacheKey(packageItem, extension.reactNativeVersion)
+        if (!activatedPackages.add(key)) {
+            return
+        }
+        extension.supportedPackages += packageItem
+        logger.lifecycle("Using RNRepo prebuilt for ${packageItem.name}@${packageItem.version}${packageItem.classifier}")
     }
 
     private fun getProperty(
@@ -161,33 +207,6 @@ class PrebuildsPlugin : Plugin<Project> {
         propertyName: String,
         defaultValue: String,
     ): String = System.getenv(propertyName) ?: project.findProperty(propertyName) as? String ?: defaultValue
-
-    private fun addDependency(
-        project: Project,
-        configurationName: String,
-        dependencyNotation: String,
-    ) {
-        project.dependencies.add(configurationName, dependencyNotation)
-        logger.info("Added dependency: $dependencyNotation to configuration: $configurationName in project ${project.name}")
-    }
-
-    private fun addRepositoryIfNotExists(
-        repositories: RepositoryHandler,
-        repoUrl: String,
-        repoName: String?,
-    ) {
-        val isRepositoryAdded =
-            repositories.any { repo ->
-                (repo as? MavenArtifactRepository)?.url?.toString() == repoUrl
-            }
-        if (!isRepositoryAdded) {
-            repositories.maven { repo ->
-                repo.url = URI(repoUrl)
-                if (repoName != null) repo.name = repoName
-            }
-            logger.info("Added Maven repository: $repoUrl")
-        }
-    }
 
     /**
      * Determines whether the plugin should execute based on the current build command and environment variable.
@@ -369,12 +388,17 @@ class PrebuildsPlugin : Plugin<Project> {
             var connection: HttpURLConnection? = null
             try {
                 connection = URL(urlString).openConnection() as HttpURLConnection
+                connection.instanceFollowRedirects = false
                 connection.requestMethod = "HEAD"
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
                 logger.info("Checking availability of package ${packageItem.name} version ${packageItem.version} at $urlString")
-                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val responseCode = connection.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    logger.info("Package ${packageItem.name} version ${packageItem.version} is available at $urlString")
                     return true
+                } else {
+                    logger.debug("Package ${packageItem.name} version ${packageItem.version} not available at $urlString (response code: $responseCode)")
                 }
             } catch (e: Exception) {
                 logger.error("Error checking package availability for ${packageItem.name} version ${packageItem.version}: ${e.message}")
@@ -485,43 +509,16 @@ class PrebuildsPlugin : Plugin<Project> {
     }
 
     private fun determineSupportedPackages(
-        project: Project,
         extension: PackagesManager,
     ) {
-        val supportedPackages = mutableSetOf<PackageItem>()
-        val unavailablePackages = mutableListOf<PackageItem>()
+        val eligiblePackages =
+            extension.projectPackages
+                .map { it.copy() }
+                .filter { isPackageNotDenied(it.name, extension) }
+                .filter { isSpecificCheckPassed(it, extension) }
+                .toSet()
 
-        extension.projectPackages.forEach { packageItem ->
-            if (!isPackageNotDenied(packageItem.name, extension)) return@forEach
-            if (!isSpecificCheckPassed(packageItem, extension)) return@forEach
-            if (
-                isPackageAvailable(
-                    packageItem,
-                    extension.reactNativeVersion,
-                    project.repositories,
-                )
-            ) {
-                supportedPackages += packageItem
-            } else {
-                unavailablePackages += packageItem
-            }
-        }
-
-        extension.supportedPackages = supportedPackages
-        logger.lifecycle(
-            "Found the following supported prebuilt packages: ${extension.supportedPackages.joinToString(
-                "",
-            ) { "\n  - 📦 ${it.name}@${it.version}${it.classifier}" }}",
-        )
-
-        if (unavailablePackages.isNotEmpty()) {
-            logger.lifecycle(
-                "Packages not substituted – will fallback to building from sources: ${
-                    unavailablePackages.joinToString(
-                        separator = "\n  - ❓ ",
-                    ) { "${it.name}@${it.version}${it.classifier} for React Native ${extension.reactNativeVersion}" }
-                }",
-            )
-        }
+        extension.eligiblePackages = eligiblePackages
+        extension.supportedPackages.clear()
     }
 }
