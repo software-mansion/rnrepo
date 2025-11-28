@@ -64,7 +64,7 @@ class PrebuildsPluginIntegrationTest {
     fun `plugin should load deny list from config file`() {
         // Given
         setupAndroidProject()
-        addPackage("react-native", "0.72.0", addToSettings = false)
+        addPackage("react-native", "0.82.0", addToSettings = false)
 
         // Create config file with deny list
         val configFile = File(testProjectDir, "rnrepo.config.json")
@@ -96,7 +96,7 @@ class PrebuildsPluginIntegrationTest {
     fun `plugin should detect React Native packages in node_modules`() {
         // Given
         setupAndroidProject()
-        addPackage("react-native", "0.72.0", addToSettings = false)
+        addPackage("react-native", "0.82.0", addToSettings = false)
         setupReactNativePackages()
         setupBuildFile()
 
@@ -112,7 +112,31 @@ class PrebuildsPluginIntegrationTest {
         // Then
         assertThat(result.output).contains("Found package: react-native-reanimated")
         assertThat(result.output).contains("Found package: react-native-screens")
+        assertThat(result.output).contains("Detected React Native version: 0.82.0")
+    }
+
+    @Test
+    fun `plugin should not run when React Native is lower than 076`() {
+        // Given
+        setupAndroidProject()
+        addPackage("react-native", "0.72.0", addToSettings = false)
+        setupReactNativePackages()
+        setupBuildFile()
+
+        // When
+        val result =
+            GradleRunner
+                .create()
+                .withProjectDir(testProjectDir)
+                .withArguments("assembleDebug", "--dry-run", "--info")
+                .withPluginClasspath()
+                .build()
+
+        // Then
         assertThat(result.output).contains("Detected React Native version: 0.72.0")
+        assertThat(result.output).doesNotContain("Found package: react-native-reanimated")
+        assertThat(result.output).doesNotContain("Found package: react-native-screens")
+        assertThat(result.output).contains("Plugin supports only >= 0.76 react-native versions")
     }
 
     private fun setupAndroidProject() {
