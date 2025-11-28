@@ -61,7 +61,7 @@ npm run preview
 
 ## Deployment to GitHub Pages
 
-This project is configured to deploy to GitHub Pages. The configuration assumes the repository name is `buildle` and the organization/user is `software-mansion`. If your repository structure is different, update the `base` and `site` values in `astro.config.mjs`.
+This project is configured to deploy to GitHub Pages. The configuration assumes the repository name is `rnrepo` and the organization/user is `software-mansion`. If your repository structure is different, update the `base` and `site` values in `astro.config.mjs`.
 
 ### Option 1: GitHub Actions (Recommended)
 
@@ -73,7 +73,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # or your default branch
+      - main # or your default branch
   workflow_dispatch:
 
 permissions:
@@ -82,7 +82,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: false
 
 jobs:
@@ -126,6 +126,7 @@ jobs:
 ```
 
 2. In your GitHub repository settings:
+
    - Go to Settings → Pages
    - Under "Source", select "GitHub Actions"
    - Save the settings
@@ -135,12 +136,14 @@ jobs:
 ### Option 2: Manual Deployment
 
 1. Build the site:
+
    ```bash
    cd packages/website
    npm run build
    ```
 
 2. Push the `dist/` folder to the `gh-pages` branch:
+
    ```bash
    # Install gh-pages if you haven't already
    npm install -g gh-pages
@@ -151,7 +154,7 @@ jobs:
    git add .
    git commit -m "Deploy website"
    git branch -M gh-pages
-   git remote add origin https://github.com/software-mansion/buildle.git
+   git remote add origin https://github.com/software-mansion/rnrepo.git
    git push -f origin gh-pages
    ```
 
@@ -167,7 +170,7 @@ By default, the site is configured to work at the root path (`/`). If you're dep
 ```javascript
 export default defineConfig({
   // ... other config
-  base: '/repo-name',  // Only needed for subdirectory deployments
+  base: '/repo-name', // Only needed for subdirectory deployments
   site: 'https://your-org.github.io',
 });
 ```
