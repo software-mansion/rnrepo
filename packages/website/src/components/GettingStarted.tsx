@@ -1,31 +1,31 @@
 import React, { useState } from 'react';
+import { SectionHeader } from './SectionHeader';
 
 const GettingStarted: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'standard' | 'expo'>('standard');
 
   return (
-    <section id="setup" className="py-20">
+    <section id="setup" className="py-20 border-b border-rnrGrey-80">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-12">
-          <h2 className="text-4xl font-bold text-rnrGrey-0 mb-4">Getting Started</h2>
-          <p className="text-rnrGrey-40 max-w-2xl">
-            To start using RNRepo, you need to configure your Android project to include our Maven
-            repository and use our Gradle plugin that will automatically swap out dependencies on
-            supported libraries with pre-built artifacts downloaded from our repository.
-          </p>
+          <SectionHeader
+            title="Getting Started"
+            subtitle="To start using RNRepo, you need to configure your Android project to include our Maven repository and use our Gradle plugin that will automatically swap out dependencies on supported libraries with pre-built artifacts downloaded from our repository."
+            subtitleClassName="max-w-2xl"
+          />
         </div>
 
         {/* Tab Switcher - Standalone */}
         <div className="relative h-14 w-full flex bg-[#1A1A1A] border border-rnrGrey-80 rounded-sm overflow-hidden mb-8">
             {/* Sliding Background */}
-            <div 
+            <div
                 className={`absolute top-0 bottom-0 w-1/2 bg-brandSeaBlue-100 transition-transform duration-300 ease-in-out ${
                     activeTab === 'standard' ? 'translate-x-0' : 'translate-x-full'
                 }`}
             />
-            
+
             {/* Tab Buttons */}
-            <button 
+            <button
                 onClick={() => setActiveTab('standard')}
                 className={`relative z-10 w-1/2 h-full text-sm font-medium transition-colors duration-300 ${
                     activeTab === 'standard' ? 'text-black' : 'text-rnrGrey-40 hover:text-rnrGrey-20'
@@ -33,7 +33,7 @@ const GettingStarted: React.FC = () => {
             >
                 Standard React Native
             </button>
-            <button 
+            <button
                 onClick={() => setActiveTab('expo')}
                 className={`relative z-10 w-1/2 h-full text-sm font-medium transition-colors duration-300 ${
                     activeTab === 'expo' ? 'text-black' : 'text-rnrGrey-40 hover:text-rnrGrey-20'
@@ -53,7 +53,7 @@ const GettingStarted: React.FC = () => {
                     Copy
                 </button>
             </div>
-            
+
             {/* Code Body */}
             <div className="p-6 overflow-x-auto bg-[#0A0A0A]">
                 <pre className="text-sm font-mono leading-loose text-rnrGrey-30">

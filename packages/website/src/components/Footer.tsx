@@ -1,19 +1,22 @@
 import React from 'react';
 import { RNRepoLogo, SoftwareMansionLogo, IconGithub, IconX, IconYoutube } from './icons/Icons';
+import { SectionHeader } from './SectionHeader';
 
 const Footer: React.FC = () => {
   return (
     <footer className="bg-black pt-20 pb-10 border-t border-rnrGrey-80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         <div className="flex flex-col items-center text-center mb-16">
             <div className="mb-8">
                  <SoftwareMansionLogo className="h-16 w-auto text-rnrGrey-0" />
             </div>
-            <h2 className="text-3xl font-bold text-rnrGrey-0 mb-4">We are Software Mansion</h2>
-            <p className="text-rnrGrey-40 max-w-2xl leading-relaxed">
-                We're a software company built around improving developer experience and bringing to life the innovative ideas of our clients.
-            </p>
+            <SectionHeader
+              title="We are Software Mansion"
+              subtitle="We're a software company built around improving developer experience and bringing to life the innovative ideas of our clients."
+              className="text-center"
+              subtitleClassName="max-w-2xl"
+            />
         </div>
 
         {/* CTA Box */}
@@ -21,16 +24,21 @@ const Footer: React.FC = () => {
             <h3 className="text-xl font-medium text-rnrGrey-0 text-center md:text-left">
                 Do you have a software project that we<br />can help you with?
             </h3>
-            <button className="bg-brandSeaBlue-100 hover:bg-brandSeaBlue-80 text-black font-semibold px-6 py-3 rounded-sm transition-colors whitespace-nowrap">
+            <a
+              href="https://swmansion.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-brandSeaBlue-100 hover:bg-brandSeaBlue-80 text-black font-semibold px-6 py-3 rounded-sm transition-colors whitespace-nowrap"
+            >
                 Learn more about us →
-            </button>
+            </a>
         </div>
 
         {/* Social Links */}
         <div className="flex justify-center space-x-6 mb-16">
-             <SocialLink href="#" icon={<IconX />} />
-             <SocialLink href="#" icon={<IconGithub />} />
-             <SocialLink href="#" icon={<IconYoutube />} />
+             <SocialLink href="https://x.com/swmansion" icon={<IconX />} />
+             <SocialLink href="https://github.com/software-mansion" icon={<IconGithub />} />
+             <SocialLink href="https://youtube.com/@SoftwareMansion" icon={<IconYoutube />} />
         </div>
 
         {/* Bottom Bar */}
@@ -50,7 +58,7 @@ const Footer: React.FC = () => {
             </div>
 
             <div>
-                Built by <a href="#" className="text-brandSeaBlue-100 hover:underline">Software Mansion</a>
+                Built by <a href="https://swmansion.com" target="_blank" rel="noopener noreferrer" className="text-brandSeaBlue-100 hover:underline">Software Mansion</a>
             </div>
         </div>
       </div>
@@ -59,7 +67,7 @@ const Footer: React.FC = () => {
 };
 
 const SocialLink: React.FC<{ href: string; icon: React.ReactNode }> = ({ href, icon }) => (
-    <a href={href} className="w-10 h-10 bg-rnrGrey-0/10 rounded-full flex items-center justify-center text-rnrGrey-0 hover:bg-rnrGrey-0/20 transition-colors">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-rnrGrey-0/10 rounded-full flex items-center justify-center text-rnrGrey-0 hover:bg-rnrGrey-0/20 transition-colors">
         <div className="w-5 h-5 flex items-center justify-center">{icon}</div>
     </a>
 );

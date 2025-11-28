@@ -1,37 +1,41 @@
 import React from 'react';
 import { IconSpeed, IconPhone, IconFolder, IconBox, IconShield } from './icons/Icons';
+import { SectionHeader } from './SectionHeader';
 
 const Features: React.FC = () => {
   return (
-    <section id="benefits" className="py-24 relative">
+    <section id="benefits" className="py-24 relative border-b border-rnrGrey-80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold text-rnrGrey-0 mb-4">Why RNRepo?</h2>
-                <p className="text-rnrGrey-40">Built for React Native developers who value speed, security, and simplicity.</p>
+                <SectionHeader
+                  title="Why RNRepo?"
+                  subtitle="Built for React Native developers who value speed, security, and simplicity."
+                  className="text-center"
+                />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <FeatureCard 
+                <FeatureCard
                     icon={<IconSpeed className="text-brandPink-100" />}
                     title="5x Faster Android Builds"
                     description="Skip compiling native code from source. RNRepo provides pre-built artifacts that dramatically reduce your build times."
                 />
-                 <FeatureCard 
+                 <FeatureCard
                     icon={<IconPhone className="text-brandYellow-100" />}
                     title="Simplified Brownfield Projects"
                     description="No more managing complex React Native dependency lists. Just reference the prebuilt artifacts and focus on your app."
                 />
-                 <FeatureCard 
+                 <FeatureCard
                     icon={<IconFolder className="text-brandSeaBlue-100" />}
                     title="Reduced Disk Space"
                     description="Build directories are smaller because they don't need to contain intermediate build artifacts. Save gigabytes on your CI machines."
                 />
-                 <FeatureCard 
+                 <FeatureCard
                     icon={<IconBox className="text-brandSeaBlue-60" />}
                     title="Optimized Release Builds"
                     description="Our published artifacts are release builds, better optimized than the debug builds you'd typically compile from source."
                 />
-                 <FeatureCard 
+                 <FeatureCard
                     icon={<IconShield className="text-brandGreen-100" />}
                     title="Security First"
                     description="Isolated GitHub workflows, transparent builds, traceable artifacts, and GPG signing ensure your builds are secure and tamper-proof."

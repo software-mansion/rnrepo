@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { IconChevronDown } from './icons/Icons';
+import { SectionHeader } from './SectionHeader';
 
 const FAQ: React.FC = () => {
   return (
-    <section id="faq" className="py-24">
+    <section id="faq" className="py-24 border-b border-rnrGrey-80">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-rnrGrey-0 mb-2">Frequently Asked Questions</h2>
-            <p className="text-rnrGrey-40">Everything you need to know about RNRepo.</p>
+            <SectionHeader
+              title="Frequently Asked Questions"
+              subtitle="Everything you need to know about RNRepo."
+              className="text-center"
+            />
         </div>
 
         <div className="space-y-4">
@@ -32,7 +36,7 @@ const FAQItem: React.FC<{ question: string; answer: string; isOpen?: boolean }> 
 
     return (
         <div className="border-b border-rnrGrey-80">
-            <button 
+            <button
                 onClick={() => setOpen(!open)}
                 className="w-full py-4 flex items-center justify-between text-left hover:text-brandSeaBlue-100 transition-colors focus:outline-none"
             >
