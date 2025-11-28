@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navbar from '../components/Navbar';
+import Hero from '../components/Hero';
+import GettingStarted from '../components/GettingStarted';
+import Features from '../components/Features';
+import HowItWorks from '../components/HowItWorks';
+import CustomSetup from '../components/CustomSetup';
+import FAQ from '../components/FAQ';
+import Footer from '../components/Footer';
+---
+
+<BaseLayout>
+  <Navbar client:load />
+  <main>
+    <Hero client:load />
+    <GettingStarted client:load />
+    <Features client:load />
+    <HowItWorks client:load />
+    <CustomSetup client:load />
+    <FAQ client:load />
+  </main>
+  <Footer client:load />
+</BaseLayout>
+

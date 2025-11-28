@@ -1,0 +1,48 @@
+---
+import '../styles/global.css';
+
+export interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "RNRepo - React Native Pre-Built Artifacts",
+  description = "Speed up your builds and avoid compiling native libraries from scratch."
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/rnrepo-logo.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'DM Sans', sans-serif;
+        background-color: #0A0A0A;
+        color: #FAFAFA;
+      }
+      .bg-grid-pattern {
+        background-image: linear-gradient(to right, #262626 1px, transparent 1px),
+                          linear-gradient(to bottom, #262626 1px, transparent 1px);
+        background-size: 40px 40px;
+        mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="min-h-screen bg-background text-rnrGrey-0 font-sans selection:bg-brandSeaBlue-100 selection:text-black">
+      <slot />
+    </div>
+  </body>
+</html>
+
