@@ -1,5 +1,4 @@
-import configPlugins from '@expo/config-plugins'; 
-const { withProjectBuildGradle, withAppBuildGradle } = configPlugins;
+import { withProjectBuildGradle, withAppBuildGradle, type ConfigPlugin, } from '@expo/config-plugins'; 
 
 const classpathRegex = /(classpath.*)/;
 const rnrepoClasspath = 'classpath("org.rnrepo.tools:prebuilds-plugin:+")';
@@ -71,10 +70,11 @@ function withRnrepoPluginApplication(config) {
   });
 }
 
-export default function withCustomBuildSettings(config) {
+const withRNRepoPlugin: ConfigPlugin = (config) => {
   config = withClasspathDependency(config);
   config = withMavenRepository(config);
   config = withRnrepoPluginApplication(config);
   config = withAllProjectsMavenRepository(config);
   return config;
 };
+export default withRNRepoPlugin;

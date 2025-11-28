@@ -1,0 +1,43 @@
+{
+  "name": "@rnrepo/expo-config-plugin",
+  "title": "RNRepo expo config plugin",
+  "version": "0.0.1",
+  "description": "Plugin for configuring RNRepo prebuilt packages in Expo projects",
+  "sideEffects": false,
+  "scripts": {
+    "build": "expo-module build",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "prepare": "expo-module prepare",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module"
+  },
+  "homepage": "todo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/software-mansion/buildle.git",
+    "directory": "packages/expo-config-plugin"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "config",
+    "plugin",
+    "prebuilds",
+    "rnrepo"
+  ],
+  "author": "Software Mansion",
+  "license": "ISC",
+  "dependencies": {
+    "@expo/config-plugins": "^54.0.2"
+  },
+  "devDependencies": {
+    "expo-module-scripts": "^5.0.7"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}
