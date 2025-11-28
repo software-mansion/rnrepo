@@ -258,8 +258,8 @@ class PrebuildsPlugin : Plugin<Project> {
         }
 
         // RN <= 75: Plugin supports only >= 0.76
-        if (major > 0 || (major == 0 && minor <= 75)) {
-            logger.info("React Native $rnVersion <= 0.75, Plugin supports only >= 0.76 react-native versions")
+        if (major == 0 && minor <= 75) {
+            logger.warn("React Native $rnVersion <= 0.75, Plugin supports only >= 0.76 react-native versions")
             return false
         }
 
