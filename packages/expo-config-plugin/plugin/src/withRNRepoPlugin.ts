@@ -1,4 +1,5 @@
-import { withProjectBuildGradle, withAppBuildGradle, type ConfigPlugin, } from '@expo/config-plugins'; 
+import { withProjectBuildGradle, withAppBuildGradle, } from '@expo/config-plugins'; 
+import type { ExpoConfig } from '@expo/config-types';
 
 const classpathRegex = /(classpath.*)/;
 const rnrepoClasspath = 'classpath("org.rnrepo.tools:prebuilds-plugin:+")';
@@ -22,7 +23,7 @@ allprojects {
     }
 }`;
 
-function withAllProjectsMavenRepository(config) {
+function withAllProjectsMavenRepository(config: ExpoConfig) {
   return withProjectBuildGradle(config, (config) => {
     if (!config.modResults.contents.includes(mavenAllProjectsBlock)) {
       config.modResults.contents = config.modResults.contents.replace(
@@ -34,7 +35,7 @@ function withAllProjectsMavenRepository(config) {
   });
 }
 
-function withClasspathDependency(config) {
+function withClasspathDependency(config: ExpoConfig) {
   return withProjectBuildGradle(config, (config) => {
     if (!config.modResults.contents.includes(rnrepoClasspath)) {
       config.modResults.contents = config.modResults.contents.replace(
@@ -46,7 +47,7 @@ function withClasspathDependency(config) {
   });
 }
 
-function withMavenRepository(config) {
+function withMavenRepository(config: ExpoConfig) {
   return withProjectBuildGradle(config, (config) => {
     if (!config.modResults.contents.includes(mavenRepositoryBlock)) {
       config.modResults.contents = config.modResults.contents.replaceAll(
@@ -58,7 +59,7 @@ function withMavenRepository(config) {
   });
 }
 
-function withRnrepoPluginApplication(config) {
+function withRnrepoPluginApplication(config: ExpoConfig) {
   return withAppBuildGradle(config, (config) => {
     if (!config.modResults.contents.includes(applyPluginrnrepo)) {
       config.modResults.contents = config.modResults.contents.replace(
@@ -70,11 +71,10 @@ function withRnrepoPluginApplication(config) {
   });
 }
 
-const withRNRepoPlugin: ConfigPlugin = (config) => {
+export default function withRNRepoPlugin(config: ExpoConfig): ExpoConfig {
   config = withClasspathDependency(config);
   config = withMavenRepository(config);
   config = withRnrepoPluginApplication(config);
   config = withAllProjectsMavenRepository(config);
   return config;
 };
-export default withRNRepoPlugin;

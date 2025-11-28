@@ -53,3 +53,9 @@ DISABLE_RNREPO=true npx expo run:android
 ## License
 
 ISC License
+
+## Development Guide
+
+https://www.npmjs.com/package/expo-module-scripts?activeTab=readme
+
+- Building: `bun run build plugin`

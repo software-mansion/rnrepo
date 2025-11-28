@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "description": "Plugin for configuring RNRepo prebuilt packages in Expo projects",
   "sideEffects": false,
+  "main": ".",
   "scripts": {
     "build": "expo-module build",
     "clean": "expo-module clean",
@@ -30,7 +31,8 @@
   "author": "Software Mansion",
   "license": "ISC",
   "dependencies": {
-    "@expo/config-plugins": "^54.0.2"
+    "@expo/config-plugins": "^54.0.2",
+    "@expo/config-types": "*"
   },
   "devDependencies": {
     "expo-module-scripts": "^5.0.7"
