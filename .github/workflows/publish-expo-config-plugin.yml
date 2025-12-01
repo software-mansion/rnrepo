@@ -48,16 +48,15 @@ jobs:
         run: bun run prepare
         working-directory: ${{ env.PLUGIN_DIR }}
 
-      - name: 🔨 Create npm package
-        run: npm pack
-        working-directory: ${{ env.PLUGIN_DIR }}
+      # - name: 🔨 Create npm package
+      #   run: npm pack
 
-      - name: 🏷️ Set PACKAGE_NAME env variable
-        run: echo "PACKAGE_NAME=$(ls -l | egrep -o "rnrepo-expo-config-plugin-(.*)(=?\.tgz)" )" >> $GITHUB_ENV
+      # - name: 🏷️ Set PACKAGE_NAME env variable
+      #   run: echo "PACKAGE_NAME=$(ls -l | egrep -o "rnrepo-expo-config-plugin-(.*)(=?\.tgz)" )" >> $GITHUB_ENV
 
-      - name: ❌ Fail if PACKAGE_NAME is not set
-        if: ${{ env.PACKAGE_NAME == 'PLACEHOLDER' }}
-        run: exit 1 # This should never happen.
+      # - name: ❌ Fail if PACKAGE_NAME is not set
+      #   if: ${{ env.PACKAGE_NAME == 'PLACEHOLDER' }}
+      #   run: exit 1 # This should never happen.
 
       - name: 🚀 Publish to npm
-        run: NPM_CONFIG_PROVENANCE=false npm publish $PACKAGE_NAME --tag nightly
+        run: NPM_CONFIG_PROVENANCE=false npm publish --tag nightly
