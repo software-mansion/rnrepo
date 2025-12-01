@@ -1,4 +1,5 @@
-import { withProjectBuildGradle, withAppBuildGradle, } from '@expo/config-plugins'; 
+import { withProjectBuildGradle } from '@expo/config-plugins'; 
+import { withAppBuildGradle } from '@expo/config-plugins'; 
 import type { ExpoConfig } from '@expo/config-types';
 
 const classpathRegex = /(classpath.*)/;
