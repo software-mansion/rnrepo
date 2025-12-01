@@ -61,5 +61,5 @@ jobs:
           path: './${{ env.PACKAGE_NAME }}'
 
       - name: 🚀 Publish to npm
-        run: npm publish $PACKAGE_NAME --tag nightly
+        run: NPM_CONFIG_PROVENANCE=false npm publish $PACKAGE_NAME --tag nightly
         working-directory: ${{ env.PLUGIN_DIR }}
