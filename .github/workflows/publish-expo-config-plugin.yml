@@ -1,0 +1,18 @@
+name: Publish Expo Config Plugin to npm
+
+run-name: Publish @rnrepo/expo-config-plugin to npm
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-expo-config-plugin:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./packages/expo-config-plugin
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
