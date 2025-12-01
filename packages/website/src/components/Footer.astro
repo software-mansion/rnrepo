@@ -1,5 +1,4 @@
 ---
-import SectionHeader from './SectionHeader.astro';
 import Icon from './Icon.astro';
 import Logo from './Logo.astro';
 ---
@@ -10,12 +9,14 @@ import Logo from './Logo.astro';
       <div class="mb-8">
         <Logo name="swm" className="h-16 w-auto text-rnrGrey-0" />
       </div>
-      <SectionHeader
-        title="We are Software Mansion"
-        subtitle="We're a software company built around improving developer experience and bringing to life the innovative ideas of our clients."
-        className="text-center"
-        subtitleClassName="max-w-2xl"
-      />
+      <div class="text-center">
+        <h2 class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight">
+          We are Software Mansion
+        </h2>
+        <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-2xl">
+          We're a software company built around improving developer experience and bringing to life the innovative ideas of our clients.
+        </p>
+      </div>
     </div>
 
     {/* CTA Box */}

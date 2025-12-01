@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "astro": "^4.16.6",
+    "lucide-astro": "^0.555.0",
     "react": "^18.3.1",
     "shiki": "^3.17.1"
   },

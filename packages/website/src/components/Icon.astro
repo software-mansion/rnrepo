@@ -1,24 +1,28 @@
 ---
-// Import SVGs as raw text at build time
-import speedSvg from '../assets/icons/speed.svg?raw';
-import openSourceSvg from '../assets/icons/open-source.svg?raw';
-import shieldSvg from '../assets/icons/shield.svg?raw';
-import boxSvg from '../assets/icons/box.svg?raw';
-import phoneSvg from '../assets/icons/phone.svg?raw';
-import folderSvg from '../assets/icons/folder.svg?raw';
-import checkSvg from '../assets/icons/check.svg?raw';
-import clockSvg from '../assets/icons/clock.svg?raw';
-import serverSvg from '../assets/icons/server.svg?raw';
-import chevronDownSvg from '../assets/icons/chevron-down.svg?raw';
-import githubSvg from '../assets/icons/github.svg?raw';
+// Import Lucide icons
+import {
+  Zap,
+  Code2,
+  Shield,
+  Package,
+  Phone,
+  Folder,
+  Check,
+  Clock,
+  Server,
+  ChevronDown,
+  GitBranch,
+  Building,
+  Lock,
+  FileText,
+  ArrowDown,
+  Copy,
+} from 'lucide-astro';
+
+// Import custom SVGs as raw text for icons not available in Lucide or custom logos
 import xSvg from '../assets/icons/x.svg?raw';
+import githubSvg from '../assets/icons/github.svg?raw';
 import youtubeSvg from '../assets/icons/youtube.svg?raw';
-import gitBranchSvg from '../assets/icons/git-branch.svg?raw';
-import buildingSvg from '../assets/icons/building.svg?raw';
-import lockSvg from '../assets/icons/lock.svg?raw';
-import fileTextSvg from '../assets/icons/file-text.svg?raw';
-import arrowDownSvg from '../assets/icons/arrow-down.svg?raw';
-import copySvg from '../assets/icons/copy.svg?raw';
 
 interface Props {
   name: string;
@@ -27,51 +31,57 @@ interface Props {
 
 const { name, className = '' } = Astro.props;
 
-const svgMap: Record<string, string> = {
-  speed: speedSvg,
-  'open-source': openSourceSvg,
-  shield: shieldSvg,
-  box: boxSvg,
-  phone: phoneSvg,
-  folder: folderSvg,
-  check: checkSvg,
-  clock: clockSvg,
-  server: serverSvg,
-  'chevron-down': chevronDownSvg,
-  github: githubSvg,
-  x: xSvg,
-  youtube: youtubeSvg,
-  'git-branch': gitBranchSvg,
-  building: buildingSvg,
-  lock: lockSvg,
-  'file-text': fileTextSvg,
-  'arrow-down': arrowDownSvg,
-  copy: copySvg,
+// Map icon names to Lucide components
+const lucideIconMap: Record<string, any> = {
+  speed: Zap,
+  'open-source': Code2,
+  shield: Shield,
+  box: Package,
+  phone: Phone,
+  folder: Folder,
+  check: Check,
+  clock: Clock,
+  server: Server,
+  'chevron-down': ChevronDown,
+  // github: Github, // Using custom GitHub icon
+  // x: X, // Using custom X.com logo instead
+  // youtube: Youtube, // Using custom YouTube icon
+  'git-branch': GitBranch,
+  building: Building,
+  lock: Lock,
+  'file-text': FileText,
+  'arrow-down': ArrowDown,
+  copy: Copy,
 };
 
-const svgContent = svgMap[name];
+// Fallback to custom SVGs for icons not in Lucide or custom logos
+const customSvgMap: Record<string, string> = {
+  x: xSvg, // X.com logo (not the generic X icon)
+  github: githubSvg, // Custom GitHub icon
+  youtube: youtubeSvg, // Custom YouTube icon
+};
 
-if (!svgContent) {
-  console.warn(`Icon not found: ${name}`);
-}
+const LucideIcon = lucideIconMap[name];
+const customSvg = customSvgMap[name];
 
-let newSvg = '';
+// Process custom SVG if needed (prioritize custom SVGs over Lucide icons)
+let processedSvg = '';
+if (customSvg) {
+  const svgTagMatch = customSvg.match(/<svg([^>]*)>/);
+  const innerMatch = customSvg.match(/<svg[^>]*>(.*?)<\/svg>/s);
 
-if (svgContent) {
-  // Extract the inner content and attributes
-  const svgTagMatch = svgContent.match(/<svg([^>]*)>/);
-  const innerMatch = svgContent.match(/<svg[^>]*>(.*?)<\/svg>/s);
-
-  if (!svgTagMatch || !innerMatch) {
-    console.error(`Invalid SVG format for icon: ${name}`);
-  } else {
+  if (svgTagMatch && innerMatch) {
     const attrs = svgTagMatch[1];
     const innerContent = innerMatch[1];
-    // Create new SVG with className support for styling
-    newSvg = `<svg${attrs} class="${className}">${innerContent}</svg>`;
+    processedSvg = `<svg${attrs} class="${className}">${innerContent}</svg>`;
   }
 }
 ---
 
-{newSvg && <span set:html={newSvg} />}
-
+{customSvg && processedSvg ? (
+  <span set:html={processedSvg} />
+) : LucideIcon ? (
+  <LucideIcon class={className} />
+) : (
+  <span class={className}>⚠️ Icon "{name}" not found</span>
+)}

@@ -93,6 +93,7 @@
       "version": "0.1.0",
       "dependencies": {
         "astro": "^4.16.6",
+        "lucide-astro": "^0.555.0",
         "react": "^18.3.1",
         "shiki": "^3.17.1",
       },
@@ -849,6 +850,8 @@
     "loose-envify": ["loose-envify@1.4.0", "", { "dependencies": { "js-tokens": "^3.0.0 || ^4.0.0" }, "bin": { "loose-envify": "cli.js" } }, "sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q=="],
 
     "lru-cache": ["lru-cache@5.1.1", "", { "dependencies": { "yallist": "^3.0.2" } }, "sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w=="],
+
+    "lucide-astro": ["lucide-astro@0.555.0", "", { "peerDependencies": { "astro": ">=2.7.1" } }, "sha512-kQrDb/JOEd0hlEPPjAZpq8qIrdK6+Xq7aC0lpBU8pV1UhSuxdDGxMOVgOWUGXD6R7I++VppklK6r1wuaJjvXZA=="],
 
     "magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
 

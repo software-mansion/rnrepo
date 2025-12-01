@@ -1,6 +1,6 @@
 ---
-import SectionHeader from './SectionHeader.astro';
 import Icon from './Icon.astro';
+import { Info } from 'lucide-astro';
 import { codeToHtml } from 'shiki';
 
 // Standard React Native build.gradle code
@@ -63,12 +63,44 @@ const appCodeHtml = await codeToHtml(appBuildGradle, {
 <section id="setup" class="py-20 border-b border-rnrGrey-80">
   <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-12">
-      <SectionHeader
-        title="Getting Started"
-        subtitle="To start using RNRepo, you need to configure your Android project to include our Maven repository and use our Gradle plugin that will automatically swap out dependencies on supported libraries with pre-built artifacts downloaded from our repository."
-        subtitleClassName="max-w-2xl"
-      />
+      <h2
+        class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight"
+      >
+        Getting Started
+      </h2>
+
+      {/* Beta Disclaimer */}
+      <div
+        class="mb-6 p-4 bg-brandYellow-100/10 border border-brandYellow-100/30 rounded-sm flex gap-3"
+      >
+        <div class="flex-shrink-0 mt-0.5">
+          <Info class="w-5 h-5 text-brandYellow-100" />
+        </div>
+        <div class="flex-1">
+          <p class="text-sm text-rnrGrey-30 leading-relaxed">
+            RNRepo is currently in
+            <strong class="text-brandYellow-100">Beta</strong> and available for
+            <strong class="text-rnrGrey-0">Android only</strong>.
+          </p>
+          <p class="text-sm text-rnrGrey-30 leading-relaxed mt-1">
+            Please report any feedback or issues with your setup via our{' '}
+            <a
+              href="https://github.com/software-mansion/rnrepo"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-brandSeaBlue-100 hover:underline">GitHub</a
+            >.
+          </p>
+        </div>
+      </div>
     </div>
+
+    <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-2xl mb-8">
+      To start using RNRepo, you need to configure your Android project to
+      include our Maven repository and use our Gradle plugin that will
+      automatically swap out dependencies on supported libraries with pre-built
+      artifacts downloaded from our repository.
+    </p>
 
     {/* Tab Switcher - Using Radio Buttons */}
     <div class="tab-wrapper">

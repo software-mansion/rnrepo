@@ -1,5 +1,4 @@
 ---
-import SectionHeader from './SectionHeader.astro';
 import Icon from './Icon.astro';
 ---
 
@@ -21,12 +20,14 @@ import Icon from './Icon.astro';
       Enterprise & Brownfield
     </div>
 
-    <SectionHeader
-      title="Need a Custom Setup?"
-      subtitle="For enterprise and brownfield projects that require self-hosted Maven repositories, private access configuration, or custom library builds—we're here to help."
-      className="text-center"
-      subtitleClassName="max-w-3xl mx-auto mb-10"
-    />
+    <div class="text-center">
+      <h2 class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight">
+        Need a Custom Setup?
+      </h2>
+      <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-3xl mx-auto mb-10">
+        For enterprise and brownfield projects that require self-hosted Maven repositories, private access configuration, or custom library builds—we're here to help.
+      </p>
+    </div>
 
     <div
       class="flex flex-wrap justify-center gap-6 text-sm text-rnrGrey-30 mb-10 font-medium"

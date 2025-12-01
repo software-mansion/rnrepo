@@ -1,5 +1,4 @@
 ---
-import SectionHeader from './SectionHeader.astro';
 import Icon from './Icon.astro';
 ---
 
@@ -10,10 +9,12 @@ import Icon from './Icon.astro';
   <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
     {/* Header */}
     <div class="mb-12 max-w-2xl">
-      <SectionHeader
-        title="How It Works"
-        subtitle="A fully automated, transparent pipeline from source to prebuilt artifacts."
-      />
+      <h2 class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight">
+        How It Works
+      </h2>
+      <p class="text-lg text-rnrGrey-40 leading-relaxed">
+        A fully automated, transparent pipeline from source to prebuilt artifacts.
+      </p>
     </div>
 
     {/* Vertical Steps List */}
