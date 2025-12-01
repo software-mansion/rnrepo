@@ -55,6 +55,7 @@ class PrebuildsPlugin : Plugin<Project> {
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
 
     override fun apply(project: Project) {
+        val startTime = System.currentTimeMillis()
         val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
         REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project)
         if (!getReactNativeVersion(extension)) {
@@ -153,6 +154,9 @@ class PrebuildsPlugin : Plugin<Project> {
                 //     subproject.afterEvaluate(substitutionAction)
                 // }
             }
+
+            val executionTime = System.currentTimeMillis() - startTime
+            logger.lifecycle("RNRepo plugin execution completed in ${executionTime}ms")
         }
     }
 
