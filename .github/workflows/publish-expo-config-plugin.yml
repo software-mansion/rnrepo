@@ -41,7 +41,7 @@ jobs:
         run: echo "VERSION=$(node -e "console.log(require('./package.json').version)")" >> $GITHUB_ENV
 
       - name: 🏷️ Set PACKAGE_NAME env variable
-        run: echo "PACKAGE_NAME=$(ls -l | egrep -o "rnrepo-expo-config-plugin-(.*)(=?\.tgz)")" >> $GITHUB_ENV
+        run: echo "PACKAGE_NAME=$(find . -maxdepth 1 -name 'rnrepo-expo-config-plugin-*.tgz' -printf '%f')" >> $GITHUB_ENV
 
       - name: ❌ Fail if PACKAGE_NAME and VERSION is not set
         if: ${{ env.PACKAGE_NAME == '' || env.VERSION == '' }}
