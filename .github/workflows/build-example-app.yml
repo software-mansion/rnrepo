@@ -35,11 +35,9 @@ jobs:
         run: bun create expo example-app
 
       # Todo(radoslawrolka): Change this step to use remote expo-plugin once it's published
-      - name: 🚧 Prepare Example App
-        run: |
-          cp ../resources/withBuildlePlugin.js .
-          awk '/"plugins": \[/{print; print "      \"./withBuildlePlugin.js\","; next}1' app.json > app.json.tmp && mv app.json.tmp app.json
-        working-directory: example-app
+      # - name: 🚧 Prepare Example App
+      #   run: bunx expo install @rnrepo/expo-config-plugin
+      #   working-directory: example-app
 
       - name: 🛠 Expo Prebuild for Android
         run: bun expo prebuild -p android
