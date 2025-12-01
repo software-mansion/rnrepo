@@ -55,5 +55,5 @@ jobs:
         run: exit 1 # This should never happen.
 
       - name: 🚀 Publish to npm
-        run: npm publish $PACKAGE_NAME --provenance --access public
+        run: npm publish $PACKAGE_NAME --provenance --access public --tag nightly
         working-directory: ${{ env.PLUGIN_DIR }}
