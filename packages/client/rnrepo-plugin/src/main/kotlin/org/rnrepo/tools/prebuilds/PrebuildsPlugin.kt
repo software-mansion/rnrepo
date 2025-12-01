@@ -55,16 +55,16 @@ class PrebuildsPlugin : Plugin<Project> {
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
 
     override fun apply(project: Project) {
-        if (shouldPluginExecute(project)) {
-            val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
+        val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
+        REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project)
+        if (!getReactNativeVersion(extension)) {
+            logger.error("Could not determine React Native version, aborting RNRepo plugin setup.")
+            return
+        }
+        if (shouldPluginExecute(project, extension)) {
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
 
             // Check what packages are in project and which are we supporting
-            REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project)
-            if (!getReactNativeVersion(extension)) {
-                logger.error("Could not determine React Native version, aborting RNRepo plugin setup.")
-                return
-            }
             getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(extension)
             determineSupportedPackages(project, extension)
@@ -202,16 +202,79 @@ class PrebuildsPlugin : Plugin<Project> {
      *    If "DISABLE_RNREPO" is set to any value, the plugin execution will be disabled; if it's unset, the execution will proceed.
      *
      * @param project The Gradle project context providing access to configuration and execution parameters.
+     * @param extension The PackagesManager extension containing plugin configuration.
      * @return True if all conditions favor execution, otherwise false.
      */
-    private fun shouldPluginExecute(project: Project): Boolean {
+    private fun shouldPluginExecute(
+        project: Project,
+        extension: PackagesManager,
+    ): Boolean {
         val isBuildingCommand: Boolean =
             project.gradle.startParameter.taskNames.any {
                 it.contains("assemble") || it.contains("build") || it.contains("install")
             }
         val isEnvEnabled: Boolean = System.getenv("DISABLE_RNREPO") == null
-        logger.info("Building command: $isBuildingCommand, Env enabled: $isEnvEnabled")
-        return isBuildingCommand && isEnvEnabled
+        val newArchEnabled: Boolean = isNewArchitectureEnabled(project, extension)
+
+        logger.info("Building command: $isBuildingCommand, Env enabled: $isEnvEnabled, New Arch enabled: $newArchEnabled")
+        val isEnabled: Boolean = isBuildingCommand && isEnvEnabled && newArchEnabled
+        logger.lifecycle("RNRepo plugin is ${ if (isEnabled) "ENABLED" else "DISABLED" }")
+        return isEnabled
+    }
+
+    /**
+     * Determines if the New Architecture is enabled for the project.
+     *
+     * The New Architecture is considered enabled if:
+     * 1. React Native version >= 0.82 (New Arch is default)
+     * 2. React Native version >= 0.76 AND newArchEnabled=true in gradle.properties
+     * 3. React Native version >= 0.76 AND gradle.properties doesn't exist (defaults to true)
+     * 4. newArchEnabled=true in gradle.properties for older versions
+     *
+     * @param project The Gradle project
+     * @param extension The PackagesManager with React Native version
+     * @return true if New Architecture is enabled
+     */
+    private fun isNewArchitectureEnabled(
+        project: Project,
+        extension: PackagesManager,
+    ): Boolean {
+        val rnVersion = extension.reactNativeVersion
+
+        // Parse major and minor version
+        val versionParts = rnVersion.split(".")
+        if (versionParts.size < 2) {
+            logger.warn("Could not parse React Native version: $rnVersion, assuming New Arch is disabled")
+            return false
+        }
+
+        val major = versionParts[0].toIntOrNull() ?: 0
+        val minor = versionParts[1].toIntOrNull() ?: 0
+
+        // RN >= 0.82: New Arch is default
+        if (major > 0 || (major == 0 && minor >= 82)) {
+            logger.info("React Native $rnVersion >= 0.82, New Architecture is enabled by default")
+            return true
+        }
+
+        // RN <= 75: Plugin supports only >= 0.76
+        if (major == 0 && minor <= 75) {
+            logger.warn("React Native $rnVersion <= 0.75, Plugin supports only >= 0.76 react-native versions")
+            return false
+        }
+
+        // Check gradle properties
+        val isEnabled: Boolean? =
+            if (project.hasProperty(
+                    "newArchEnabled",
+                )
+            ) {
+                project.property("newArchEnabled").toString().toBoolean()
+            } else {
+                null
+            }
+        logger.info("newArchEnabled property is set to: ${isEnabled ?: "not set"}")
+        return isEnabled ?: true
     }
 
     /**
@@ -562,8 +625,8 @@ class PrebuildsPlugin : Plugin<Project> {
             logger.lifecycle(
                 "Packages not substituted – will fallback to building from sources: ${
                     unavailablePackages.joinToString(
-                        separator = "\n  - ❓ ",
-                    ) { "${it.name}@${it.version}${it.classifier} for React Native ${extension.reactNativeVersion}" }
+                        "",
+                    ) { "\n  - ❓ ${it.name}@${it.version}${it.classifier} for React Native ${extension.reactNativeVersion}" }
                 }",
             )
         }

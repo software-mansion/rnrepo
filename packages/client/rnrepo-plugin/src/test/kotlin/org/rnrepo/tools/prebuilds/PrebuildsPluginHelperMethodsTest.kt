@@ -32,7 +32,9 @@ class PrebuildsPluginHelperMethodsTest {
 
     fun setupPluginExecution(
         taskNames: List<String>,
-        disableRnrepoValue: String?,
+        disableRnrepoValue: String? = null,
+        hasNewArchEnabledProperty: Boolean? = null,
+        newArchEnabledValue: String? = null,
     ): Project {
         val mockGradle = mockk<org.gradle.api.invocation.Gradle>()
         val mockStartParameter = mockk<org.gradle.StartParameter>()
@@ -41,6 +43,8 @@ class PrebuildsPluginHelperMethodsTest {
         every { mockGradle.startParameter } returns mockStartParameter
         every { mockStartParameter.taskNames } returns taskNames
         every { mockProject.findProperty("DISABLE_RNREPO") } returns disableRnrepoValue
+        every { mockProject.hasProperty("newArchEnabled") } returns (hasNewArchEnabledProperty ?: false)
+        every { mockProject.property("newArchEnabled") } returns newArchEnabledValue
 
         return mockProject
     }
@@ -48,10 +52,19 @@ class PrebuildsPluginHelperMethodsTest {
     @Test
     fun `shouldPluginExecute should return true when assemble* task has no DISABLE_RNREPO variables`() {
         // Given
-        val mockProject = setupPluginExecution(listOf("assembleDebug"), null)
+        val mockProject = setupPluginExecution(listOf("assembleDebug"))
+        val extension = PackagesManager()
+        extension.reactNativeVersion = "0.76.0"
 
         // When
-        val result = invokePrivateMethod<Boolean>(plugin, "shouldPluginExecute", arrayOf(Project::class.java), mockProject)
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "shouldPluginExecute",
+                arrayOf(Project::class.java, PackagesManager::class.java),
+                mockProject,
+                extension,
+            )
 
         // Then
         assertThat(result).isTrue()
@@ -60,10 +73,82 @@ class PrebuildsPluginHelperMethodsTest {
     @Test
     fun `shouldPluginExecute should return false when task name does not match patterns and has no DISABLE_RNREPO variables`() {
         // Given
-        val mockProject = setupPluginExecution(listOf("clearCache"), null)
+        val mockProject = setupPluginExecution(listOf("clearCache"))
+        val extension = PackagesManager()
+        extension.reactNativeVersion = "0.76.0"
 
         // When
-        val result = invokePrivateMethod<Boolean>(plugin, "shouldPluginExecute", arrayOf(Project::class.java), mockProject)
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "shouldPluginExecute",
+                arrayOf(Project::class.java, PackagesManager::class.java),
+                mockProject,
+                extension,
+            )
+
+        // Then
+        assertThat(result).isFalse()
+    }
+
+    @Test
+    fun `shouldPluginExecute should return false when RN version is 076 and newArchEnabled is false`() {
+        // Given
+        val mockProject = setupPluginExecution(listOf("assembleDebug"), null, true, "false")
+        val extension = PackagesManager()
+        extension.reactNativeVersion = "0.76.0"
+
+        // When
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "shouldPluginExecute",
+                arrayOf(Project::class.java, PackagesManager::class.java),
+                mockProject,
+                extension,
+            )
+
+        // Then
+        assertThat(result).isFalse()
+    }
+
+    @Test
+    fun `shouldPluginExecute should return true when RN version is 076 and newArchEnabled is not set`() {
+        // Given
+        val mockProject = setupPluginExecution(listOf("assembleDebug"), null, false)
+        val extension = PackagesManager()
+        extension.reactNativeVersion = "0.76.0"
+
+        // When
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "shouldPluginExecute",
+                arrayOf(Project::class.java, PackagesManager::class.java),
+                mockProject,
+                extension,
+            )
+
+        // Then
+        assertThat(result).isTrue()
+    }
+
+    @Test
+    fun `shouldPluginExecute should return false when RN version is 072`() {
+        // Given
+        val mockProject = setupPluginExecution(listOf("assembleDebug"))
+        val extension = PackagesManager()
+        extension.reactNativeVersion = "0.72.0"
+
+        // When
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "shouldPluginExecute",
+                arrayOf(Project::class.java, PackagesManager::class.java),
+                mockProject,
+                extension,
+            )
 
         // Then
         assertThat(result).isFalse()
@@ -73,9 +158,18 @@ class PrebuildsPluginHelperMethodsTest {
     fun `shouldPluginExecute should return false when task name does not match patterns and has DISABLE_RNREPO=true variable`() {
         // Given
         val mockProject = setupPluginExecution(listOf("clearCache"), "true")
+        val extension = PackagesManager()
+        extension.reactNativeVersion = "0.82.0"
 
         // When
-        val result = invokePrivateMethod<Boolean>(plugin, "shouldPluginExecute", arrayOf(Project::class.java), mockProject)
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "shouldPluginExecute",
+                arrayOf(Project::class.java, PackagesManager::class.java),
+                mockProject,
+                extension,
+            )
 
         // Then
         assertThat(result).isFalse()

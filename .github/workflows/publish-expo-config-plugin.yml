@@ -1,0 +1,50 @@
+name: Publish Expo Config Plugin to npm
+
+run-name: Publish @rnrepo/expo-config-plugin to npm
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-expo-config-plugin:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
+    env:
+      PACKAGE_NAME: PLACEHOLDER # Will be set later
+      PLUGIN_DIR: packages/expo-config-plugin
+    defaults:
+      run:
+        working-directory: ${{ env.PLUGIN_DIR }}
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 🏗 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: 🏗 Update npm
+        # Ensure npm 11.5.1 or later is installed
+        run: npm install -g npm@latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔨 Build plugin
+        run: bun run build
+
+      - name: 🔨 Prepare package
+        run: bun run prepare
+
+      - name: 🚀 Publish to npm
+        run: NPM_CONFIG_PROVENANCE=false npm publish

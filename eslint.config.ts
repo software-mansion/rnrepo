@@ -5,7 +5,7 @@ import json from "@eslint/json";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
-  { ignores: ["**/build/**"] },
+  { ignores: ["**/build/**", "**/app.plugin.js", "**/.eslintrc.js", "**/tsconfig.json",] },
   { 
     files: ["**/*.{js,mjs,cjs,ts,mts,cts}"], 
     plugins: { js }, 
