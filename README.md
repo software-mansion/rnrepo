@@ -1,20 +1,10 @@
-<<<<<<< Updated upstream
-# RNRepo
-=======
 # RNRepo Beta
->>>>>>> Stashed changes
 
 RNRepo is a Software Mansion initiative that ships prebuilt Android artifacts for the React Native ecosystem so your mobile engineers can ship up to **5× faster Android builds** with zero infrastructure lift. We continuously precompile the most popular React Native libraries for specific RN versions, sign the resulting artifacts, and host them in a transparent Maven repository that any team can consume.
 
 If you just want to jump in, head to [Installation](#installation) and you will be running in minutes. If you need to understand how the machinery works or how to adapt RNRepo inside regulated environments, the sections below walk you through every detail.
 
 ---
-
-<<<<<<< Updated upstream
-RNRepo provides an automated system for building and integrating React Native packages as AAR (Android Archive) files, dramatically improving build performance by eliminating source compilation.
-=======
-## Why Teams Use RNRepo
->>>>>>> Stashed changes
 
 - Slash Android build times by up to 5× thanks to ready-to-use AARs (measured internally on the React Conf demo app).
 - Keep your dependency graph fresh: we track React Native releases and rebuild libraries automatically.
