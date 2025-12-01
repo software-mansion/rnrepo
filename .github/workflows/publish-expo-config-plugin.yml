@@ -8,7 +8,10 @@ on:
 jobs:
   publish-expo-config-plugin:
     runs-on: ubuntu-latest
-    
+    permissions:
+      id-token: write  # Required for OIDC
+      contents: read
+
     defaults:
       run:
         working-directory: ./packages/expo-config-plugin
@@ -16,3 +19,39 @@ jobs:
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔨 Build plugin
+        run: bun run build
+
+      - name: 🔨 Prepare package
+        run: bun run prepare
+
+      - name: 📃 Create package tarball
+        run: npm pack
+
+      - name: 🏷️ Set VERSION env variable
+        run: echo "VERSION=$(node -e "console.log(require('./package.json').version)")" >> $GITHUB_ENV
+
+      - name: 🏷️ Set PACKAGE_NAME env variable
+        run: echo "PACKAGE_NAME=$(find . -maxdepth 1 -name 'rnrepo-expo-config-plugin-*.tgz' -printf '%f')" >> $GITHUB_ENV
+
+      - name: ❌ Fail if PACKAGE_NAME and VERSION is not set
+        if: ${{ env.PACKAGE_NAME == '' || env.VERSION == '' }}
+        run: exit 1 # This should never happen.
+
+      # - name: 🏷️ Create Git tag
+      #   run: |
+      #     git tag "expo-config-plugin-v${{ env.VERSION }}"
+      #     git push origin "expo-config-plugin-v${{ env.VERSION }}"
+
+      # TODO: Temporary use tag nightly
+      - name: 🚀 Publish to npm
+        run: npm publish $PACKAGE_NAME --tag nightly --provenance
