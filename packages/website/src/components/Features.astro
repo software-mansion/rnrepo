@@ -1,0 +1,58 @@
+---
+import SectionHeader from './SectionHeader.astro';
+import Icon from './Icon.astro';
+---
+
+<section
+  id="benefits"
+  class="py-24 relative border-b border-rnrGrey-80"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <SectionHeader
+        title="Why RNRepo?"
+        subtitle="Built for React Native developers who value speed, security, and simplicity."
+        className="text-center"
+      />
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="bg-surface/40 border border-rnrGrey-80 hover:border-rnrGrey-60 p-8 rounded-sm transition-colors group">
+        <div class="mb-6 w-12 h-12 bg-rnrGrey-0/5 rounded-lg flex items-center justify-center group-hover:bg-rnrGrey-0/10 transition-colors">
+          <Icon name="speed" className="w-6 h-6 text-brandPink-100" />
+        </div>
+        <h3 class="text-xl font-semibold text-rnrGrey-0 mb-3">5x Faster Android Builds</h3>
+        <p class="text-rnrGrey-40 text-sm leading-relaxed">Skip compiling native code from source. RNRepo provides pre-built artifacts that dramatically reduce your build times.</p>
+      </div>
+      <div class="bg-surface/40 border border-rnrGrey-80 hover:border-rnrGrey-60 p-8 rounded-sm transition-colors group">
+        <div class="mb-6 w-12 h-12 bg-rnrGrey-0/5 rounded-lg flex items-center justify-center group-hover:bg-rnrGrey-0/10 transition-colors">
+          <Icon name="phone" className="w-6 h-6 text-brandYellow-100" />
+        </div>
+        <h3 class="text-xl font-semibold text-rnrGrey-0 mb-3">Simplified Brownfield Projects</h3>
+        <p class="text-rnrGrey-40 text-sm leading-relaxed">No more managing complex React Native dependency lists. Just reference the prebuilt artifacts and focus on your app.</p>
+      </div>
+      <div class="bg-surface/40 border border-rnrGrey-80 hover:border-rnrGrey-60 p-8 rounded-sm transition-colors group">
+        <div class="mb-6 w-12 h-12 bg-rnrGrey-0/5 rounded-lg flex items-center justify-center group-hover:bg-rnrGrey-0/10 transition-colors">
+          <Icon name="folder" className="w-6 h-6 text-brandSeaBlue-100" />
+        </div>
+        <h3 class="text-xl font-semibold text-rnrGrey-0 mb-3">Reduced Disk Space</h3>
+        <p class="text-rnrGrey-40 text-sm leading-relaxed">Build directories are smaller because they don't need to contain intermediate build artifacts. Save gigabytes on your CI machines.</p>
+      </div>
+      <div class="bg-surface/40 border border-rnrGrey-80 hover:border-rnrGrey-60 p-8 rounded-sm transition-colors group">
+        <div class="mb-6 w-12 h-12 bg-rnrGrey-0/5 rounded-lg flex items-center justify-center group-hover:bg-rnrGrey-0/10 transition-colors">
+          <Icon name="box" className="w-6 h-6 text-brandSeaBlue-60" />
+        </div>
+        <h3 class="text-xl font-semibold text-rnrGrey-0 mb-3">Optimized Release Builds</h3>
+        <p class="text-rnrGrey-40 text-sm leading-relaxed">Our published artifacts are release builds, better optimized than the debug builds you'd typically compile from source.</p>
+      </div>
+      <div class="bg-surface/40 border border-rnrGrey-80 hover:border-rnrGrey-60 p-8 rounded-sm transition-colors group">
+        <div class="mb-6 w-12 h-12 bg-rnrGrey-0/5 rounded-lg flex items-center justify-center group-hover:bg-rnrGrey-0/10 transition-colors">
+          <Icon name="shield" className="w-6 h-6 text-brandGreen-100" />
+        </div>
+        <h3 class="text-xl font-semibold text-rnrGrey-0 mb-3">Security First</h3>
+        <p class="text-rnrGrey-40 text-sm leading-relaxed">Isolated GitHub workflows, transparent builds, traceable artifacts, and GPG signing ensure your builds are secure and tamper-proof.</p>
+      </div>
+    </div>
+  </div>
+</section>
+

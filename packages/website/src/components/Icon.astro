@@ -1,10 +1,4 @@
-import React from 'react';
-
-interface IconProps {
-  name: string;
-  className?: string;
-}
-
+---
 // Import SVGs as raw text at build time
 import speedSvg from '../assets/icons/speed.svg?raw';
 import openSourceSvg from '../assets/icons/open-source.svg?raw';
@@ -24,6 +18,14 @@ import buildingSvg from '../assets/icons/building.svg?raw';
 import lockSvg from '../assets/icons/lock.svg?raw';
 import fileTextSvg from '../assets/icons/file-text.svg?raw';
 import arrowDownSvg from '../assets/icons/arrow-down.svg?raw';
+import copySvg from '../assets/icons/copy.svg?raw';
+
+interface Props {
+  name: string;
+  className?: string;
+}
+
+const { name, className = '' } = Astro.props;
 
 const svgMap: Record<string, string> = {
   speed: speedSvg,
@@ -44,30 +46,32 @@ const svgMap: Record<string, string> = {
   lock: lockSvg,
   'file-text': fileTextSvg,
   'arrow-down': arrowDownSvg,
+  copy: copySvg,
 };
 
-export const Icon: React.FC<IconProps> = ({ name, className = '' }) => {
-  const svgContent = svgMap[name];
+const svgContent = svgMap[name];
 
-  if (!svgContent) {
-    console.warn(`Icon not found: ${name}`);
-    return null;
-  }
+if (!svgContent) {
+  console.warn(`Icon not found: ${name}`);
+}
 
+let newSvg = '';
+
+if (svgContent) {
   // Extract the inner content and attributes
   const svgTagMatch = svgContent.match(/<svg([^>]*)>/);
   const innerMatch = svgContent.match(/<svg[^>]*>(.*?)<\/svg>/s);
 
   if (!svgTagMatch || !innerMatch) {
     console.error(`Invalid SVG format for icon: ${name}`);
-    return null;
+  } else {
+    const attrs = svgTagMatch[1];
+    const innerContent = innerMatch[1];
+    // Create new SVG with className support for styling
+    newSvg = `<svg${attrs} class="${className}">${innerContent}</svg>`;
   }
+}
+---
 
-  const attrs = svgTagMatch[1];
-  const innerContent = innerMatch[1];
+{newSvg && <span set:html={newSvg} />}
 
-  // Create new SVG with className support for styling
-  const newSvg = `<svg${attrs} class="${className}">${innerContent}</svg>`;
-
-  return <span dangerouslySetInnerHTML={{ __html: newSvg }} />;
-};

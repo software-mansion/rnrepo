@@ -1,0 +1,158 @@
+---
+import SectionHeader from './SectionHeader.astro';
+import Icon from './Icon.astro';
+---
+
+<section
+  id="how-it-works"
+  class="py-16 bg-background border-b border-rnrGrey-80"
+>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    {/* Header */}
+    <div class="mb-12 max-w-2xl">
+      <SectionHeader
+        title="How It Works"
+        subtitle="A fully automated, transparent pipeline from source to prebuilt artifacts."
+      />
+    </div>
+
+    {/* Vertical Steps List */}
+    <div class="flex flex-col mb-12">
+      <div class="flex gap-6 items-start">
+        <div class="w-12 h-12 border rounded-sm flex items-center justify-center shrink-0 text-brandSeaBlue-100 border-brandSeaBlue-100">
+          <div class="w-5 h-5 flex items-center justify-center">
+            <Icon name="git-branch" className="w-5 h-5" />
+          </div>
+        </div>
+        <div class="">
+          <h3 class="text-lg font-medium text-rnrGrey-0 mb-1">Library Configuration</h3>
+          <p class="text-sm text-rnrGrey-40 leading-relaxed max-w-xl">
+            Our GitHub repository maintains a curated list of React Native libraries and supported versions in libraries.json.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex gap-6">
+        <div class="w-12 flex justify-center pt-1 pb-2">
+          <Icon name="arrow-down" className="text-rnrGrey-60 w-5 h-5" />
+        </div>
+      </div>
+
+      <div class="flex gap-6 items-start">
+        <div class="w-12 h-12 border rounded-sm flex items-center justify-center shrink-0 text-brandGreen-100 border-brandGreen-100">
+          <div class="w-5 h-5 flex items-center justify-center">
+            <Icon name="clock" className="w-5 h-5" />
+          </div>
+        </div>
+        <div class="">
+          <h3 class="text-lg font-medium text-rnrGrey-0 mb-1">Automated Detection</h3>
+          <p class="text-sm text-rnrGrey-40 leading-relaxed max-w-xl">
+            A cron job continuously monitors for new library releases and React Native versions, scheduling builds automatically.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex gap-6">
+        <div class="w-12 flex justify-center pt-1 pb-2">
+          <Icon name="arrow-down" className="text-rnrGrey-60 w-5 h-5" />
+        </div>
+      </div>
+
+      <div class="flex gap-6 items-start">
+        <div class="w-12 h-12 border rounded-sm flex items-center justify-center shrink-0 text-brandYellow-100 border-brandYellow-100">
+          <div class="w-5 h-5 flex items-center justify-center">
+            <Icon name="server" className="w-5 h-5" />
+          </div>
+        </div>
+        <div class="">
+          <h3 class="text-lg font-medium text-rnrGrey-0 mb-1">Isolated Builds</h3>
+          <p class="text-sm text-rnrGrey-40 leading-relaxed max-w-xl">
+            Each library is built against specific React Native versions in isolated GitHub workflow —fully transparent and traceable.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex gap-6">
+        <div class="w-12 flex justify-center pt-1 pb-2">
+          <Icon name="arrow-down" className="text-rnrGrey-60 w-5 h-5" />
+        </div>
+      </div>
+
+      <div class="flex gap-6 items-start">
+        <div class="w-12 h-12 border rounded-sm flex items-center justify-center shrink-0 text-brandPink-100 border-brandPink-100">
+          <div class="w-5 h-5 flex items-center justify-center">
+            <Icon name="box" className="w-5 h-5" />
+          </div>
+        </div>
+        <div class="">
+          <h3 class="text-lg font-medium text-rnrGrey-0 mb-1">Maven Publishing</h3>
+          <p class="text-sm text-rnrGrey-40 leading-relaxed max-w-xl">
+            Built artifacts are GPG-signed and published to our public{' '}
+            <a
+              href="#"
+              class="underline hover:text-white transition-colors"
+            >
+              Maven repository here
+            </a>
+            .
+          </p>
+        </div>
+      </div>
+
+      <div class="flex gap-6">
+        <div class="w-12 flex justify-center pt-1 pb-2">
+          <Icon name="arrow-down" className="text-rnrGrey-60 w-5 h-5" />
+        </div>
+      </div>
+
+      <div class="flex gap-6 items-start">
+        <div class="w-12 h-12 border rounded-sm flex items-center justify-center shrink-0 text-brandSeaBlue-100 border-brandSeaBlue-100">
+          <div class="w-5 h-5 flex items-center justify-center">
+            <Icon name="check" className="w-5 h-5" />
+          </div>
+        </div>
+        <div class="">
+          <h3 class="text-lg font-medium text-rnrGrey-0 mb-1">ClientFetching</h3>
+          <p class="text-sm text-rnrGrey-40 leading-relaxed max-w-xl">
+            When you build your app, the RNRepo plugin fetches pre-built artifacts instead of compiling from source.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {/* Full Width Verification Card */}
+    <div class="bg-[#111] border border-rnrGrey-80 p-6 md:p-8 rounded-sm relative overflow-hidden group">
+      <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="max-w-2xl">
+          <h3 class="text-2xl font-medium text-rnrGrey-0 mb-4">
+            Transparent & Verifiable
+          </h3>
+          <p class="text-base text-rnrGrey-40 leading-relaxed">
+            Every artifact includes a link to its build workflow. You can
+            verify the exact commit, build logs, and GPG signature of any
+            prebuilt library.
+            <br />
+            <br />
+            No hidden steps, no black boxes.
+          </p>
+        </div>
+
+        {/* Checkmark Graphic */}
+        <div class="shrink-0">
+          <div class="w-24 h-24 md:w-32 md:h-32 rounded-full border-[8px] border-brandGreen-100 flex items-center justify-center opacity-90">
+            <svg
+              class="w-12 h-12 md:w-16 md:h-16 text-brandGreen-100"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="4"
+              viewBox="0 0 24 24"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+

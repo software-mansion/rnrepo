@@ -1,0 +1,35 @@
+---
+import rnrepoLogoSvg from '../assets/images/rnrepo-logo.svg?raw';
+import swmLogoSvg from '../assets/images/swm-logo.svg?raw';
+
+interface Props {
+  name: 'rnrepo' | 'swm';
+  className?: string;
+  alt?: string;
+}
+
+const { name, className = '', alt } = Astro.props;
+const svgContent = name === 'rnrepo' ? rnrepoLogoSvg : swmLogoSvg;
+const defaultAlt = name === 'rnrepo' ? 'RNRepo' : 'Software Mansion';
+
+if (!svgContent) {
+  throw new Error(`Logo SVG not found for: ${name}`);
+}
+
+// Extract the inner content and attributes
+const svgTagMatch = svgContent.match(/<svg([^>]*)>/);
+const innerMatch = svgContent.match(/<svg[^>]*>(.*?)<\/svg>/s);
+
+if (!svgTagMatch || !innerMatch) {
+  throw new Error(`Invalid SVG format for logo: ${name}`);
+}
+
+const attrs = svgTagMatch[1];
+const innerContent = innerMatch[1];
+
+// Create new SVG with className support for styling
+const newSvg = `<svg${attrs} class="${className}">${innerContent}</svg>`;
+---
+
+<span set:html={newSvg} />
+
