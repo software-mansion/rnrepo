@@ -31,6 +31,10 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
+      # Ensure npm 11.5.1 or later is installed
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: 📦 Install dependencies
         run: bun install
 
@@ -61,7 +65,7 @@ jobs:
           path: './${{ env.PLUGIN_DIR }}/${{ env.PACKAGE_NAME }}'
 
       - name: 🚀 Publish to npm
-        run: NPM_CONFIG_PROVENANCE=false npm publish $PACKAGE_NAME --tag nightly
+        run: NPM_CONFIG_PROVENANCE=false npm publish $PACKAGE_NAME --tag nightly --verbose
         working-directory: ${{ env.PLUGIN_DIR }}
         continue-on-error: true
 
