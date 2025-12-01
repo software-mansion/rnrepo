@@ -1,4 +1,4 @@
-# Buildle
+# RNRepo
 
 ## Contents
 
@@ -10,7 +10,7 @@
 
 ## Android
 
-Buildle provides an automated system for building and integrating React Native packages as AAR (Android Archive) files, dramatically improving build performance by eliminating source compilation.
+RNRepo provides an automated system for building and integrating React Native packages as AAR (Android Archive) files, dramatically improving build performance by eliminating source compilation.
 
 ### Quick Start
 

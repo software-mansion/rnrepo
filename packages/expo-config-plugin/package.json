@@ -17,7 +17,7 @@
   "homepage": "todo",
   "repository": {
     "type": "git",
-    "url": "https://github.com/software-mansion/buildle.git",
+    "url": "https://github.com/software-mansion/rnrepo.git",
     "directory": "packages/expo-config-plugin"
   },
   "keywords": [

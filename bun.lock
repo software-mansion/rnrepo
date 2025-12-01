@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "buildle",
+      "name": "rnrepo",
       "dependencies": {
         "commander": "^13.1.0",
         "zx": "^8.6.0",

@@ -26,7 +26,7 @@ export function setOctokit(octokit: InstanceType<typeof MyOctokit> | null) {
 }
 
 const GITHUB_OWNER = 'software-mansion';
-const GITHUB_REPO = 'buildle';
+const GITHUB_REPO = 'rnrepo';
 
 const WORKFLOW_FILES: Record<Platform, string> = {
   android: '.github/workflows/build-library-android.yml',
