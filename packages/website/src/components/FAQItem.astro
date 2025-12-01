@@ -1,0 +1,99 @@
+---
+interface Props {
+  question: string;
+  answer: string;
+}
+
+const { question, answer } = Astro.props;
+---
+
+<details class="faq-item border-b border-rnrGrey-80">
+  <summary class="faq-summary">
+    <span class="font-medium text-rnrGrey-20">
+      {question}
+    </span>
+    <svg
+      class="faq-chevron w-5 h-5 text-rnrGrey-50"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  </summary>
+  <p
+    class="faq-answer text-rnrGrey-40 text-sm leading-relaxed pr-8 pt-0 pb-4"
+  >
+    {answer}
+  </p>
+</details>
+
+<style>
+  .faq-item {
+    list-style: none;
+  }
+
+  .faq-item summary {
+    list-style: none;
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1rem 0;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .faq-summary:hover span {
+    color: #38acdd;
+  }
+
+  .faq-summary:hover .faq-chevron {
+    color: #38acdd;
+  }
+
+  .faq-summary:focus {
+    outline: none;
+  }
+
+  .faq-chevron {
+    flex-shrink: 0;
+    transition:
+      transform 0.2s,
+      color 0.2s;
+  }
+
+  .faq-item:global([open]) .faq-chevron {
+    transform: rotate(180deg);
+    color: #38acdd;
+  }
+
+  .faq-answer {
+    padding-top: 0;
+    padding-bottom: 1rem;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+</style>
+

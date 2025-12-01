@@ -3,15 +3,20 @@ import SectionHeader from './SectionHeader.astro';
 import Icon from './Icon.astro';
 ---
 
-<section class="py-24 border-y border-rnrGrey-80 bg-background relative overflow-hidden">
+<section
+  class="py-24 border-y border-rnrGrey-80 bg-background relative overflow-hidden"
+>
   {/* Background pattern */}
   <div
     class="absolute inset-0 bg-cover bg-center opacity-50 pointer-events-none"
     style="background-image: url(/swm-pattern.png)"
-  ></div>
+  >
+  </div>
 
   <div class="relative max-w-4xl mx-auto px-4 text-center z-10">
-    <div class="inline-flex items-center gap-2 px-3 py-1 bg-rnrGrey-0/5 border border-rnrGrey-0/10 rounded-full text-xs font-medium text-rnrGrey-30 mb-6 backdrop-blur-sm">
+    <div
+      class="inline-flex items-center gap-2 px-3 py-1 bg-rnrGrey-0/5 border border-rnrGrey-0/10 rounded-full text-xs font-medium text-rnrGrey-30 mb-6 backdrop-blur-sm"
+    >
       <Icon name="building" className="w-4 h-4" />
       Enterprise & Brownfield
     </div>
@@ -20,17 +25,19 @@ import Icon from './Icon.astro';
       title="Need a Custom Setup?"
       subtitle="For enterprise and brownfield projects that require self-hosted Maven repositories, private access configuration, or custom library builds—we're here to help."
       className="text-center"
-      subtitleClassName="max-w-2xl mx-auto mb-10"
+      subtitleClassName="max-w-3xl mx-auto mb-10"
     />
 
-    <div class="flex flex-wrap justify-center gap-6 text-sm text-rnrGrey-30 mb-10 font-medium">
+    <div
+      class="flex flex-wrap justify-center gap-6 text-sm text-rnrGrey-30 mb-10 font-medium"
+    >
       <span class="flex items-center gap-2">
         <Icon name="server" className="w-5 h-5 text-brandYellow-100" />{' '}
         Self-hosted Maven
       </span>
       <span class="flex items-center gap-2">
-        <Icon name="lock" className="w-5 h-5 text-brandGreen-100" /> Private
-        Repository Access
+        <Icon name="lock" className="w-5 h-5 text-brandGreen-100" /> Private Repository
+        Access
       </span>
       <span class="flex items-center gap-2">
         <Icon name="file-text" className="w-5 h-5 text-brandPink-100" />{' '}
@@ -60,4 +67,3 @@ import Icon from './Icon.astro';
     </p>
   </div>
 </section>
-

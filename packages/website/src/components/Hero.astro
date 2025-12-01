@@ -3,33 +3,44 @@ import Icon from './Icon.astro';
 import Logo from './Logo.astro';
 ---
 
-<div class="relative pt-32 pb-16 sm:pt-40 sm:pb-24 overflow-hidden border-b border-rnrGrey-80">
+<div
+  class="relative pt-32 pb-16 sm:pt-40 sm:pb-24 overflow-hidden border-b border-rnrGrey-80"
+>
   {/* Background pattern */}
   <div
     class="absolute inset-0 bg-cover bg-center pointer-events-none"
     style="background-image: url(/swm-pattern.png)"
-  ></div>
+  >
+  </div>
 
   {/* Gradient overlay at top to fade out grid */}
-  <div class="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background to-transparent"></div>
+  <div
+    class="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background to-transparent"
+  >
+  </div>
 
-  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
+  <div
+    class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center"
+  >
     <div class="flex items-center gap-4 mb-8">
       <span class="text-base text-white">Created by</span>
       <Logo name="swm" className="h-12 w-auto text-white" />
     </div>
 
-    <h1 class="text-5xl md:text-7xl font-bold tracking-tight text-rnrGrey-0 mb-6 leading-tight">
+    <h1
+      class="text-5xl md:text-7xl font-bold tracking-tight text-rnrGrey-0 mb-6 leading-tight"
+    >
       A Repository for React
       <br />
       Native{' '}
       <span class="text-brandSeaBlue-100">Pre-Built Artifacts</span>
     </h1>
 
-    <p class="text-lg md:text-xl text-rnrGrey-40 max-w-2xl mb-10 leading-relaxed">
-      Speed up your builds and avoid compiling native libraries from
-      scratch. RNRepo delivers pre-built artifacts so you can focus on
-      building your app.
+    <p
+      class="text-lg md:text-xl text-rnrGrey-40 max-w-3xl mb-10 leading-relaxed"
+    >
+      Speed up your builds and avoid compiling native libraries from scratch.
+      RNRepo delivers pre-built artifacts so you can focus on building your app.
     </p>
 
     <div class="flex flex-col sm:flex-row items-center gap-4 mb-20">
@@ -51,43 +62,66 @@ import Logo from './Logo.astro';
 
     {/* Stats Grid */}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-5xl">
-      <div class="bg-surface/50 border border-rnrGrey-80 p-6 rounded-sm flex flex-col items-center justify-center backdrop-blur-sm group hover:border-rnrGrey-60 transition-colors">
-        <div class="mb-3 w-10 h-10 flex items-center justify-center bg-rnrGrey-0/5 rounded-full group-hover:scale-110 transition-transform">
+      <div
+        class="bg-surface/50 border border-rnrGrey-80 p-6 rounded-sm flex flex-col items-center justify-center backdrop-blur-sm group hover:border-rnrGrey-60 transition-colors"
+      >
+        <div
+          class="mb-3 w-10 h-10 flex items-center justify-center bg-rnrGrey-0/5 rounded-full group-hover:scale-110 transition-transform"
+        >
           <Icon name="speed" className="w-6 h-6 text-brandPink-100" />
         </div>
         <div class="text-2xl font-bold text-rnrGrey-0 mb-1">Up to 5x</div>
-        <div class="text-sm text-rnrGrey-50 font-medium uppercase tracking-wide">
+        <div
+          class="text-sm text-rnrGrey-50 font-medium uppercase tracking-wide"
+        >
           Faster Builds
         </div>
       </div>
-      <div class="bg-surface/50 border border-rnrGrey-80 p-6 rounded-sm flex flex-col items-center justify-center backdrop-blur-sm group hover:border-rnrGrey-60 transition-colors">
-        <div class="mb-3 w-10 h-10 flex items-center justify-center bg-rnrGrey-0/5 rounded-full group-hover:scale-110 transition-transform">
+      <div
+        class="bg-surface/50 border border-rnrGrey-80 p-6 rounded-sm flex flex-col items-center justify-center backdrop-blur-sm group hover:border-rnrGrey-60 transition-colors"
+      >
+        <div
+          class="mb-3 w-10 h-10 flex items-center justify-center bg-rnrGrey-0/5 rounded-full group-hover:scale-110 transition-transform"
+        >
           <Icon name="open-source" className="w-6 h-6 text-brandYellow-100" />
         </div>
         <div class="text-2xl font-bold text-rnrGrey-0 mb-1">100%</div>
-        <div class="text-sm text-rnrGrey-50 font-medium uppercase tracking-wide">
+        <div
+          class="text-sm text-rnrGrey-50 font-medium uppercase tracking-wide"
+        >
           Open Source
         </div>
       </div>
-      <div class="bg-surface/50 border border-rnrGrey-80 p-6 rounded-sm flex flex-col items-center justify-center backdrop-blur-sm group hover:border-rnrGrey-60 transition-colors">
-        <div class="mb-3 w-10 h-10 flex items-center justify-center bg-rnrGrey-0/5 rounded-full group-hover:scale-110 transition-transform">
+      <div
+        class="bg-surface/50 border border-rnrGrey-80 p-6 rounded-sm flex flex-col items-center justify-center backdrop-blur-sm group hover:border-rnrGrey-60 transition-colors"
+      >
+        <div
+          class="mb-3 w-10 h-10 flex items-center justify-center bg-rnrGrey-0/5 rounded-full group-hover:scale-110 transition-transform"
+        >
           <Icon name="shield" className="w-6 h-6 text-brandSeaBlue-100" />
         </div>
         <div class="text-2xl font-bold text-rnrGrey-0 mb-1">GPG</div>
-        <div class="text-sm text-rnrGrey-50 font-medium uppercase tracking-wide">
+        <div
+          class="text-sm text-rnrGrey-50 font-medium uppercase tracking-wide"
+        >
           Signed Artifacts
         </div>
       </div>
-      <div class="bg-surface/50 border border-rnrGrey-80 p-6 rounded-sm flex flex-col items-center justify-center backdrop-blur-sm group hover:border-rnrGrey-60 transition-colors">
-        <div class="mb-3 w-10 h-10 flex items-center justify-center bg-rnrGrey-0/5 rounded-full group-hover:scale-110 transition-transform">
+      <div
+        class="bg-surface/50 border border-rnrGrey-80 p-6 rounded-sm flex flex-col items-center justify-center backdrop-blur-sm group hover:border-rnrGrey-60 transition-colors"
+      >
+        <div
+          class="mb-3 w-10 h-10 flex items-center justify-center bg-rnrGrey-0/5 rounded-full group-hover:scale-110 transition-transform"
+        >
           <Icon name="box" className="w-6 h-6 text-brandGreen-100" />
         </div>
         <div class="text-2xl font-bold text-rnrGrey-0 mb-1">Minimal</div>
-        <div class="text-sm text-rnrGrey-50 font-medium uppercase tracking-wide">
+        <div
+          class="text-sm text-rnrGrey-50 font-medium uppercase tracking-wide"
+        >
           Setup Required
         </div>
       </div>
     </div>
   </div>
 </div>
-
