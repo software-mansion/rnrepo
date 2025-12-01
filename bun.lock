@@ -58,7 +58,7 @@
     },
     "packages/expo-config-plugin": {
       "name": "@rnrepo/expo-config-plugin",
-      "version": "0.0.1",
+      "version": "0.0.3",
       "dependencies": {
         "@expo/config-plugins": "^54.0.2",
         "@expo/config-types": "*",
