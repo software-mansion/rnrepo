@@ -1,11 +1,10 @@
 {
   "name": "@rnrepo/expo-config-plugin",
   "title": "RNRepo expo config plugin",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Plugin for configuring RNRepo prebuilt packages in Expo projects",
   "sideEffects": false,
   "main": ".",
-  "type": "module",
   "scripts": {
     "build": "expo-module build",
     "clean": "expo-module clean",
@@ -32,7 +31,7 @@
   "author": "Software Mansion",
   "license": "ISC",
   "dependencies": {
-    "@expo/config-plugins": "^54.0.2",
+    "@expo/config-plugins": "*",
     "@expo/config-types": "*"
   },
   "devDependencies": {
@@ -48,6 +47,7 @@
     "plugin/build/*",
     "plugin/src/*",
     "plugin/tsconfig.json",
+    "src/*",
     "app.plugin.js",
     "tsconfig.json",
     "README.md"
