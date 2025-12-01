@@ -11,10 +11,12 @@ jobs:
     permissions:
       id-token: write  # Required for OIDC
       contents: read
-
     env:
       PACKAGE_NAME: PLACEHOLDER # Will be set later
       PLUGIN_DIR: packages/expo-config-plugin
+    defaults:
+      run:
+        working-directory: ${{ env.PLUGIN_DIR }}
 
     steps:
       - name: 🏗 Checkout repository
@@ -31,8 +33,8 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      # Ensure npm 11.5.1 or later is installed
-      - name: Update npm
+      - name: 🏗 Update npm
+        # Ensure npm 11.5.1 or later is installed
         run: npm install -g npm@latest
 
       - name: 📦 Install dependencies
@@ -52,23 +54,10 @@ jobs:
 
       - name: 🏷️ Set PACKAGE_NAME env variable
         run: echo "PACKAGE_NAME=$(ls -l | egrep -o "rnrepo-expo-config-plugin-(.*)(=?\.tgz)" )" >> $GITHUB_ENV
-        working-directory: ${{ env.PLUGIN_DIR }}
 
       - name: ❌ Fail if PACKAGE_NAME is not set
         if: ${{ env.PACKAGE_NAME == 'PLACEHOLDER' }}
         run: exit 1 # This should never happen.
 
-      - name: Upload npm package to GitHub
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.PACKAGE_NAME }}
-          path: './${{ env.PLUGIN_DIR }}/${{ env.PACKAGE_NAME }}'
-
       - name: 🚀 Publish to npm
-        run: NPM_CONFIG_PROVENANCE=false npm publish $PACKAGE_NAME --tag nightly --verbose
-        working-directory: ${{ env.PLUGIN_DIR }}
-        continue-on-error: true
-
-      # get error log from previous step if it failed
-      - name: 📄 Get publish error log
-        run: cat /home/runner/.npm/_logs/*.log
+        run: NPM_CONFIG_PROVENANCE=false npm publish $PACKAGE_NAME --tag nightly
