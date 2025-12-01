@@ -25,6 +25,12 @@ jobs:
         with:
           bun-version: latest
 
+      - name: 🏗 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
       - name: 📦 Install dependencies
         run: bun install
 
@@ -48,12 +54,6 @@ jobs:
         if: ${{ env.PACKAGE_NAME == 'PLACEHOLDER' }}
         run: exit 1 # This should never happen.
 
-      - name: � Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-
       - name: 🚀 Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish $PACKAGE_NAME --provenance --access public
         working-directory: ${{ env.PLUGIN_DIR }}
