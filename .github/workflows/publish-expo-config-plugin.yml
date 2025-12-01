@@ -31,6 +31,7 @@ jobs:
 
       - name: 🔨 Build plugin
         run: bun run build
+        working-directory: ${{ env.PLUGIN_DIR }}
 
       - name: 🔨 Prepare package
         run: bun run prepare
