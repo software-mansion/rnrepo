@@ -1,6 +1,5 @@
 ---
 import '../styles/global.css';
-import rnrepoLogo from '../assets/images/rnrepo-logo.svg';
 
 export interface Props {
   title?: string;
@@ -19,7 +18,23 @@ const {
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href={rnrepoLogo} />
+
+    {/* Favicon configuration - supports modern and legacy browsers */}
+    {/* SVG favicon for modern browsers */}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {/* PNG fallback for older browsers */}
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    {/* Apple Touch Icon */}
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    {/* Android/Chrome */}
+    <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+    {/* Legacy ICO format */}
+    <link rel="shortcut icon" href="/favicon.ico" />
+    {/* Web App Manifest */}
+    <link rel="manifest" href="/site.webmanifest" />
+
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
