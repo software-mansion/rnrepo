@@ -54,8 +54,12 @@ jobs:
         if: ${{ env.PACKAGE_NAME == 'PLACEHOLDER' }}
         run: exit 1 # This should never happen.
 
+      - name: Upload npm package to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PACKAGE_NAME }}
+          path: './${{ env.PACKAGE_NAME }}'
+
       - name: 🚀 Publish to npm
         run: npm publish $PACKAGE_NAME --tag nightly
         working-directory: ${{ env.PLUGIN_DIR }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
