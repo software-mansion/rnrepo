@@ -43,7 +43,7 @@ jobs:
       - name: 🏷️ Set PACKAGE_NAME env variable
         run: echo "PACKAGE_NAME=$(ls -l | egrep -o "rnrepo-expo-config-plugin-(.*)(=?\.tgz)")" >> $GITHUB_ENV
 
-      - name: ❌ Fail if PACKAGE_NAME  and VERSION is not set
+      - name: ❌ Fail if PACKAGE_NAME and VERSION is not set
         if: ${{ env.PACKAGE_NAME == '' || env.VERSION == '' }}
         run: exit 1 # This should never happen.
 
