@@ -58,8 +58,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PACKAGE_NAME }}
-          path: './${{ env.PACKAGE_NAME }}'
+          path: './${{ env.PLUGIN_DIR }}/${{ env.PACKAGE_NAME }}'
 
       - name: 🚀 Publish to npm
         run: NPM_CONFIG_PROVENANCE=false npm publish $PACKAGE_NAME --tag nightly
         working-directory: ${{ env.PLUGIN_DIR }}
+        continue-on-error: true
+
+      # get error log from previous step if it failed
+      - name: 📄 Get publish error log
+        run: cat /home/runner/.npm/_logs/*.log
