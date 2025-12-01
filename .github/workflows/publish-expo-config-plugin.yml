@@ -12,7 +12,6 @@ jobs:
       id-token: write  # Required for OIDC
       contents: read
 
-    defaults:
     env:
       TAG: expo-config-plugin
       VERSION: PLACEHOLDER # Will be set later
@@ -44,11 +43,6 @@ jobs:
       - name: ❌ Fail if VERSION is not set
         if: ${{ env.VERSION == 'PLACEHOLDER' }}
         run: exit 1 # This should never happen.
-
-      # - name: 🏷️ Create Git tag
-      #   run: |
-      #     git tag "${{ env.TAG }}-v${{ env.VERSION }}"
-      #     git push origin "${{ env.TAG }}-v${{ env.VERSION }}"
 
       - name: 📦 Move package to workspace root
         # Running `--provenance` in the workspace breaks.
