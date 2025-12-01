@@ -1,0 +1,59 @@
+.faqItem {
+  list-style: none;
+}
+
+.faqItem summary {
+  list-style: none;
+}
+
+.faqItem summary::-webkit-details-marker {
+  display: none;
+}
+
+.faqSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1rem 0;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.faqSummary:hover span {
+  color: #38ACDD;
+}
+
+.faqSummary:hover .faqChevron {
+  color: #38ACDD;
+}
+
+.faqSummary:focus {
+  outline: none;
+}
+
+.faqChevron {
+  flex-shrink: 0;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.faqItem:global([open]) .faqChevron {
+  transform: rotate(180deg);
+  color: #38ACDD;
+}
+
+.faqAnswer {
+  padding-top: 0;
+  padding-bottom: 1rem;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
