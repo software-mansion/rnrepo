@@ -1,23 +1,24 @@
 import React from 'react';
-import {
-  SoftwareMansionBadge,
-  IconSpeed,
-  IconOpenSource,
-  IconShield,
-  IconBox,
-} from './icons/Icons';
+import { Icon } from './Icon';
+import { Logo } from './Logo';
 
 const Hero: React.FC = () => {
   return (
     <div className="relative pt-32 pb-16 sm:pt-40 sm:pb-24 overflow-hidden border-b border-rnrGrey-80">
       {/* Background pattern */}
-      <div className="absolute inset-0 bg-[url('/swm-pattern.png')] bg-cover bg-center pointer-events-none"></div>
+      <div
+        className="absolute inset-0 bg-cover bg-center pointer-events-none"
+        style={{ backgroundImage: 'url(/swm-pattern.png)' }}
+      ></div>
 
       {/* Gradient overlay at top to fade out grid */}
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-background to-transparent"></div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
-        <SoftwareMansionBadge className="mb-8" />
+        <div className="flex items-center gap-4 mb-8">
+          <span className="text-base text-white">Created by</span>
+          <Logo name="swm" className="h-12 w-auto text-white" />
+        </div>
 
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-rnrGrey-0 mb-6 leading-tight">
           A Repository for React
@@ -52,22 +53,29 @@ const Hero: React.FC = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-5xl">
           <StatCard
-            icon={<IconSpeed className="text-brandPink-100" />}
+            icon={<Icon name="speed" className="w-6 h-6 text-brandPink-100" />}
             title="Up to 5x"
             subtitle="Faster Builds"
           />
           <StatCard
-            icon={<IconOpenSource className="text-brandYellow-100" />}
+            icon={
+              <Icon
+                name="open-source"
+                className="w-6 h-6 text-brandYellow-100"
+              />
+            }
             title="100%"
             subtitle="Open Source"
           />
           <StatCard
-            icon={<IconShield className="text-brandSeaBlue-100" />}
+            icon={
+              <Icon name="shield" className="w-6 h-6 text-brandSeaBlue-100" />
+            }
             title="GPG"
             subtitle="Signed Artifacts"
           />
           <StatCard
-            icon={<IconBox className="text-brandGreen-100" />}
+            icon={<Icon name="box" className="w-6 h-6 text-brandGreen-100" />}
             title="Minimal"
             subtitle="Setup Required"
           />

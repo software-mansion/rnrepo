@@ -1,13 +1,11 @@
----
-export interface Props {
+import React from 'react';
+
+interface IconProps {
   name: string;
   className?: string;
 }
 
-const { name, className = '' } = Astro.props;
-
-// Statically import SVG files from assets
-// Note: For logos, we can also reference from /public using <img> tags
+// Import SVGs as raw text at build time
 import speedSvg from '../assets/icons/speed.svg?raw';
 import openSourceSvg from '../assets/icons/open-source.svg?raw';
 import shieldSvg from '../assets/icons/shield.svg?raw';
@@ -26,7 +24,6 @@ import buildingSvg from '../assets/icons/building.svg?raw';
 import lockSvg from '../assets/icons/lock.svg?raw';
 import fileTextSvg from '../assets/icons/file-text.svg?raw';
 import arrowDownSvg from '../assets/icons/arrow-down.svg?raw';
-import swmLogoSvg from '../assets/icons/swm-logo.svg?raw';
 
 const svgMap: Record<string, string> = {
   speed: speedSvg,
@@ -47,31 +44,30 @@ const svgMap: Record<string, string> = {
   lock: lockSvg,
   'file-text': fileTextSvg,
   'arrow-down': arrowDownSvg,
-  'swm-logo': swmLogoSvg,
 };
 
-const svgContent = svgMap[name] || '';
+export const Icon: React.FC<IconProps> = ({ name, className = '' }) => {
+  const svgContent = svgMap[name];
 
-// Extract viewBox and other attributes, and inner content
-const svgTagMatch = svgContent.match(/<svg([^>]*)>/);
-const innerMatch = svgContent.match(/<svg[^>]*>(.*?)<\/svg>/s);
+  if (!svgContent) {
+    console.warn(`Icon not found: ${name}`);
+    return null;
+  }
 
-if (!svgTagMatch || !innerMatch) {
-  console.error(`Invalid SVG format for icon: ${name}`);
-}
+  // Extract the inner content and attributes
+  const svgTagMatch = svgContent.match(/<svg([^>]*)>/);
+  const innerMatch = svgContent.match(/<svg[^>]*>(.*?)<\/svg>/s);
 
-const svgAttrs = svgTagMatch ? svgTagMatch[1] : '';
-const innerContent = innerMatch ? innerMatch[1] : '';
----
+  if (!svgTagMatch || !innerMatch) {
+    console.error(`Invalid SVG format for icon: ${name}`);
+    return null;
+  }
 
-{svgContent && (
-  <svg
-    set:html={svgAttrs}
-    class={className}
-  >
-    <Fragment set:html={innerContent} />
-  </svg>
-)}
-{!svgContent && (
-  <span class={className}>Icon not found: {name}</span>
-)}
+  const attrs = svgTagMatch[1];
+  const innerContent = innerMatch[1];
+
+  // Create new SVG with className support for styling
+  const newSvg = `<svg${attrs} class="${className}">${innerContent}</svg>`;
+
+  return <span dangerouslySetInnerHTML={{ __html: newSvg }} />;
+};

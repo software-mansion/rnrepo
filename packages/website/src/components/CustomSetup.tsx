@@ -1,21 +1,19 @@
 import React from 'react';
-import {
-  IconBuilding,
-  IconServer,
-  IconLock,
-  IconFileText,
-} from './icons/Icons';
 import { SectionHeader } from './SectionHeader';
+import { Icon } from './Icon';
 
 const CustomSetup: React.FC = () => {
   return (
     <section className="py-24 border-y border-rnrGrey-80 bg-background relative overflow-hidden">
       {/* Background pattern */}
-      <div className="absolute inset-0 bg-[url('/swm-pattern.png')] bg-cover bg-center pointer-events-none"></div>
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-50 pointer-events-none"
+        style={{ backgroundImage: 'url(/swm-pattern.png)' }}
+      ></div>
 
       <div className="relative max-w-4xl mx-auto px-4 text-center z-10">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-rnrGrey-0/5 border border-rnrGrey-0/10 rounded-full text-xs font-medium text-rnrGrey-30 mb-6 backdrop-blur-sm">
-          <IconBuilding className="w-4 h-4" />
+          <Icon name="building" className="w-4 h-4" />
           Enterprise & Brownfield
         </div>
 
@@ -28,16 +26,16 @@ const CustomSetup: React.FC = () => {
 
         <div className="flex flex-wrap justify-center gap-6 text-sm text-rnrGrey-30 mb-10 font-medium">
           <span className="flex items-center gap-2">
-            <IconServer className="w-5 h-5 text-brandYellow-100" /> Self-hosted
-            Maven
+            <Icon name="server" className="w-5 h-5 text-brandYellow-100" />{' '}
+            Self-hosted Maven
           </span>
           <span className="flex items-center gap-2">
-            <IconLock className="w-5 h-5 text-brandGreen-100" /> Private
+            <Icon name="lock" className="w-5 h-5 text-brandGreen-100" /> Private
             Repository Access
           </span>
           <span className="flex items-center gap-2">
-            <IconFileText className="w-5 h-5 text-brandPink-100" /> Custom
-            Configurations
+            <Icon name="file-text" className="w-5 h-5 text-brandPink-100" />{' '}
+            Custom Configurations
           </span>
         </div>
 
