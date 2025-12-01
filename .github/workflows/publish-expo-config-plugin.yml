@@ -13,8 +13,10 @@ jobs:
       contents: read
 
     defaults:
-      run:
-        working-directory: ./packages/expo-config-plugin
+    env:
+      TAG: expo-config-plugin
+      VERSION: PLACEHOLDER # Will be set later
+      PLUGIN_DIR: packages/expo-config-plugin
 
     steps:
       - name: 🏗 Checkout repository
@@ -33,22 +35,24 @@ jobs:
 
       - name: 🔨 Prepare package
         run: bun run prepare
+        working-directory: ${{ env.PLUGIN_DIR }}
 
       - name: 🏷️ Set VERSION env variable
         run: echo "VERSION=$(node -e "console.log(require('./package.json').version)")" >> $GITHUB_ENV
+        working-directory: ${{ env.PLUGIN_DIR }}
 
-      - name: bunx whoami
-        run: bunx whoami
-    
       - name: ❌ Fail if VERSION is not set
-        if: ${{ env.VERSION == '' }}
+        if: ${{ env.VERSION == 'PLACEHOLDER' }}
         run: exit 1 # This should never happen.
 
       # - name: 🏷️ Create Git tag
       #   run: |
-      #     git tag "expo-config-plugin-v${{ env.VERSION }}"
-      #     git push origin "expo-config-plugin-v${{ env.VERSION }}"
+      #     git tag "${{ env.TAG }}-v${{ env.VERSION }}"
+      #     git push origin "${{ env.TAG }}-v${{ env.VERSION }}"
 
-      # TODO: Temporary use tag nightly
+      - name: 📦 Move package to workspace root
+        # Running `--provenance` in the workspace breaks.
+        run: mv ${{ env.PLUGIN_DIR }} .
+
       - name: 🚀 Publish to npm
         run: bunx publish --provenance
