@@ -34,17 +34,11 @@ jobs:
       - name: 🔨 Prepare package
         run: bun run prepare
 
-      - name: 📃 Create package tarball
-        run: npm pack
-
       - name: 🏷️ Set VERSION env variable
         run: echo "VERSION=$(node -e "console.log(require('./package.json').version)")" >> $GITHUB_ENV
 
-      - name: 🏷️ Set PACKAGE_NAME env variable
-        run: echo "PACKAGE_NAME=$(find . -maxdepth 1 -name 'rnrepo-expo-config-plugin-*.tgz' -printf '%f')" >> $GITHUB_ENV
-
-      - name: ❌ Fail if PACKAGE_NAME and VERSION is not set
-        if: ${{ env.PACKAGE_NAME == '' || env.VERSION == '' }}
+      - name: ❌ Fail if VERSION is not set
+        if: ${{ env.VERSION == '' }}
         run: exit 1 # This should never happen.
 
       # - name: 🏷️ Create Git tag
@@ -54,4 +48,4 @@ jobs:
 
       # TODO: Temporary use tag nightly
       - name: 🚀 Publish to npm
-        run: npm publish $PACKAGE_NAME --tag nightly --provenance
+        run: bunx publish --provenance
