@@ -32,7 +32,7 @@ jobs:
         run: bun run prepare
 
       - name: 📃 Create package tarball
-        run: bun pack
+        run: npm pack
 
       - name: 🏷️ Set Version env variable
         run: echo "VERSION=$(bun run -c 'node -e \"console.log(require(\\\"./package.json\\\").version)\"')" >> $GITHUB_ENV
