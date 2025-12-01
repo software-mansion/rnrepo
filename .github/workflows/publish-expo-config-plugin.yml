@@ -48,4 +48,4 @@ jobs:
 
       # TODO: Temporary use tag nightly
       - name: 🚀 Publish to npm
-        run: bunx publish --tag nightly --provenance
+        run: bunx publish --provenance
