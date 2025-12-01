@@ -1,7 +1,7 @@
 {
   "name": "@rnrepo/expo-config-plugin",
   "title": "RNRepo expo config plugin",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Plugin for configuring RNRepo prebuilt packages in Expo projects",
   "sideEffects": false,
   "main": ".",
@@ -14,7 +14,7 @@
     "prepublishOnly": "expo-module prepublishOnly",
     "expo-module": "expo-module"
   },
-  "homepage": "todo",
+  "homepage": "https://rnrepo.org/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/software-mansion/rnrepo",

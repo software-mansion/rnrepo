@@ -8,7 +8,7 @@ const mavenCentralRepository = `mavenCentral()`;
 const mavenRepositoryBlock = `
     maven {
         name "RNRepoMavenRepository"
-        url "https://packages.rnrepo.org/snapshots"
+        url "https://packages.rnrepo.org/releases"
     }`;
 // Todo(radoslawrolka): change snapshots to releases when releasing
 const applyPluginrnrepo = 'apply plugin: "org.rnrepo.tools.prebuilds-plugin"';
@@ -19,7 +19,7 @@ allprojects {
     repositories {
         maven {
             name "RNRepoMavenRepository"
-            url "https://packages.rnrepo.org/snapshots"
+            url "https://packages.rnrepo.org/releases"
         }
     }
 }`;
