@@ -1,4 +1,6 @@
 ---
+import { ChevronDown } from 'lucide-astro';
+
 interface Props {
   question: string;
   answer: string;
@@ -12,26 +14,12 @@ const { question, answer } = Astro.props;
     <span class="font-medium text-rnrGrey-20">
       {question}
     </span>
-    <svg
-      class="faq-chevron w-5 h-5 text-rnrGrey-50"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <polyline points="6 9 12 15 18 9"></polyline>
-    </svg>
+    <ChevronDown class="faq-chevron w-5 h-5 text-rnrGrey-50" />
   </summary>
   <p
     class="faq-answer text-rnrGrey-40 text-sm leading-relaxed pr-8 pt-0 pb-4"
-  >
-    {answer}
-  </p>
+    set:html={answer}
+  />
 </details>
 
 <style>
@@ -96,4 +84,3 @@ const { question, answer } = Astro.props;
     }
   }
 </style>
-

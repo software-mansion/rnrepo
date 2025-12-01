@@ -5,15 +5,22 @@ import { codeToHtml } from 'shiki';
 
 // Standard React Native build.gradle code
 const standardBuildGradle = `buildscript {
-  ...
+  repositories {
+    ...
++   maven { url "https://packages.rnrepo.org/releases" }
+  }
   dependencies {
-+   ...
-    classpath("org.rnrepo.tools:prebuilds-plugin:+")
+    ...
++   classpath("org.rnrepo.tools:prebuilds-plugin:+")
   }
 }
-+ apply plugin: "com.facebook.react.rootproject"
-+ repositories {
-    maven { url "https://packages.rnrepo.org/releases" }
+apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+  repositories {
+  ...
++   maven { url "https://packages.rnrepo.org/releases" }
+  }
 }`;
 
 // Expo build.gradle code
@@ -27,7 +34,7 @@ plugin {
 const appBuildGradle = `apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-+ apply plugin: "org.rnrepo.tools.prebuilds-plugin"`;
++apply plugin: "org.rnrepo.tools.prebuilds-plugin"`;
 
 // Extract only the added lines (lines starting with +) for copying
 function extractAddedLines(code: string): string {
@@ -71,9 +78,9 @@ const appCodeHtml = await codeToHtml(appBuildGradle, {
 
       {/* Beta Disclaimer */}
       <div
-        class="mb-6 p-4 bg-brandYellow-100/10 border border-brandYellow-100/30 rounded-sm flex gap-3"
+        class="mb-6 p-4 bg-brandYellow-100/10 border border-brandYellow-100/30 rounded-sm flex gap-3 items-center"
       >
-        <div class="flex-shrink-0 mt-0.5">
+        <div class="flex-shrink-0">
           <Info class="w-5 h-5 text-brandYellow-100" />
         </div>
         <div class="flex-1">

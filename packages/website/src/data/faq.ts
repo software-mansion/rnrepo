@@ -52,6 +52,6 @@ export const faqItems: FAQItem[] = [
   {
     question: 'Is iOS supported?',
     answer:
-      "iOS support is currently in development. We're actively working on bringing the same build speed improvements to iOS. Follow Software Mansion on X (@swaborinmansion) to stay updated on our progress and be the first to know when iOS support launches.",
+      'iOS support is currently in development. We\'re actively working on bringing the same build speed improvements to iOS. Follow <a href="https://x.com/swmansion" target="_blank" rel="noopener noreferrer" class="text-brandSeaBlue-100 hover:underline">Software Mansion on X</a> to stay updated on our progress and be the first to know when iOS support launches.',
   },
 ];
