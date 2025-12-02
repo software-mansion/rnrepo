@@ -13,13 +13,11 @@
   "dependencies": {
     "astro": "^4.16.6",
     "lucide-astro": "^0.555.0",
-    "react": "^18.3.1",
     "shiki": "^3.17.1"
   },
   "devDependencies": {
     "@astrojs/react": "^3.6.0",
     "@astrojs/tailwind": "^5.1.0",
-    "@types/react": "^18.3.12",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
