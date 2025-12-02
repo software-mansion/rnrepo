@@ -413,11 +413,11 @@ class PrebuildsPlugin : Plugin<Project> {
         val httpRepositories =
             repositories.mapNotNull { repoUnchecked ->
                 val repo = repoUnchecked as? MavenArtifactRepository ?: return@mapNotNull null
-                if (repo.url.scheme == "http" || repo.url.scheme == "https") {
-                    repo
-                } else {
-                    null
-                }
+                if (repo.url.scheme != "http" && repo.url.scheme != "https") return@mapNotNull null
+                val host = repo.url.host
+                if (host == null || (!host.endsWith(".rnrepo.org") && host != "rnrepo.org")) return@mapNotNull null
+                // This is an HTTP/HTTPS RNRepo repository
+                repo
             }
 
         if (httpRepositories.isEmpty()) {
