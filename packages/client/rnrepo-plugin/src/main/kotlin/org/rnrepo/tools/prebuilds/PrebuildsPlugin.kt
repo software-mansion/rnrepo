@@ -13,7 +13,6 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import java.io.File
 import java.net.HttpURLConnection
-import java.net.URI
 import java.net.URL
 import java.nio.file.Paths
 
@@ -79,21 +78,17 @@ class PrebuildsPlugin : Plugin<Project> {
             }
 
             // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
-            extension.supportedPackages.forEach { packageItem ->
-                if (packageItem.name == "react-native-reanimated") {
-                    val androidExtension = project.extensions.getByName("android") as? BaseExtension
-                    androidExtension?.let { android ->
-                        val packagingOptions = android.packagingOptions
-
-                        packagingOptions.apply {
-                            jniLibs.pickFirsts += "lib/arm64-v8a/libworklets.so"
-                            jniLibs.pickFirsts += "lib/armeabi-v7a/libworklets.so"
-                            jniLibs.pickFirsts += "lib/x86/libworklets.so"
-                            jniLibs.pickFirsts += "lib/x86_64/libworklets.so"
-                        }
-                    } ?: run {
-                        logger.warn("The Android Gradle Plugin is not applied to this project.")
+            extension.supportedPackages.find { it.name == "react-native-reanimated" }?.let {
+                val androidExtension = project.extensions.getByName("android") as? BaseExtension
+                androidExtension?.let { android ->
+                    android.packagingOptions.apply {
+                        jniLibs.pickFirsts += "lib/arm64-v8a/libworklets.so"
+                        jniLibs.pickFirsts += "lib/armeabi-v7a/libworklets.so"
+                        jniLibs.pickFirsts += "lib/x86/libworklets.so"
+                        jniLibs.pickFirsts += "lib/x86_64/libworklets.so"
                     }
+                } ?: run {
+                    logger.warn("The Android Gradle Plugin is not applied to this project.")
                 }
             }
 
@@ -160,7 +155,7 @@ class PrebuildsPlugin : Plugin<Project> {
         project: Project,
         propertyName: String,
         defaultValue: String,
-    ): String = System.getenv(propertyName) ?: project.findProperty(propertyName) as? String ?: defaultValue
+    ): String = System.getenv(propertyName) ?: (project.findProperty(propertyName) as? String) ?: defaultValue
 
     private fun addDependency(
         project: Project,
@@ -169,24 +164,6 @@ class PrebuildsPlugin : Plugin<Project> {
     ) {
         project.dependencies.add(configurationName, dependencyNotation)
         logger.info("Added dependency: $dependencyNotation to configuration: $configurationName in project ${project.name}")
-    }
-
-    private fun addRepositoryIfNotExists(
-        repositories: RepositoryHandler,
-        repoUrl: String,
-        repoName: String?,
-    ) {
-        val isRepositoryAdded =
-            repositories.any { repo ->
-                (repo as? MavenArtifactRepository)?.url?.toString() == repoUrl
-            }
-        if (!isRepositoryAdded) {
-            repositories.maven { repo ->
-                repo.url = URI(repoUrl)
-                if (repoName != null) repo.name = repoName
-            }
-            logger.info("Added Maven repository: $repoUrl")
-        }
     }
 
     /**
@@ -209,16 +186,16 @@ class PrebuildsPlugin : Plugin<Project> {
         project: Project,
         extension: PackagesManager,
     ): Boolean {
-        val isBuildingCommand: Boolean =
+        val isBuildingCommand =
             project.gradle.startParameter.taskNames.any {
                 it.contains("assemble") || it.contains("build") || it.contains("install")
             }
-        val isEnvEnabled: Boolean = System.getenv("DISABLE_RNREPO") == null
-        val newArchEnabled: Boolean = isNewArchitectureEnabled(project, extension)
+        val isEnvEnabled = System.getenv("DISABLE_RNREPO") == null
+        val newArchEnabled = isNewArchitectureEnabled(project, extension)
 
         logger.info("Building command: $isBuildingCommand, Env enabled: $isEnvEnabled, New Arch enabled: $newArchEnabled")
-        val isEnabled: Boolean = isBuildingCommand && isEnvEnabled && newArchEnabled
-        logger.lifecycle("RNRepo plugin is ${ if (isEnabled) "ENABLED" else "DISABLED" }")
+        val isEnabled = isBuildingCommand && isEnvEnabled && newArchEnabled
+        logger.info("RNRepo plugin is ${ if (isEnabled) "ENABLED" else "DISABLED" }")
         return isEnabled
     }
 
@@ -586,8 +563,7 @@ class PrebuildsPlugin : Plugin<Project> {
      * 2. Specific package requirements (e.g., worklets for reanimated)
      * 3. Availability in repositories (local cache or remote)
      *
-     * Thread-safe collections (ConcurrentHashMap.KeySet and ConcurrentLinkedQueue) are used
-     * to safely collect results from parallel processing.
+     * Thread-safe collections are used to safely collect results from parallel processing.
      */
     private fun determineSupportedPackages(
         project: Project,
@@ -599,36 +575,30 @@ class PrebuildsPlugin : Plugin<Project> {
         val unavailablePackages = java.util.concurrent.ConcurrentLinkedQueue<PackageItem>()
 
         extension.projectPackages.parallelStream().forEach { packageItem ->
-            if (!isPackageNotDenied(packageItem.name, extension)) return@forEach
-            if (!isSpecificCheckPassed(packageItem, extension)) return@forEach
-            if (
-                isPackageAvailable(
-                    packageItem,
-                    extension.reactNativeVersion,
-                    project.repositories,
-                )
-            ) {
-                supportedPackages.add(packageItem)
-            } else {
-                unavailablePackages.add(packageItem)
+            when {
+                !isPackageNotDenied(packageItem.name, extension) -> return@forEach
+                !isSpecificCheckPassed(packageItem, extension) -> return@forEach
+                !isPackageAvailable(packageItem, extension.reactNativeVersion, project.repositories) -> {
+                    unavailablePackages.add(packageItem)
+                }
+                else -> supportedPackages.add(packageItem)
             }
         }
 
         extension.supportedPackages = supportedPackages
-        logger.lifecycle(
-            "Found the following supported prebuilt packages: ${extension.supportedPackages.joinToString(
-                "",
-            ) { "\n  - 📦 ${it.name}@${it.version}${it.classifier}" }}",
-        )
+
+        val supportedList =
+            extension.supportedPackages.joinToString("") { pkg ->
+                "\n  - 📦 ${pkg.name}@${pkg.version}${pkg.classifier}"
+            }
+        logger.lifecycle("Found the following supported prebuilt packages:$supportedList")
 
         if (unavailablePackages.isNotEmpty()) {
-            logger.lifecycle(
-                "Packages not substituted – will fallback to building from sources: ${
-                    unavailablePackages.joinToString(
-                        "",
-                    ) { "\n  - ❓ ${it.name}@${it.version}${it.classifier} for React Native ${extension.reactNativeVersion}" }
-                }",
-            )
+            val unavailableList =
+                unavailablePackages.joinToString("") { pkg ->
+                    "\n  - ❓ ${pkg.name}@${pkg.version}${pkg.classifier} (RN ${extension.reactNativeVersion})"
+                }
+            logger.lifecycle("Packages not available – fallback to building from sources:$unavailableList")
         }
     }
 }
