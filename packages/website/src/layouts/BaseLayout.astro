@@ -1,0 +1,64 @@
+---
+import '../styles/global.css';
+
+export interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "RNRepo - React Native Pre-Built Artifacts",
+  description = "Speed up your builds and avoid compiling native libraries from scratch."
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content={description} />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    {/* Favicon configuration - supports modern and legacy browsers */}
+    {/* SVG favicon for modern browsers */}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {/* PNG fallback for older browsers */}
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    {/* Apple Touch Icon */}
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    {/* Android/Chrome */}
+    <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+    {/* Legacy ICO format */}
+    <link rel="shortcut icon" href="/favicon.ico" />
+    {/* Web App Manifest */}
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'DM Sans', sans-serif;
+        background-color: #0A0A0A;
+        color: #FAFAFA;
+      }
+      .bg-grid-pattern {
+        background-image: linear-gradient(to right, #262626 1px, transparent 1px),
+                          linear-gradient(to bottom, #262626 1px, transparent 1px);
+        background-size: 40px 40px;
+        mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="min-h-screen bg-background text-rnrGrey-0 font-sans selection:bg-brandSeaBlue-100 selection:text-black">
+      <slot />
+    </div>
+  </body>
+</html>
+

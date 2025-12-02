@@ -1,0 +1,87 @@
+---
+// Import Lucide icons
+import {
+  Zap,
+  Code2,
+  Shield,
+  Package,
+  Phone,
+  Folder,
+  Check,
+  Clock,
+  Server,
+  ChevronDown,
+  GitBranch,
+  Building,
+  Lock,
+  FileText,
+  ArrowDown,
+  Copy,
+} from 'lucide-astro';
+
+// Import custom SVGs as raw text for icons not available in Lucide or custom logos
+import xSvg from '../assets/icons/x.svg?raw';
+import githubSvg from '../assets/icons/github.svg?raw';
+import youtubeSvg from '../assets/icons/youtube.svg?raw';
+
+interface Props {
+  name: string;
+  className?: string;
+}
+
+const { name, className = '' } = Astro.props;
+
+// Map icon names to Lucide components
+const lucideIconMap: Record<string, any> = {
+  speed: Zap,
+  'open-source': Code2,
+  shield: Shield,
+  box: Package,
+  phone: Phone,
+  folder: Folder,
+  check: Check,
+  clock: Clock,
+  server: Server,
+  'chevron-down': ChevronDown,
+  // github: Github, // Using custom GitHub icon
+  // x: X, // Using custom X.com logo instead
+  // youtube: Youtube, // Using custom YouTube icon
+  'git-branch': GitBranch,
+  building: Building,
+  lock: Lock,
+  'file-text': FileText,
+  'arrow-down': ArrowDown,
+  copy: Copy,
+};
+
+// Fallback to custom SVGs for icons not in Lucide or custom logos
+const customSvgMap: Record<string, string> = {
+  x: xSvg, // X.com logo (not the generic X icon)
+  github: githubSvg, // Custom GitHub icon
+  youtube: youtubeSvg, // Custom YouTube icon
+};
+
+const LucideIcon = lucideIconMap[name];
+const customSvg = customSvgMap[name];
+
+// Process custom SVG if needed (prioritize custom SVGs over Lucide icons)
+let processedSvg = '';
+if (customSvg) {
+  const svgTagMatch = customSvg.match(/<svg([^>]*)>/);
+  const innerMatch = customSvg.match(/<svg[^>]*>(.*?)<\/svg>/s);
+
+  if (svgTagMatch && innerMatch) {
+    const attrs = svgTagMatch[1];
+    const innerContent = innerMatch[1];
+    processedSvg = `<svg${attrs} class="${className}">${innerContent}</svg>`;
+  }
+}
+---
+
+{customSvg && processedSvg ? (
+  <span set:html={processedSvg} />
+) : LucideIcon ? (
+  <LucideIcon class={className} />
+) : (
+  <span class={className}>⚠️ Icon "{name}" not found</span>
+)}

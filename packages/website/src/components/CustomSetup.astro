@@ -1,0 +1,70 @@
+---
+import Icon from './Icon.astro';
+---
+
+<section
+  class="py-24 border-y border-rnrGrey-80 bg-background relative overflow-hidden"
+>
+  {/* Background pattern */}
+  <div
+    class="absolute inset-0 bg-cover bg-center opacity-50 pointer-events-none"
+    style="background-image: url(/swm-pattern.png)"
+  >
+  </div>
+
+  <div class="relative max-w-4xl mx-auto px-4 text-center z-10">
+    <div
+      class="inline-flex items-center gap-2 px-3 py-1 bg-rnrGrey-0/5 border border-rnrGrey-0/10 rounded-full text-xs font-medium text-rnrGrey-30 mb-6 backdrop-blur-sm"
+    >
+      <Icon name="building" className="w-4 h-4" />
+      Enterprise & Brownfield
+    </div>
+
+    <div class="text-center">
+      <h2 class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight">
+        Need a Custom Setup?
+      </h2>
+      <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-3xl mx-auto mb-10">
+        For enterprise and brownfield projects that require self-hosted Maven repositories, private access configuration, or custom library builds—we're here to help.
+      </p>
+    </div>
+
+    <div
+      class="flex flex-wrap justify-center gap-6 text-sm text-rnrGrey-30 mb-10 font-medium"
+    >
+      <span class="flex items-center gap-2">
+        <Icon name="server" className="w-5 h-5 text-brandYellow-100" />{' '}
+        Self-hosted Maven
+      </span>
+      <span class="flex items-center gap-2">
+        <Icon name="lock" className="w-5 h-5 text-brandGreen-100" /> Private Repository
+        Access
+      </span>
+      <span class="flex items-center gap-2">
+        <Icon name="file-text" className="w-5 h-5 text-brandPink-100" />{' '}
+        Custom Configurations
+      </span>
+    </div>
+
+    <a
+      href="https://swmansion.com/contact"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="bg-brandSeaBlue-100 hover:bg-brandSeaBlue-80 text-black font-semibold py-3 px-8 rounded-sm transition-colors inline-flex items-center justify-center"
+    >
+      Contact Software Mansion <span class="ml-1">→</span>
+    </a>
+
+    <p class="mt-8 text-xs text-rnrGrey-50">
+      RNRepo is built and maintained by{' '}
+      <a
+        href="https://swmansion.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-brandSeaBlue-100 hover:underline"
+      >
+        Software Mansion
+      </a>
+    </p>
+  </div>
+</section>

@@ -1,0 +1,114 @@
+---
+import Icon from './Icon.astro';
+import Logo from './Logo.astro';
+---
+
+<footer class="bg-black pt-20 pb-10 border-t border-rnrGrey-80">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col items-center text-center mb-16">
+      <div class="mb-8">
+        <Logo name="swm" className="h-16 w-auto text-rnrGrey-0" />
+      </div>
+      <div class="text-center">
+        <h2 class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight">
+          We are Software Mansion
+        </h2>
+        <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-2xl">
+          We're a software company built around improving developer experience and bringing to life the innovative ideas of our clients.
+        </p>
+      </div>
+    </div>
+
+    {/* CTA Box */}
+    <div class="bg-[#111] border border-rnrGrey-80 p-8 rounded-sm flex flex-col md:flex-row items-center justify-between gap-6 mb-20 max-w-4xl mx-auto">
+      <h3 class="text-xl font-medium text-rnrGrey-0 text-center md:text-left">
+        Do you have a software project that we
+        <br />
+        can help you with?
+      </h3>
+      <a
+        href="https://swmansion.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="bg-brandSeaBlue-100 hover:bg-brandSeaBlue-80 text-black font-semibold px-6 py-3 rounded-sm transition-colors whitespace-nowrap"
+      >
+        Learn more about us →
+      </a>
+    </div>
+
+    {/* Social Links */}
+    <div class="flex justify-center space-x-6 mb-16">
+      <a
+        href="https://x.com/swmansion"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="w-10 h-10 bg-rnrGrey-0/10 rounded-full flex items-center justify-center text-rnrGrey-0 hover:bg-rnrGrey-0/20 transition-colors"
+      >
+        <div class="w-5 h-5 flex items-center justify-center">
+          <Icon name="x" className="w-5 h-5" />
+        </div>
+      </a>
+      <a
+        href="https://github.com/software-mansion"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="w-10 h-10 bg-rnrGrey-0/10 rounded-full flex items-center justify-center text-rnrGrey-0 hover:bg-rnrGrey-0/20 transition-colors"
+      >
+        <div class="w-5 h-5 flex items-center justify-center">
+          <Icon name="github" className="w-5 h-5" />
+        </div>
+      </a>
+      <a
+        href="https://youtube.com/@SoftwareMansion"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="w-10 h-10 bg-rnrGrey-0/10 rounded-full flex items-center justify-center text-rnrGrey-0 hover:bg-rnrGrey-0/20 transition-colors"
+      >
+        <div class="w-5 h-5 flex items-center justify-center">
+          <Icon name="youtube" className="w-5 h-5" />
+        </div>
+      </a>
+    </div>
+
+    {/* Bottom Bar */}
+    <div class="border-t border-rnrGrey-80 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-rnrGrey-50">
+      <div class="flex items-center gap-2 mb-4 md:mb-0">
+        <Logo name="rnrepo" className="h-5 w-auto" />
+        <span class="bg-rnrGrey-0 text-black px-1 rounded-sm text-[10px] font-bold">
+          BETA
+        </span>
+      </div>
+
+      <div class="flex space-x-6 mb-4 md:mb-0">
+        <a href="#" class="hover:text-rnrGrey-0 transition-colors">
+          Setup
+        </a>
+        <a href="#" class="hover:text-rnrGrey-0 transition-colors">
+          Benefits
+        </a>
+        <a href="#" class="hover:text-rnrGrey-0 transition-colors">
+          FAQ
+        </a>
+        <a
+          href="#"
+          class="hover:text-rnrGrey-0 transition-colors flex items-center gap-1"
+        >
+          <Icon name="github" className="w-3 h-3" /> GitHub
+        </a>
+      </div>
+
+      <div>
+        Built by{' '}
+        <a
+          href="https://swmansion.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-brandSeaBlue-100 hover:underline"
+        >
+          Software Mansion
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+

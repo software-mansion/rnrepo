@@ -1,0 +1,534 @@
+---
+import Icon from './Icon.astro';
+import { Info } from 'lucide-astro';
+import { codeToHtml } from 'shiki';
+
+const cngInstallInstructions = `$ npx expo install @rnrepo/expo-config-plugin`;
+const cngInstallInstructionsCopyText = `npx expo install @rnrepo/expo-config-plugin`;
+
+const cngInstallCodeHtml = await codeToHtml(cngInstallInstructions, {
+  lang: 'shell',
+  theme: 'github-dark',
+});
+
+const cngConfigInstructions = `{
+    "expo" {
+        ...
+        plugins: [
++           "@rnrepo/expo-config-plugin"
+        ]
+    }
+}`;
+const cngConfigInstructionsCopyText = `"@rnrepo/expo-config-plugin"`;
+
+const cngConfigCodeHtml = await codeToHtml(cngConfigInstructions, {
+  lang: 'diff',
+  theme: 'github-dark',
+});
+
+const standardBuildGradleChange = `
+buildscript {
+  repositories {
+    ...
++   maven { url "https://packages.rnrepo.org/releases" }
+  }
+  dependencies {
+    ...
++   classpath("org.rnrepo.tools:prebuilds-plugin:+")
+}`;
+const standardBuildGradleChangesCopyText = `maven { url "https://packages.rnrepo.org/releases" }`;
+
+const standardBuildGradleChangesCodeHtml = await codeToHtml(
+  standardBuildGradleChange,
+  {
+    lang: 'diff',
+    theme: 'github-dark',
+  }
+);
+
+const standardAppBuildGradleChange = `
+apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
++ apply plugin: "org.rnrepo.tools.prebuilds-plugin"
+`;
+
+const standardAppBuildGradleChangesCopyText = `apply plugin: "org.rnrepo.tools.prebuilds-plugin"`;
+
+const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
+  standardAppBuildGradleChange,
+  {
+    lang: 'diff',
+    theme: 'github-dark',
+  }
+);
+---
+
+<section id="setup" class="py-20 border-b border-rnrGrey-80">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-12">
+      <h2
+        class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight"
+      >
+        Getting Started
+      </h2>
+
+      {/* Beta Disclaimer */}
+      <div
+        class="mb-6 p-4 bg-brandYellow-100/10 border border-brandYellow-100/30 rounded-sm flex gap-3 items-center"
+      >
+        <div class="flex-shrink-0">
+          <Info class="w-5 h-5 text-brandYellow-100" />
+        </div>
+        <div class="flex-1">
+          <p class="text-sm text-rnrGrey-30 leading-relaxed">
+            RNRepo is currently in
+            <strong class="text-brandYellow-100">Beta</strong> and available for
+            <strong class="text-rnrGrey-0">Android only</strong>.
+          </p>
+          <p class="text-sm text-rnrGrey-30 leading-relaxed mt-1">
+            Please report any feedback or issues with your setup via our{' '}
+            <a
+              href="https://github.com/software-mansion/rnrepo"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-brandSeaBlue-100 hover:underline">GitHub</a
+            >.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-2xl mb-8">
+      To start using RNRepo, you need to configure your Android project to
+      include our Maven repository and use our Gradle plugin that will
+      automatically swap out dependencies on supported libraries with pre-built
+      artifacts downloaded from our repository.
+    </p>
+
+    {/* Tab Switcher - Using Radio Buttons */}
+    <div class="tab-wrapper">
+      <input
+        type="radio"
+        id="tab-expo"
+        name="getting-started-tab"
+        class="tab-radio tab-radio-expo"
+        checked
+      />
+      <input
+        type="radio"
+        id="tab-standard"
+        name="getting-started-tab"
+        class="tab-radio tab-radio-standard"
+      />
+      <div class="tab-container">
+        <div class="sliding-background"></div>
+        <label for="tab-expo" class="tab-label tab-label-expo">
+          Expo Prebuild (Continous Code Generation – CNG)
+        </label>
+        <label for="tab-standard" class="tab-label tab-label-standard">
+          Standard React Native / Other Expo Setups
+        </label>
+      </div>
+
+      {/* Expo Setup - Step 1 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        If you are using Expo Continuous Code Generation (CNG) setup (generating
+        your native android directory with expo prebuild command), you can use
+        our expo config plugin to automatically configure Android's project to
+        use RNRepo.
+      </p>
+      <p
+        class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        First, install the expo config plugin using your package manager or with
+        <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >expo install</span
+        > command:
+      </p>
+
+      <div
+        class="code-block-wrapper code-block-wrapper-expo border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        data-code={cngInstallInstructions}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono"> terminal </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={cngInstallInstructionsCopyText}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+
+        {/* Code Body */}
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={cngInstallCodeHtml} />
+        </div>
+      </div>
+
+      {/* Expo Setup - Step 2 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        If not already added by the <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >expo install</span
+        > command, manually add the plugin to your <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >app.config.ts</span
+        > file (<span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >app.json</span
+        > or
+        <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >app.config.js</span
+        > depending on your setup):
+      </p>
+
+      {/* Code Block 2: android/app/build.gradle - Expo */}
+      <div
+        class="code-block-wrapper code-block-wrapper-expo border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        data-code={cngConfigInstructions}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono">
+            app.config.ts (app.json or app.config.js)
+          </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={cngConfigInstructions}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={cngConfigCodeHtml} />
+        </div>
+      </div>
+
+      {/* Standard Setup - Step 1 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        For standard React Native setups or when using Expo but managing your
+        android folder by hand, you need to edit the following gradle files to
+        us RNRepo.
+      </p>
+      <p
+        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        First, add the RNRepo Maven repository to your main
+        <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >android/build.gradle</span
+        > file and register RNRepo's gradle plugin.
+      </p>
+
+      {/* Code Block 1: android/build.gradle - Standard */}
+      <div
+        class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        data-code={standardBuildGradleChange}
+      >
+        {/* File Header */}
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono">
+            android/build.gradle
+          </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={standardBuildGradleChangesCopyText}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+
+        {/* Code Body */}
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={standardBuildGradleChangesCodeHtml} />
+        </div>
+      </div>
+
+      {/* Standard Setup - Step 2 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        Next, apply RNRepo's gradle plugin in your app's <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >build.gradle</span
+        > file:
+      </p>
+
+      {/* Code Block 2: android/app/build.gradle - Standard */}
+      <div
+        class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        data-code={standardAppBuildGradleChange}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono">
+            android/app/build.gradle
+          </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={standardAppBuildGradleChangesCopyText}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={standardAppBuildGradleChangesCodeHtml} />
+        </div>
+      </div>
+    </div>
+
+    {/* Bottom CTA */}
+    <div
+      class="mt-8 text-center p-8 bg-surfaceHighlight/20 border border-rnrGrey-80 rounded-sm"
+    >
+      <h3 class="text-lg font-semibold text-rnrGrey-0 mb-2">
+        That's it! Now build your app as usual and enjoy faster builds.
+      </h3>
+      <p class="text-sm text-rnrGrey-40">
+        For detailed instructions, visit our{' '}
+        <a
+          href="https://github.com/software-mansion/rnrepo"
+          class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors"
+        >
+          GitHub repository
+        </a>
+        .
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .tab-wrapper {
+    /* Container for radio buttons and all controlled content */
+  }
+
+  .tab-radio {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .tab-container {
+    position: relative;
+    height: 3.5rem;
+    width: 100%;
+    display: flex;
+    background-color: #1a1a1a;
+    border: 1px solid #262626;
+    border-radius: 0.125rem;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .sliding-background {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    background-color: #38acdd;
+    transition: transform 0.3s ease-in-out;
+    z-index: 0;
+  }
+
+  .tab-label {
+    position: relative;
+    z-index: 10;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color 0.3s;
+    cursor: pointer;
+    color: #a3a3a3;
+  }
+
+  .tab-label:hover {
+    color: #e5e5e5;
+  }
+
+  .code-block-wrapper {
+    display: none;
+  }
+
+  /* When expo tab is checked */
+  .tab-radio-expo:checked ~ .tab-container .sliding-background {
+    transform: translateX(0);
+  }
+
+  .tab-radio-expo:checked ~ .tab-container .tab-label-expo {
+    color: black;
+  }
+
+  .tab-radio-expo:checked ~ .code-block-wrapper-expo {
+    display: block;
+  }
+
+  /* When standard tab is checked */
+  .tab-radio-standard:checked ~ .tab-container .sliding-background {
+    transform: translateX(100%);
+  }
+
+  .tab-radio-standard:checked ~ .tab-container .tab-label-standard {
+    color: black;
+  }
+
+  .tab-radio-standard:checked ~ .code-block-wrapper-standard {
+    display: block;
+  }
+
+  /* Shiki code block styling */
+  .code-block :global(pre) {
+    margin: 0;
+    padding: 0;
+    background: transparent !important;
+    font-size: 0.875rem;
+    line-height: 1.75;
+  }
+
+  .code-block :global(code) {
+    font-family: 'Fira Code', monospace;
+    font-size: inherit;
+  }
+
+  /* Copy button states */
+  .copy-text {
+    display: inline;
+  }
+
+  .copied-text {
+    display: none;
+  }
+
+  .copy-icon {
+    display: inline-block;
+  }
+
+  /* Animation for copied state */
+  @keyframes showCopied {
+    0% {
+      /* Initial state - show Copy text and icon */
+    }
+    1% {
+      /* Switch to Copied! state */
+    }
+    99% {
+      /* Keep Copied! state */
+    }
+    100% {
+      /* Return to Copy state */
+    }
+  }
+
+  .copy-button.copied {
+    pointer-events: none;
+    cursor: default;
+    animation: showCopied 2s ease-in-out;
+  }
+
+  .copy-button.copied:hover,
+  .copy-button.copied:focus {
+    color: inherit;
+  }
+
+  .copy-button.copied .copy-text {
+    display: none;
+  }
+
+  .copy-button.copied .copied-text {
+    display: inline;
+  }
+
+  /* Hide icon in copied state */
+  .copy-button.copied > :global(span:first-child),
+  .copy-button.copied :global(.copy-icon),
+  .copy-button.copied :global(svg.copy-icon) {
+    display: none !important;
+  }
+
+  /* Disable all hover effects when copied */
+  .copy-button.copied:hover {
+    color: inherit;
+  }
+</style>
+
+<script>
+  function initCopyButtons() {
+    const copyButtons = document.querySelectorAll('.copy-button');
+
+    copyButtons.forEach((button) => {
+      // Handle animation end to remove the class
+      button.addEventListener('animationend', (e) => {
+        const animEvent = e as AnimationEvent;
+        if (animEvent.animationName === 'showCopied') {
+          button.classList.remove('copied');
+        }
+      });
+
+      button.addEventListener('click', async () => {
+        const copyText = button.getAttribute('data-copy-text');
+        if (!copyText) return;
+
+        try {
+          await navigator.clipboard.writeText(copyText);
+
+          // Add 'copied' class to trigger CSS animation
+          // The animation will automatically remove the class when it ends
+          button.classList.add('copied');
+        } catch (err) {
+          console.error('Failed to copy code:', err);
+        }
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCopyButtons);
+  } else {
+    initCopyButtons();
+  }
+</script>

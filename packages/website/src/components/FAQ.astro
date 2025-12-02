@@ -1,0 +1,27 @@
+---
+import FAQItem from './FAQItem.astro';
+import { faqItems } from '../data/faq';
+---
+
+<section id="faq" class="py-24 border-b border-rnrGrey-80">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2
+        class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight"
+      >
+        Frequently Asked Questions
+      </h2>
+      <p class="text-lg text-rnrGrey-40 leading-relaxed">
+        Everything you need to know about RNRepo.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      {
+        faqItems.map((item) => (
+          <FAQItem question={item.question} answer={item.answer} />
+        ))
+      }
+    </div>
+  </div>
+</section>
