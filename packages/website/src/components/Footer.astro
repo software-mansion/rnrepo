@@ -10,17 +10,22 @@ import Logo from './Logo.astro';
         <Logo name="swm" className="h-16 w-auto text-rnrGrey-0" />
       </div>
       <div class="text-center">
-        <h2 class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight">
+        <h2
+          class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight"
+        >
           We are Software Mansion
         </h2>
         <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-2xl">
-          We're a software company built around improving developer experience and bringing to life the innovative ideas of our clients.
+          We're a software company built around improving developer experience
+          and bringing to life the innovative ideas of our clients.
         </p>
       </div>
     </div>
 
     {/* CTA Box */}
-    <div class="bg-[#111] border border-rnrGrey-80 p-8 rounded-sm flex flex-col md:flex-row items-center justify-between gap-6 mb-20 max-w-4xl mx-auto">
+    <div
+      class="bg-[#111] border border-rnrGrey-80 p-8 rounded-sm flex flex-col md:flex-row items-center justify-between gap-6 mb-20 max-w-4xl mx-auto"
+    >
       <h3 class="text-xl font-medium text-rnrGrey-0 text-center md:text-left">
         Do you have a software project that we
         <br />
@@ -43,58 +48,54 @@ import Logo from './Logo.astro';
         target="_blank"
         rel="noopener noreferrer"
         class="w-10 h-10 bg-rnrGrey-0/10 rounded-full flex items-center justify-center text-rnrGrey-0 hover:bg-rnrGrey-0/20 transition-colors"
+        aria-label="Follow us on X (Twitter)"
       >
-        <div class="w-5 h-5 flex items-center justify-center">
-          <Icon name="x" className="w-5 h-5" />
-        </div>
+        <Icon name="x" className="w-5 h-5" />
       </a>
       <a
         href="https://github.com/software-mansion"
         target="_blank"
         rel="noopener noreferrer"
         class="w-10 h-10 bg-rnrGrey-0/10 rounded-full flex items-center justify-center text-rnrGrey-0 hover:bg-rnrGrey-0/20 transition-colors"
+        aria-label="Follow us on GitHub"
       >
-        <div class="w-5 h-5 flex items-center justify-center">
-          <Icon name="github" className="w-5 h-5" />
-        </div>
+        <Icon name="github" className="w-5 h-5" />
       </a>
       <a
         href="https://youtube.com/@SoftwareMansion"
         target="_blank"
         rel="noopener noreferrer"
         class="w-10 h-10 bg-rnrGrey-0/10 rounded-full flex items-center justify-center text-rnrGrey-0 hover:bg-rnrGrey-0/20 transition-colors"
+        aria-label="Follow us on YouTube"
       >
-        <div class="w-5 h-5 flex items-center justify-center">
-          <Icon name="youtube" className="w-5 h-5" />
-        </div>
+        <Icon name="youtube" className="w-5 h-5" />
       </a>
     </div>
 
     {/* Bottom Bar */}
-    <div class="border-t border-rnrGrey-80 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-rnrGrey-50">
+    <div
+      class="border-t border-rnrGrey-80 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-rnrGrey-50"
+    >
       <div class="flex items-center gap-2 mb-4 md:mb-0">
         <Logo name="rnrepo" className="h-5 w-auto" />
-        <span class="bg-rnrGrey-0 text-black px-1 rounded-sm text-[10px] font-bold">
+        <span
+          class="bg-rnrGrey-0 text-black px-1 rounded-sm text-[10px] font-bold"
+        >
           BETA
         </span>
       </div>
 
       <div class="flex space-x-6 mb-4 md:mb-0">
-        <a href="#" class="hover:text-rnrGrey-0 transition-colors">
+        <a href="#setup" class="hover:text-rnrGrey-0 transition-colors">
           Setup
         </a>
-        <a href="#" class="hover:text-rnrGrey-0 transition-colors">
+        <a href="#benefits" class="hover:text-rnrGrey-0 transition-colors">
           Benefits
         </a>
-        <a href="#" class="hover:text-rnrGrey-0 transition-colors">
-          FAQ
+        <a href="#how-it-works" class="hover:text-rnrGrey-0 transition-colors">
+          How It Works
         </a>
-        <a
-          href="#"
-          class="hover:text-rnrGrey-0 transition-colors flex items-center gap-1"
-        >
-          <Icon name="github" className="w-3 h-3" /> GitHub
-        </a>
+        <a href="#faq" class="hover:text-rnrGrey-0 transition-colors">FAQ</a>
       </div>
 
       <div>
@@ -111,4 +112,3 @@ import Logo from './Logo.astro';
     </div>
   </div>
 </footer>
-

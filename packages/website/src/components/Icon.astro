@@ -78,10 +78,12 @@ if (customSvg) {
 }
 ---
 
-{customSvg && processedSvg ? (
-  <span set:html={processedSvg} />
-) : LucideIcon ? (
-  <LucideIcon class={className} />
-) : (
-  <span class={className}>⚠️ Icon "{name}" not found</span>
-)}
+{
+  customSvg && processedSvg ? (
+    <span set:html={processedSvg} />
+  ) : LucideIcon ? (
+    <LucideIcon class={className} />
+  ) : (
+    <span class={className}>⚠️ Icon "{name}" not found</span>
+  )
+}
