@@ -1,75 +1,71 @@
 # RNRepo Beta
 
-RNRepo is a Software Mansion initiative that ships prebuilt Android artifacts for the React Native ecosystem so your mobile engineers can ship up to **5× faster Android builds** with zero infrastructure lift. We continuously precompile the most popular React Native libraries for specific RN versions, sign the resulting artifacts, and host them in a transparent Maven repository that any team can consume.
+RNRepo is a Software Mansion initiative that ships prebuilt Android artifacts for the React Native ecosystem so your mobile engineers can ship up to **2× faster Android builds** with zero infrastructure lift. We continuously precompile the most popular React Native libraries for specific RN versions, sign the resulting artifacts, and host them in a transparent Maven repository that any team can consume.
 
-If you just want to jump in, head to [Installation](#installation) and you will be running in minutes. If you need to understand how the machinery works or how to adapt RNRepo inside regulated environments, the sections below walk you through every detail.
+> ⚠️ **Beta Notice:** RNRepo is currently in beta and available **only for Android**. Please give it a try, share your feedback and use [issues](https://github.com/software-mansion/rnrepo/issues) to report any problems with your setup.
 
----
-
-- Slash Android build times by up to 5× thanks to ready-to-use AARs (measured internally on the React Conf demo app).
-- Keep your dependency graph fresh: we track React Native releases and rebuild libraries automatically.
-- Gain build transparency and artifact integrity guarantees via isolated GitHub workflows plus GPG signing.
-- Keep your workflow: RNRepo plugs into Gradle and works with stock `npx react-native run-android`.
+To get started quickly head to [Installation](#installation) section or visit [RNRepo.org](https://rnrepo.org) for instructions.
 
 ---
 
 ## Installation
 
-The quickest way to try RNRepo is to plug our Gradle plugin into your project. Below is the exact setup taken from `docs/TEST.md`.
+To start using RNRepo, you need to configure your Android project to include our Maven repository and use our Gradle plugin that will automatically swap out dependencies on supported libraries with pre-built artifacts downloaded from our repository.
 
-1. **Create (or open) a React Native project** targeting `react-native@0.81.4` (or compatible version).
+### Expo Prebuild (Continuous Code Generation – CNG)
+
+If you are using Expo Continuous Code Generation (CNG) setup (generating your native android directory with `expo prebuild` command), you can use our expo config plugin to automatically configure Android's project to use RNRepo.
+
+1. **Install the expo config plugin:**
 
    ```bash
-   # optional clean-up of legacy CLI
-   # npm uninstall -g react-native-cli @react-native-community/cli
-   npx @react-native-community/cli@latest init AwesomeProject --version 0.81.4
-   cd AwesomeProject
+   npx expo install @rnrepo/expo-config-plugin
    ```
 
-2. **Add the RNRepo plugin to `android/build.gradle`:**
+2. **Add the plugin to your `app.config.ts` file** (`app.json` or `app.config.js` depending on your setup):
+
+   ```diff
+   {
+     "expo": {
+       ...
+       "plugins": [
+   +     "@rnrepo/expo-config-plugin"
+       ]
+     }
+   }
+   ```
+
+That's it! The plugin will automatically configure your Android project when you run `expo prebuild`.
+
+### Standard React Native / Other Expo Setups
+
+For standard React Native setups or when using Expo but managing your android folder by hand, you need to edit the following gradle files to use RNRepo.
+
+1. **Add the RNRepo Maven repository and plugin to `android/build.gradle`:**
 
    ```diff
    buildscript {
-     ...
+     repositories {
+       ...
+   +   maven { url "https://packages.rnrepo.org/releases" }
+     }
      dependencies {
        ...
    +   classpath("org.rnrepo.tools:prebuilds-plugin:+")
      }
    }
-   apply plugin: "com.facebook.react.rootproject"
-   +
-   +repositories {
-   +  maven { url "https://packages.rnrepo.org/releases" }
-   +}
    ```
 
-3. **Apply the plugin in `android/app/build.gradle`:**
+2. **Apply the plugin in `android/app/build.gradle`:**
 
    ```diff
    apply plugin: "com.android.application"
    apply plugin: "org.jetbrains.kotlin.android"
    apply plugin: "com.facebook.react"
-   +apply plugin: "org.rnrepo.tools.prebuilds-plugin"
+   + apply plugin: "org.rnrepo.tools.prebuilds-plugin"
    ```
 
-4. **Install any libraries you want to accelerate** (example: `react-native-svg@15.13.0`):
-
-   ```diff
-     "dependencies": {
-       ...
-       "react-native-safe-area-context": "^5.5.2",
-   +   "react-native-svg": "15.13.0"
-     },
-   ```
-
-5. **Build as usual:**
-
-   ```bash
-   npm install
-   npm run android
-   ```
-
-That is it—Gradle will now pull prebuilt artifacts from `packages.rnrepo.org` whenever a library + RN version pair is available. If a dependency is missing, Gradle gracefully falls back to building from source.
+That's it! Now build your app as usual and Gradle will pull prebuilt artifacts from `packages.rnrepo.org` whenever a library + RN version pair is available. If a dependency is missing, Gradle gracefully falls back to building from source.
 
 ---
 
@@ -106,42 +102,24 @@ Need deeper assurances (air-gapped builds, SLSA attestations, etc.)? Contact us�
 
 ---
 
-## FAQ
-
-**How do I opt out?**
-Set `DISABLE_RNREPO=1` (environment variable or Gradle property). The plugin immediately stops intercepting dependencies and Gradle compiles everything from source.
-
-**How can I tell RNRepo is active?**
-Check your Android build logs: the RNRepo plugin prints a banner plus the list of libraries served from prebuilds. You will also see Maven fetches pointing to `packages.rnrepo.org`.
-
-**Where can I see the list of prebuilt libraries?**
-Browse `libraries.json` inside this repo—it enumerates every library/version/RN combo currently produced.
-
-**How do I request a new library?**
-For now this is a manual curation process. Open an issue on GitHub with the library coordinates and RN versions you need; we will triage and schedule the build.
-
-**Does RNRepo fall back if a prebuild is missing?**
-Yes. Missing entries trigger the standard Gradle compilation path so you are never blocked.
-
----
-
 ## Enterprise & Private Repos
 
 Need RNRepo inside a private Maven, behind VPN, or mirrored into an internal artifact store? Software Mansion offers:
 
 - Self-hosted Maven deployments with RNRepo content synced to your infra.
 - Private RNRepo tenants with custom authentication and access controls.
+- Use RNRepo for _all_ your React-Native dependencies (public repo limitations does not apply as private repo will be scoped to your app's dependencies only)
 - SLA-backed onboarding, monitoring, and support.
 
-➡️ **Reach out to Software Mansion** (contact info coming soon) and we will design the right topology for your organization.
+➡️ **Reach out to [Software Mansion](https://swmansion.com/contact)** to learn how RNRepo can work best for your organization.
 
 ---
 
-## Roadmap & Placeholders
+## Roadmap
 
 - ✅ Public beta with shared Maven repo.
-- 🔜 Detailed GPG verification guide (`gradle.properties`, signature tasks, etc.).
-- 🔜 UI/CLI for browsing available prebuilds.
-- 🔜 Automatic request flow for new libraries.
+- 🔜 iOS support in beta.
+- 🔜 Expanded library coverage.
+- 🔜 Production release (general availability).
 
 If you have feedback or need something that is not covered above, please open an issue—RNRepo is evolving quickly and we would love to hear from early adopters.
