@@ -3,8 +3,31 @@ import Icon from './Icon.astro';
 import { Info } from 'lucide-astro';
 import { codeToHtml } from 'shiki';
 
-// Standard React Native build.gradle code
-const standardBuildGradle = `buildscript {
+const cngInstallInstructions = `$ npx expo install @rnrepo/expo-config-plugin`;
+const cngInstallInstructionsCopyText = `npx expo install @rnrepo/expo-config-plugin`;
+
+const cngInstallCodeHtml = await codeToHtml(cngInstallInstructions, {
+  lang: 'shell',
+  theme: 'github-dark',
+});
+
+const cngConfigInstructions = `{
+    "expo" {
+        ...
+        plugins: [
++           "@rnrepo/expo-config-plugin"
+        ]
+    }
+}`;
+const cngConfigInstructionsCopyText = `"@rnrepo/expo-config-plugin"`;
+
+const cngConfigCodeHtml = await codeToHtml(cngConfigInstructions, {
+  lang: 'diff',
+  theme: 'github-dark',
+});
+
+const standardBuildGradleChange = `
+buildscript {
   repositories {
     ...
 +   maven { url "https://packages.rnrepo.org/releases" }
@@ -12,59 +35,33 @@ const standardBuildGradle = `buildscript {
   dependencies {
     ...
 +   classpath("org.rnrepo.tools:prebuilds-plugin:+")
-  }
-}
-apply plugin: "com.facebook.react.rootproject"
-
-allprojects {
-  repositories {
-  ...
-+   maven { url "https://packages.rnrepo.org/releases" }
-  }
 }`;
+const standardBuildGradleChangesCopyText = `maven { url "https://packages.rnrepo.org/releases" }`;
 
-// Expo build.gradle code
-const expoBuildGradle = `// Expo setup requires config plugin
+const standardBuildGradleChangesCodeHtml = await codeToHtml(
+  standardBuildGradleChange,
+  {
+    lang: 'diff',
+    theme: 'github-dark',
+  }
+);
 
-plugin {
-+   id "org.rnrepo.expo-plugin" version "1.0.0"
-}`;
-
-// app/build.gradle code
-const appBuildGradle = `apply plugin: "com.android.application"
+const standardAppBuildGradleChange = `
+apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-+apply plugin: "org.rnrepo.tools.prebuilds-plugin"`;
++ apply plugin: "org.rnrepo.tools.prebuilds-plugin"
+`;
 
-// Extract only the added lines (lines starting with +) for copying
-function extractAddedLines(code: string): string {
-  return code
-    .split('\n')
-    .filter((line) => line.trim().startsWith('+'))
-    .map((line) => line.replace(/^\+/, '').trim())
-    .join('\n');
-}
+const standardAppBuildGradleChangesCopyText = `apply plugin: "org.rnrepo.tools.prebuilds-plugin"`;
 
-// Define what should be copied for each code block
-const standardCopyText = extractAddedLines(standardBuildGradle);
-const expoCopyText = extractAddedLines(expoBuildGradle);
-const appCopyText = extractAddedLines(appBuildGradle);
-
-// Generate highlighted code HTML
-const standardCodeHtml = await codeToHtml(standardBuildGradle, {
-  lang: 'diff',
-  theme: 'github-dark',
-});
-
-const expoCodeHtml = await codeToHtml(expoBuildGradle, {
-  lang: 'diff',
-  theme: 'github-dark',
-});
-
-const appCodeHtml = await codeToHtml(appBuildGradle, {
-  lang: 'diff',
-  theme: 'github-dark',
-});
+const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
+  standardAppBuildGradleChange,
+  {
+    lang: 'diff',
+    theme: 'github-dark',
+  }
+);
 ---
 
 <section id="setup" class="py-20 border-b border-rnrGrey-80">
@@ -113,31 +110,145 @@ const appCodeHtml = await codeToHtml(appBuildGradle, {
     <div class="tab-wrapper">
       <input
         type="radio"
-        id="tab-standard"
+        id="tab-expo"
         name="getting-started-tab"
-        class="tab-radio tab-radio-standard"
+        class="tab-radio tab-radio-expo"
         checked
       />
       <input
         type="radio"
-        id="tab-expo"
+        id="tab-standard"
         name="getting-started-tab"
-        class="tab-radio tab-radio-expo"
+        class="tab-radio tab-radio-standard"
       />
       <div class="tab-container">
         <div class="sliding-background"></div>
-        <label for="tab-standard" class="tab-label tab-label-standard">
-          Standard React Native
-        </label>
         <label for="tab-expo" class="tab-label tab-label-expo">
-          Expo (CNG)
+          Expo Prebuild (Continous Code Generation – CNG)
+        </label>
+        <label for="tab-standard" class="tab-label tab-label-standard">
+          Standard React Native / Other Expo Setups
         </label>
       </div>
+
+      {/* Expo Setup - Step 1 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        If you are using Expo Continuous Code Generation (CNG) setup (generating
+        your native android directory with expo prebuild command), you can use
+        our expo config plugin to automatically configure Android's project to
+        use RNRepo.
+      </p>
+      <p
+        class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        First, install the expo config plugin using your package manager or with
+        <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >expo install</span
+        > command:
+      </p>
+
+      <div
+        class="code-block-wrapper code-block-wrapper-expo border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        data-code={cngInstallInstructions}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono"> terminal </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={cngInstallInstructionsCopyText}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+
+        {/* Code Body */}
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={cngInstallCodeHtml} />
+        </div>
+      </div>
+
+      {/* Expo Setup - Step 2 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        If not already added by the <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >expo install</span
+        > command, manually add the plugin to your <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >app.config.ts</span
+        > file (<span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >app.json</span
+        > or
+        <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >app.config.js</span
+        > depending on your setup):
+      </p>
+
+      {/* Code Block 2: android/app/build.gradle - Expo */}
+      <div
+        class="code-block-wrapper code-block-wrapper-expo border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        data-code={cngConfigInstructions}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono">
+            app.config.ts (app.json or app.config.js)
+          </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={cngConfigInstructions}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={cngConfigCodeHtml} />
+        </div>
+      </div>
+
+      {/* Standard Setup - Step 1 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        For standard React Native setups or when using Expo but managing your
+        android folder by hand, you need to edit the following gradle files to
+        us RNRepo.
+      </p>
+      <p
+        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        First, add the RNRepo Maven repository to your main
+        <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >android/build.gradle</span
+        > file and register RNRepo's gradle plugin.
+      </p>
 
       {/* Code Block 1: android/build.gradle - Standard */}
       <div
         class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
-        data-code={standardBuildGradle}
+        data-code={standardBuildGradleChange}
       >
         {/* File Header */}
         <div
@@ -149,7 +260,7 @@ const appCodeHtml = await codeToHtml(appBuildGradle, {
           <button
             class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
             type="button"
-            data-copy-text={standardCopyText}
+            data-copy-text={standardBuildGradleChangesCopyText}
           >
             <Icon
               name="copy"
@@ -162,26 +273,35 @@ const appCodeHtml = await codeToHtml(appBuildGradle, {
 
         {/* Code Body */}
         <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
-          <Fragment set:html={standardCodeHtml} />
+          <Fragment set:html={standardBuildGradleChangesCodeHtml} />
         </div>
       </div>
 
-      {/* Code Block 1: android/build.gradle - Expo */}
-      <div
-        class="code-block-wrapper code-block-wrapper-expo border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
-        data-code={expoBuildGradle}
+      {/* Standard Setup - Step 2 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
       >
-        {/* File Header */}
+        Next, apply RNRepo's gradle plugin in your app's <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >build.gradle</span
+        > file:
+      </p>
+
+      {/* Code Block 2: android/app/build.gradle - Standard */}
+      <div
+        class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        data-code={standardAppBuildGradleChange}
+      >
         <div
           class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
         >
           <span class="text-xs text-rnrGrey-50 font-mono">
-            android/build.gradle
+            android/app/build.gradle
           </span>
           <button
             class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
             type="button"
-            data-copy-text={expoCopyText}
+            data-copy-text={standardAppBuildGradleChangesCopyText}
           >
             <Icon
               name="copy"
@@ -191,40 +311,9 @@ const appCodeHtml = await codeToHtml(appBuildGradle, {
             <span class="copied-text">Copied!</span>
           </button>
         </div>
-
-        {/* Code Body */}
         <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
-          <Fragment set:html={expoCodeHtml} />
+          <Fragment set:html={standardAppBuildGradleChangesCodeHtml} />
         </div>
-      </div>
-    </div>
-
-    {/* Code Block 2: android/app/build.gradle */}
-    <div
-      class="border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D]"
-      data-code={appBuildGradle}
-    >
-      <div
-        class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
-      >
-        <span class="text-xs text-rnrGrey-50 font-mono">
-          android/app/build.gradle
-        </span>
-        <button
-          class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
-          type="button"
-          data-copy-text={appCopyText}
-        >
-          <Icon
-            name="copy"
-            className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
-          />
-          <span class="copy-text">Copy</span>
-          <span class="copied-text">Copied!</span>
-        </button>
-      </div>
-      <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
-        <Fragment set:html={appCodeHtml} />
       </div>
     </div>
 
@@ -306,22 +395,9 @@ const appCodeHtml = await codeToHtml(appBuildGradle, {
     display: none;
   }
 
-  /* When standard tab is checked */
-  .tab-radio-standard:checked ~ .tab-container .sliding-background {
-    transform: translateX(0);
-  }
-
-  .tab-radio-standard:checked ~ .tab-container .tab-label-standard {
-    color: black;
-  }
-
-  .tab-radio-standard:checked ~ .code-block-wrapper-standard {
-    display: block;
-  }
-
   /* When expo tab is checked */
   .tab-radio-expo:checked ~ .tab-container .sliding-background {
-    transform: translateX(100%);
+    transform: translateX(0);
   }
 
   .tab-radio-expo:checked ~ .tab-container .tab-label-expo {
@@ -329,6 +405,19 @@ const appCodeHtml = await codeToHtml(appBuildGradle, {
   }
 
   .tab-radio-expo:checked ~ .code-block-wrapper-expo {
+    display: block;
+  }
+
+  /* When standard tab is checked */
+  .tab-radio-standard:checked ~ .tab-container .sliding-background {
+    transform: translateX(100%);
+  }
+
+  .tab-radio-standard:checked ~ .tab-container .tab-label-standard {
+    color: black;
+  }
+
+  .tab-radio-standard:checked ~ .code-block-wrapper-standard {
     display: block;
   }
 
