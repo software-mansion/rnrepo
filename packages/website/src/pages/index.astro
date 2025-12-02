@@ -8,18 +8,25 @@ import HowItWorks from '../components/HowItWorks.astro';
 import CustomSetup from '../components/CustomSetup.astro';
 import FAQ from '../components/FAQ.astro';
 import Footer from '../components/Footer.astro';
+
+const isProduction = import.meta.env.PROD;
 ---
 
-<BaseLayout>
-  <Navbar />
-  <main>
-    <Hero />
-    <GettingStarted />
-    <Features />
-    <HowItWorks />
-    <CustomSetup />
-    <FAQ />
-  </main>
-  <Footer />
-</BaseLayout>
-
+{
+  isProduction ? (
+    <p>Coming Soon</p>
+  ) : (
+    <BaseLayout>
+      <Navbar />
+      <main>
+        <Hero />
+        <GettingStarted />
+        <Features />
+        <HowItWorks />
+        <CustomSetup />
+        <FAQ />
+      </main>
+      <Footer />
+    </BaseLayout>
+  )
+}
