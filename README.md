@@ -2,7 +2,7 @@
 
 RNRepo is a Software Mansion initiative that ships prebuilt Android artifacts for the React Native ecosystem so your mobile engineers can ship up to **2× faster Android builds** with zero infrastructure lift. We continuously precompile the most popular React Native libraries for specific RN versions, sign the resulting artifacts, and host them in a transparent Maven repository that any team can consume.
 
-> ⚠️ **Beta Notice:** RNRepo is currently in beta and available **only for Android**. Please give it a try, share your feedback and use [issues](https://github.com/software-mansion/rnrepo/issues) to report any problems with your setup.
+> ⚠️ RNRepo is currently in beta and available **only for Android** for React Native projects using **The New Architecture**. Please give it a try, share your feedback and use [issues](https://github.com/software-mansion/rnrepo/issues) to report any problems with your setup.
 
 To get started quickly head to [Installation](#installation) section or visit [RNRepo.org](https://rnrepo.org) for instructions.
 
@@ -51,7 +51,7 @@ For standard React Native setups or when using Expo but managing your android fo
      }
      dependencies {
        ...
-   +   classpath("org.rnrepo.tools:prebuilds-plugin:+")
+   +   classpath("org.rnrepo.tools:prebuilds-plugin:0.1.0")
      }
    }
    ```
@@ -73,8 +73,8 @@ That's it! Now build your app as usual and Gradle will pull prebuilt artifacts f
 
 Enterprises often mandate artifact provenance. RNRepo signs every published artifact with a Software Mansion-controlled GPG key hosted on [keys.openpgp.org](https://keys.openpgp.org). To enable verification inside your CI/CD:
 
-1. Fetch our public key: `curl https://keys.openpgp.org/vks/v1/by-fingerprint/<RNREPO_FINGERPRINT> | gpg --import`.
-2. Configure Gradle/Maven signature checks (**placeholder: docs coming soon**).
+1. Fetch our public key: `curl https://keys.openpgp.org/vks/v1/by-fingerprint/6CBF6E07EBA0219DF11C9F78C9ED010ADBD95DFE | gpg --import`.
+2. If not already done, configure Gradle/Maven signature checks [using the official instructions](https://developer.android.com/build/dependency-verification)
 3. Store the fingerprint in your policy tooling to alert on unexpected key rotations.
 
 > **Need help?** Reach out and we will walk your security team through the setup or provide signed attestation bundles.
@@ -95,10 +95,8 @@ Enterprises often mandate artifact provenance. RNRepo signs every published arti
 
 - **Isolated GitHub Workflows:** Build jobs run in locked-down GitHub-hosted environments with no cross-job sharing, eliminating supply-chain leakage.
 - **Transparent pipeline:** Every artifact references its workflow URL so you can audit logs before trusting a build.
-- **GPG signing:** Artifacts are signed before upload; downstream clients can verify signatures to ensure binaries were produced by Software Mansion.
-- **Repository integrity:** `packages.rnrepo.org` serves checksums + signatures, and we never mutate published versions.
-
-Need deeper assurances (air-gapped builds, SLSA attestations, etc.)? Contact us—we already operate bespoke pipelines for regulated partners.
+- **GPG signing:** Artifacts are signed before upload; downstream clients can verify signatures to ensure binaries were produced by the workflow we run on Github.
+- **Repository integrity:** `packages.rnrepo.org` serves checksums + signatures.
 
 ---
 
@@ -121,5 +119,3 @@ Need RNRepo inside a private Maven, behind VPN, or mirrored into an internal art
 - 🔜 iOS support in beta.
 - 🔜 Expanded library coverage.
 - 🔜 Production release (general availability).
-
-If you have feedback or need something that is not covered above, please open an issue—RNRepo is evolving quickly and we would love to hear from early adopters.
