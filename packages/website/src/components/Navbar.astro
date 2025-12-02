@@ -1,36 +1,35 @@
 ---
 import Logo from './Logo.astro';
+import { Menu, X } from 'lucide-astro';
 ---
 
-<nav class="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-rnrGrey-80">
+<nav
+  class="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-rnrGrey-80"
+>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
       <div class="flex items-center gap-3">
         <Logo name="rnrepo" className="h-8 w-auto" />
-        <span class="text-[10px] font-bold bg-rnrGrey-0 text-black px-1.5 py-0.5 rounded-sm self-start mt-1">
+        <span
+          class="text-[10px] font-bold bg-rnrGrey-0 text-black px-1.5 py-0.5 rounded-sm self-start mt-1"
+        >
           BETA
         </span>
       </div>
 
-      <div class="hidden md:flex items-center space-x-8 text-sm font-medium text-rnrGrey-40">
+      <div
+        class="hidden md:flex items-center space-x-8 text-sm font-medium text-rnrGrey-40"
+      >
         <a href="#setup" class="hover:text-rnrGrey-0 transition-colors">
           Setup
         </a>
-        <a
-          href="#benefits"
-          class="hover:text-rnrGrey-0 transition-colors"
-        >
+        <a href="#benefits" class="hover:text-rnrGrey-0 transition-colors">
           Benefits
         </a>
-        <a
-          href="#how-it-works"
-          class="hover:text-rnrGrey-0 transition-colors"
-        >
+        <a href="#how-it-works" class="hover:text-rnrGrey-0 transition-colors">
           How It Works
         </a>
-        <a href="#faq" class="hover:text-rnrGrey-0 transition-colors">
-          FAQ
-        </a>
+        <a href="#faq" class="hover:text-rnrGrey-0 transition-colors"> FAQ </a>
 
         <a
           href="https://github.com/software-mansion/rnrepo"
@@ -44,24 +43,104 @@ import Logo from './Logo.astro';
       </div>
 
       <div class="md:hidden">
-        {/* Mobile menu button placeholder */}
-        <button class="text-rnrGrey-40 hover:text-rnrGrey-0">
-          <svg
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 6h16M4 12h16m-7 6h7"
-            />
-          </svg>
+        <button
+          id="mobile-menu-button"
+          class="text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors"
+          aria-label="Toggle menu"
+        >
+          <Menu id="menu-icon" class="w-6 h-6" />
+          <X id="close-icon" class="w-6 h-6 hidden" />
         </button>
+      </div>
+    </div>
+
+    {/* Mobile menu */}
+    <div
+      id="mobile-menu"
+      class="hidden md:hidden border-t border-rnrGrey-80 bg-background/95 backdrop-blur-md"
+    >
+      <div class="px-4 pt-2 pb-4 space-y-3">
+        <a
+          href="#setup"
+          class="block text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors py-2"
+          data-mobile-menu-link
+        >
+          Setup
+        </a>
+        <a
+          href="#benefits"
+          class="block text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors py-2"
+          data-mobile-menu-link
+        >
+          Benefits
+        </a>
+        <a
+          href="#how-it-works"
+          class="block text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors py-2"
+          data-mobile-menu-link
+        >
+          How It Works
+        </a>
+        <a
+          href="#faq"
+          class="block text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors py-2"
+          data-mobile-menu-link
+        >
+          FAQ
+        </a>
+        <a
+          href="https://github.com/software-mansion/rnrepo"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="block font-medium bg-surfaceHighlight hover:bg-rnrGrey-60 text-rnrGrey-0 px-4 py-2 rounded-sm border border-rnrGrey-60 transition-all text-xs uppercase tracking-wide mt-4"
+          data-mobile-menu-link
+        >
+          View on GitHub →
+        </a>
       </div>
     </div>
   </div>
 </nav>
 
+<script>
+  function initMobileMenu() {
+    const menuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuIcon = document.getElementById('menu-icon');
+    const closeIcon = document.getElementById('close-icon');
+    const menuLinks = document.querySelectorAll('[data-mobile-menu-link]');
+
+    if (!menuButton || !mobileMenu || !menuIcon || !closeIcon) return;
+
+    function toggleMenu() {
+      const isOpen = !mobileMenu!.classList.contains('hidden');
+
+      if (isOpen) {
+        mobileMenu!.classList.add('hidden');
+        menuIcon!.classList.remove('hidden');
+        closeIcon!.classList.add('hidden');
+      } else {
+        mobileMenu!.classList.remove('hidden');
+        menuIcon!.classList.add('hidden');
+        closeIcon!.classList.remove('hidden');
+      }
+    }
+
+    menuButton.addEventListener('click', toggleMenu);
+
+    // Close menu when clicking on a link
+    menuLinks.forEach((link) => {
+      link.addEventListener('click', () => {
+        mobileMenu!.classList.add('hidden');
+        menuIcon!.classList.remove('hidden');
+        closeIcon!.classList.add('hidden');
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileMenu);
+  } else {
+    initMobileMenu();
+  }
+</script>
