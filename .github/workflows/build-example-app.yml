@@ -6,9 +6,17 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'packages/client/**'
+      - 'packages/expo-config-plugin/**'
+      - '.github/workflows/build-example-app.yml'
   pull_request:
     branches:
       - main
+    paths:
+      - 'packages/client/**'
+      - 'packages/expo-config-plugin/**'
+      - '.github/workflows/build-example-app.yml'
 
 jobs:
   build-example-app:
