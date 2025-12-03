@@ -35,6 +35,13 @@ buildscript {
   dependencies {
     ...
 +   classpath("org.rnrepo.tools:prebuilds-plugin:0.1.0")
+}
+
+allprojects {
+  repositories {
+    ...
++   maven { url "https://packages.rnrepo.org/releases" }
+  }
 }`;
 const standardBuildGradleChangesCopyText = `maven { url "https://packages.rnrepo.org/releases" }`;
 
@@ -330,9 +337,8 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
           href="https://github.com/software-mansion/rnrepo"
           class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors"
         >
-          GitHub repository
-        </a>
-        .
+          GitHub repository</a
+        >.
       </p>
     </div>
   </div>
