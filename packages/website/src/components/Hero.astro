@@ -24,11 +24,18 @@ import Logo from './Logo.astro';
   >
     <div class="flex items-center gap-4 mb-8">
       <span class="text-base text-white">Created by</span>
-      <Logo name="swm" className="h-12 w-auto text-white" />
+      <a
+        href="https://swmansion.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="swm-logo-link text-white hover:text-brandSeaBlue-100 transition-colors"
+      >
+        <Logo name="swm" className="h-12 w-auto" />
+      </a>
     </div>
 
     <h1
-      class="text-5xl md:text-7xl font-bold tracking-tight text-rnrGrey-0 mb-6 leading-tight"
+      class="text-5xl md:text-7xl font-bold text-rnrGrey-0 mb-6 leading-tight"
     >
       A Repository for React
       <br />

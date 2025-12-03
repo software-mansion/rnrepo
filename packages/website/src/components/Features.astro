@@ -3,13 +3,16 @@ import Icon from './Icon.astro';
 ---
 
 <section id="benefits" class="py-24 relative border-b border-rnrGrey-80">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-16">
-      <h2 class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight">
+      <h2
+        class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight"
+      >
         Why RNRepo?
       </h2>
       <p class="text-lg text-rnrGrey-40 leading-relaxed">
-        Built for React Native developers who value speed, security, and simplicity.
+        Built for React Native developers who value speed, security, and
+        simplicity.
       </p>
     </div>
 
@@ -59,7 +62,12 @@ import Icon from './Icon.astro';
         </h3>
         <p class="text-rnrGrey-40 text-sm leading-relaxed">
           Build directories are smaller because they don't need to contain
-          intermediate build artifacts. Save gigabytes on your CI machines.
+          intermediate build artifacts. Save your{' '}
+          <code
+            class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+            >node_modules</code
+          >{' '}
+          from gigabytes of compiler generated files.
         </p>
       </div>
       <div
