@@ -101,7 +101,13 @@ If you're unsure whether RNRepo has been set up correctly in your project, check
 
 For troubleshooting Android builds, before reporting an issue, we recommend passing the `--scan` flag to Gradle (e.g., `./gradlew app:assembleDebug --scan`). This flag generates a report of all tasks performed during the build along with their execution times, which can be useful for investigating issues such as when certain prebuilt libraries weren't loaded from the repository.
 
-For more detailed troubleshooting instructions, like how to disable RNRepo, deny specific libraries, or setting a custom React-Native directory, please refer to the [Troubleshooting Guide](TROUBLESHOOTING.md).
+If you need to completely disable the RNRepo plugin and build all libraries from source (e.g., for debugging build issues or testing), you can set the `DISABLE_RNREPO` environment variable to any value:
+
+```bash
+DISABLE_RNREPO=1 ./gradlew app:assembleDebug
+```
+
+For more detailed troubleshooting instructions, like how to deny specific libraries, or setting a custom React-Native directory, please refer to the [Troubleshooting Guide](TROUBLESHOOTING.md).
 
 ## Limitations
 
