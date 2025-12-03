@@ -9,7 +9,9 @@ import { Menu, X } from 'lucide-astro';
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
       <div class="flex items-center gap-3">
-        <Logo name="rnrepo" className="h-8 w-auto" />
+        <a href="#" class="navbar-logo-link">
+          <Logo name="rnrepo" className="h-8 w-auto" />
+        </a>
         <span
           class="text-[10px] font-bold bg-rnrGrey-0 text-black px-1.5 py-0.5 rounded-sm self-start mt-1"
         >
@@ -101,6 +103,17 @@ import { Menu, X } from 'lucide-astro';
     </div>
   </div>
 </nav>
+
+<style>
+  .navbar-logo-link {
+    display: inline-flex;
+    text-decoration: none;
+  }
+
+  .navbar-logo-link:hover {
+    opacity: 1;
+  }
+</style>
 
 <script>
   function initMobileMenu() {

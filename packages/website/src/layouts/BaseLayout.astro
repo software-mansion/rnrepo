@@ -25,6 +25,19 @@ const {
 
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+
+    {/* Open Graph / Facebook */}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="/rnrepo-og.png" />
+
+    {/* Twitter */}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content="/rnrepo-og.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -36,6 +49,7 @@ const {
         font-family: 'DM Sans', sans-serif;
         background-color: #0a0a0a;
         color: #fafafa;
+        letter-spacing: 0.025em;
       }
       .bg-grid-pattern {
         background-image: linear-gradient(

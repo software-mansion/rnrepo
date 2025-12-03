@@ -72,7 +72,7 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
 ---
 
 <section id="setup" class="py-20 border-b border-rnrGrey-80">
-  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-12">
       <h2
         class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight"
@@ -131,10 +131,16 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
       <div class="tab-container">
         <div class="sliding-background"></div>
         <label for="tab-expo" class="tab-label tab-label-expo">
-          Expo Prebuild (Continous Code Generation – CNG)
+          <span class="md:hidden">Expo Prebuild (CNG)</span>
+          <span class="hidden md:inline"
+            >Expo Prebuild (Continous Code Generation – CNG)</span
+          >
         </label>
         <label for="tab-standard" class="tab-label tab-label-standard">
-          Standard React Native / Other Expo Setups
+          <span class="md:hidden">Standard React Native</span>
+          <span class="hidden md:inline"
+            >Standard React Native / Other Expo Setups</span
+          >
         </label>
       </div>
 
