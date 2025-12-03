@@ -1,0 +1,249 @@
+From 625119015f25a9725f2110e5852b74a51ba75902 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rados=C5=82aw=20Rolka?= <radoslaw.rolka@gmail.com>
+Date: Wed, 3 Dec 2025 14:32:24 +0100
+Subject: [PATCH] [PATCH] react-native-geture-handler patch for SVG
+
+react-native-svg no longer changes the RNGH's sourceSets
+---
+ .../android/build.gradle                      |  6 +-
+ .../gesturehandler/RNSVGHitTester.kt          | 13 ----
+ .../gesturehandler/RNSVGHitTester.kt          | 59 ++-----------------
+ .../svg/RNSVGHitTesterHelper.kt               | 17 ++++++
+ .../gesturehandler/svg/SvgHitTester.kt        |  8 +++
+ .../gesturehandler/svg/SvgHitTesterImpl.kt    | 57 ++++++++++++++++++
+ .../gesturehandler/svg/SvgHitTesterNoOp.kt    |  9 +++
+ 7 files changed, 96 insertions(+), 73 deletions(-)
+ delete mode 100644 android/nosvg/src/main/java/com/swmansion/gesturehandler/RNSVGHitTester.kt
+ create mode 100644 android/svg/src/main/java/com/swmansion/gesturehandler/svg/RNSVGHitTesterHelper.kt
+ create mode 100644 android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTester.kt
+ create mode 100644 android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTesterImpl.kt
+ create mode 100644 android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTesterNoOp.kt
+
+diff --git a/android/build.gradle b/android/build.gradle
+index 6348d17da..c9913ecdf 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -197,11 +197,7 @@ android {
+                 srcDirs += 'noreanimated/src/main/java'
+             }
+ 
+-            if (shouldUseCommonInterfaceFromRNSVG()) {
+-                srcDirs += 'svg/src/main/java'
+-            } else {
+-                srcDirs += 'nosvg/src/main/java'
+-            }
++            srcDirs += 'svg/src/main/java'
+ 
+             if (isNewArchitectureEnabled()) {
+                 srcDirs += 'fabric/src/main/java'
+diff --git a/android/nosvg/src/main/java/com/swmansion/gesturehandler/RNSVGHitTester.kt b/android/nosvg/src/main/java/com/swmansion/gesturehandler/RNSVGHitTester.kt
+deleted file mode 100644
+index 6c4aeddf7..000000000
+--- a/android/nosvg/src/main/java/com/swmansion/gesturehandler/RNSVGHitTester.kt
++++ /dev/null
+@@ -1,13 +0,0 @@
+-package com.swmansion.gesturehandler
+-
+-import android.view.View
+-
+-class RNSVGHitTester {
+-  companion object {
+-    @Suppress("UNUSED_PARAMETER")
+-    fun isSvgElement(view: Any) = false
+-
+-    @Suppress("UNUSED_PARAMETER")
+-    fun hitTest(view: View, posX: Float, posY: Float) = false
+-  }
+-}
+diff --git a/android/svg/src/main/java/com/swmansion/gesturehandler/RNSVGHitTester.kt b/android/svg/src/main/java/com/swmansion/gesturehandler/RNSVGHitTester.kt
+index 2a4f60030..12ca52241 100644
+--- a/android/svg/src/main/java/com/swmansion/gesturehandler/RNSVGHitTester.kt
++++ b/android/svg/src/main/java/com/swmansion/gesturehandler/RNSVGHitTester.kt
+@@ -1,65 +1,14 @@
+ package com.swmansion.gesturehandler
+ 
+ import android.view.View
+-import androidx.core.view.children
+-import com.horcrux.svg.SvgView
+-import com.horcrux.svg.VirtualView
++import com.swmansion.gesturehandler.svg.RNSVGHitTesterHelper
+ 
+ class RNSVGHitTester {
+   companion object {
+-    private fun getRootSvgView(view: View): SvgView {
+-      var rootSvgView: SvgView
++    private val delegate by lazy { RNSVGHitTesterHelper.provide() }
+ 
+-      rootSvgView = if (view is VirtualView) {
+-        view.svgView!!
+-      } else {
+-        view as SvgView
+-      }
++    fun isSvgElement(view: Any): Boolean = delegate.isSvgElement(view)
+ 
+-      while (isSvgElement(rootSvgView.parent)) {
+-        rootSvgView = if (rootSvgView.parent is VirtualView) {
+-          (rootSvgView.parent as VirtualView).svgView!!
+-        } else {
+-          rootSvgView.parent as SvgView
+-        }
+-      }
+-
+-      return rootSvgView
+-    }
+-
+-    fun isSvgElement(view: Any): Boolean = (view is VirtualView || view is SvgView)
+-
+-    fun hitTest(view: View, posX: Float, posY: Float): Boolean {
+-      val rootSvgView = getRootSvgView(view)
+-      val viewLocation = intArrayOf(0, 0)
+-      val rootLocation = intArrayOf(0, 0)
+-
+-      view.getLocationOnScreen(viewLocation)
+-      rootSvgView.getLocationOnScreen(rootLocation)
+-
+-      // convert View-relative coordinates into SvgView-relative coordinates
+-      val rootX = posX + viewLocation[0] - rootLocation[0]
+-      val rootY = posY + viewLocation[1] - rootLocation[1]
+-
+-      val pressedId = rootSvgView.reactTagForTouch(rootX, rootY)
+-      val hasBeenPressed = view.id == pressedId
+-
+-      // hitTest(view, ...) should only be called after isSvgElement(view) returns true
+-      // Consequently, `view` will always be either SvgView or VirtualView
+-
+-      val pressIsInBounds =
+-        posX in 0.0..view.width.toDouble() &&
+-          posY in 0.0..view.height.toDouble()
+-
+-      if (view is SvgView) {
+-        val childrenIds = view.children.map { it.id }
+-
+-        val hasChildBeenPressed = pressedId in childrenIds
+-
+-        return (hasBeenPressed || hasChildBeenPressed) && pressIsInBounds
+-      }
+-
+-      return hasBeenPressed && pressIsInBounds
+-    }
++    fun hitTest(view: View, posX: Float, posY: Float): Boolean = delegate.hitTest(view, posX, posY)
+   }
+ }
+diff --git a/android/svg/src/main/java/com/swmansion/gesturehandler/svg/RNSVGHitTesterHelper.kt b/android/svg/src/main/java/com/swmansion/gesturehandler/svg/RNSVGHitTesterHelper.kt
+new file mode 100644
+index 000000000..b42980a9c
+--- /dev/null
++++ b/android/svg/src/main/java/com/swmansion/gesturehandler/svg/RNSVGHitTesterHelper.kt
+@@ -0,0 +1,17 @@
++package com.swmansion.gesturehandler.svg
++
++internal object RNSVGHitTesterHelper {
++  private const val SVG_VIEW_CLASS = "com.horcrux.svg.SvgView"
++  private const val IMPLEMENTATION_CLASS =
++    "com.swmansion.gesturehandler.svg.SvgHitTesterImpl"
++
++  fun provide(): SvgHitTester = try {
++    Class.forName(SVG_VIEW_CLASS)
++    val implementationClass = Class.forName(IMPLEMENTATION_CLASS)
++    implementationClass.getDeclaredConstructor().newInstance() as SvgHitTester
++  } catch (_: ClassNotFoundException) {
++    SvgHitTesterNoOp
++  } catch (_: ReflectiveOperationException) {
++    SvgHitTesterNoOp
++  }
++}
+diff --git a/android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTester.kt b/android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTester.kt
+new file mode 100644
+index 000000000..99da5d815
+--- /dev/null
++++ b/android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTester.kt
+@@ -0,0 +1,8 @@
++package com.swmansion.gesturehandler.svg
++
++import android.view.View
++
++internal interface SvgHitTester {
++  fun isSvgElement(view: Any): Boolean
++  fun hitTest(view: View, posX: Float, posY: Float): Boolean
++}
+diff --git a/android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTesterImpl.kt b/android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTesterImpl.kt
+new file mode 100644
+index 000000000..79b1c5cc0
+--- /dev/null
++++ b/android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTesterImpl.kt
+@@ -0,0 +1,57 @@
++package com.swmansion.gesturehandler.svg
++
++import android.view.View
++import androidx.core.view.children
++import com.horcrux.svg.SvgView
++import com.horcrux.svg.VirtualView
++
++internal class SvgHitTesterImpl : SvgHitTester {
++  private fun getRootSvgView(view: View): SvgView {
++    var rootSvgView: SvgView =
++      if (view is VirtualView) {
++        view.svgView!!
++      } else {
++        view as SvgView
++      }
++
++    while (isSvgElement(rootSvgView.parent)) {
++      rootSvgView =
++        if (rootSvgView.parent is VirtualView) {
++          (rootSvgView.parent as VirtualView).svgView!!
++        } else {
++          rootSvgView.parent as SvgView
++        }
++    }
++
++    return rootSvgView
++  }
++
++  override fun isSvgElement(view: Any): Boolean = (view is VirtualView || view is SvgView)
++
++  override fun hitTest(view: View, posX: Float, posY: Float): Boolean {
++    val rootSvgView = getRootSvgView(view)
++    val viewLocation = intArrayOf(0, 0)
++    val rootLocation = intArrayOf(0, 0)
++
++    view.getLocationOnScreen(viewLocation)
++    rootSvgView.getLocationOnScreen(rootLocation)
++
++    val rootX = posX + viewLocation[0] - rootLocation[0]
++    val rootY = posY + viewLocation[1] - rootLocation[1]
++
++    val pressedId = rootSvgView.reactTagForTouch(rootX, rootY)
++    val hasBeenPressed = view.id == pressedId
++
++    val pressIsInBounds =
++      posX in 0.0..view.width.toDouble() &&
++        posY in 0.0..view.height.toDouble()
++
++    if (view is SvgView) {
++      val childrenIds = view.children.map { it.id }
++      val hasChildBeenPressed = pressedId in childrenIds
++      return (hasBeenPressed || hasChildBeenPressed) && pressIsInBounds
++    }
++
++    return hasBeenPressed && pressIsInBounds
++  }
++}
+diff --git a/android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTesterNoOp.kt b/android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTesterNoOp.kt
+new file mode 100644
+index 000000000..881754f5e
+--- /dev/null
++++ b/android/svg/src/main/java/com/swmansion/gesturehandler/svg/SvgHitTesterNoOp.kt
+@@ -0,0 +1,9 @@
++package com.swmansion.gesturehandler.svg
++
++import android.view.View
++
++internal object SvgHitTesterNoOp : SvgHitTester {
++  override fun isSvgElement(view: Any) = false
++
++  override fun hitTest(view: View, posX: Float, posY: Float) = false
++}
+-- 
+2.49.0
+
