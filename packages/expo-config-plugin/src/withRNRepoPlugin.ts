@@ -1,5 +1,4 @@
-import { withProjectBuildGradle } from '@expo/config-plugins';
-import { withAppBuildGradle } from '@expo/config-plugins';
+import { withProjectBuildGradle, withAppBuildGradle } from 'expo/config-plugins'; 
 import type { ExpoConfig } from '@expo/config-types';
 
 const classpathRegex = /(classpath.*)/;
@@ -10,7 +9,6 @@ const mavenRepositoryBlock = `
         name "RNRepoMavenRepository"
         url "https://packages.rnrepo.org/releases"
     }`;
-// Todo(radoslawrolka): change snapshots to releases when releasing
 const applyPluginrnrepo = 'apply plugin: "org.rnrepo.tools.prebuilds-plugin"';
 const applyPluginFacebook = 'apply plugin: "com.facebook.react"';
 const applyPluginFacebookRootProject =
