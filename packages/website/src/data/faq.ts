@@ -12,7 +12,7 @@ export const faqItems: FAQItem[] = [
   {
     question: 'How do I verify that RNRepo is set up correctly?',
     answer:
-      'Check your Android build logs for entries with the [RNRepo] tag. The plugin logs which libraries it detects in your project and specifically lists which ones are being substituted with pre-built artifacts from the repository. If you see these logs during your build, RNRepo is working correctly.',
+      'Check your Android build logs for entries with the "[📦 RNRepo]" tag. The plugin logs which libraries it detects in your project and specifically lists which ones are being substituted with pre-built artifacts from the repository. If you see these logs during your build, RNRepo is working correctly.',
   },
   {
     question: 'How do I opt out of RNRepo for specific libraries?',
@@ -22,7 +22,7 @@ export const faqItems: FAQItem[] = [
   {
     question: 'What happens if I have local patches for a library?',
     answer:
-      "If your patches modify native code (Objective-C, Java, or Kotlin), you'll need to add that library to the opt-out list so it builds from your patched source. JavaScript-only patches don't require opting out since they don't affect the native build artifac",
+      "If your patches modify native code (Objective-C, Java, or Kotlin), you'll need to add that library to the opt-out list so it builds from your patched source. JavaScript-only patches don't require opting out since they don't affect the native build artifacts.",
   },
   {
     question: "What if a library or React Native version isn't supported?",
@@ -32,7 +32,7 @@ export const faqItems: FAQItem[] = [
   {
     question: 'How can I see which libraries are pre-built?',
     answer:
-      'The complete list of supported libraries is maintained in the libraries.json file in our GitHub repository. This file contains all library names and the React Native versions we build against. Check github.com/software-mansion/rnrepo for the current list.',
+      'The complete list of supported libraries is maintained in the libraries.json file in our GitHub repository. This file contains all library names and the React Native versions we build against. Check <a href="https://github.com/software-mansion/rnrepo" class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors">Our GitHub repository</a> for the current list.',
   },
   {
     question: 'How do I request a new library to be added?',
