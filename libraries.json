@@ -1,4 +1,13 @@
 {
+  "react-native-gesture-handler": {
+    "postInstallScriptPath": "postInstallScripts/react-native-gesture-handler/react-native-gesture-handler.ts",
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
   "react-native-reanimated": {
     "android": [
       {

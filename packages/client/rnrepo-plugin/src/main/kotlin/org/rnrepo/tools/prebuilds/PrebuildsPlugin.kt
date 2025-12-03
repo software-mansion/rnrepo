@@ -518,16 +518,12 @@ class PrebuildsPlugin : Plugin<Project> {
     ): Boolean {
         when (packageItem.name) {
             "react-native-gesture-handler" -> {
-                // Todo(rolkrado): remove svg when patch will be merged
-                val dependencyPackages = listOf("react-native-reanimated", "react-native-svg")
-                dependencyPackages.forEach { depName ->
-                    val depItem = extension.projectPackages.find { it.name == depName }
-                    if (depItem == null) {
-                        logger.info(
-                            "react-native-gesture-handler: Not found $depName in project, using react-native-gesture-handler from sources.",
-                        )
-                        return false
-                    }
+                val isReanimatedPresent = extension.projectPackages.any { it.name == "react-native-reanimated" }
+                if (!isReanimatedPresent) {
+                    logger.info(
+                        "react-native-gesture-handler: react-native-reanimated not found in project, using react-native-gesture-handler from sources.",
+                    )
+                    return false
                 }
             }
             "react-native-reanimated" -> {
