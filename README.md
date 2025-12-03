@@ -73,6 +73,13 @@ For standard React Native setups or when using Expo but managing your android fo
    +   classpath("org.rnrepo.tools:prebuilds-plugin:0.1.0")
      }
    }
+
+   allprojects {
+     repositories {
+       ...
+   +   maven { url "https://packages.rnrepo.org/releases" }
+     }
+   }
    ```
 
 2. **Apply the plugin in `android/app/build.gradle`:**
@@ -93,6 +100,8 @@ That's it! Now build your app as usual and Gradle will pull prebuilt artifacts f
 If you're unsure whether RNRepo has been set up correctly in your project, check the build logs and search for the `RNRepo` tag in the build output. The RNRepo plugin prints a list of libraries it successfully uses as prebuilds, along with a list of libraries it couldn't use and the reason (for example, because a prebuild isn't available for that library version).
 
 For troubleshooting Android builds, before reporting an issue, we recommend passing the `--scan` flag to Gradle (e.g., `./gradlew app:assembleDebug --scan`). This flag generates a report of all tasks performed during the build along with their execution times, which can be useful for investigating issues such as when certain prebuilt libraries weren't loaded from the repository.
+
+For more detailed troubleshooting instructions, like how to disable RNRepo, deny specific libraries, or setting a custom React-Native directory, please refer to the [Troubleshooting Guide](TROUBLESHOOTING.md).
 
 ## Limitations
 
