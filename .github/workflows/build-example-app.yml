@@ -3,14 +3,12 @@ name: Build Example App with Android Gradle Plugin
 run-name: Build Example App with Android Gradle Plugin
 
 on:
-  workflow_dispatch:
-  # TODO(radoslawrolka): enable on push/pr once published more libs
-  # push:
-  #   branches:
-  #     - main
-  # pull_request:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build-example-app:
@@ -18,6 +16,8 @@ jobs:
     permissions:
       actions: read
       contents: read
+    env:
+      EXAMPLE_APP: example-app
 
     steps:
       - name: 🏗 Checkout repository
@@ -31,18 +31,21 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install
 
-      - name: 🏗 Build Example App
-        run: bun create expo example-app
+      - name: 🏗 Create Example App
+        run: bun create expo ${{ env.EXAMPLE_APP }}
 
-      # Todo(radoslawrolka): Change this step to use remote expo-plugin once it's published
-      # - name: 🚧 Prepare Example App
-      #   run: bunx expo install @rnrepo/expo-config-plugin
-      #   working-directory: example-app
+      - name: 📦 Install @rnrepo/expo-config-plugin
+        run: bunx expo install @rnrepo/expo-config-plugin
+        working-directory: ${{ env.EXAMPLE_APP }}
+
+      - name: 🛠 Add @rnrepo/expo-config-plugin to app.json plugins
+        run: jq '.expo.plugins += ["@rnrepo/expo-config-plugin"]' app.json > /tmp/app.json && mv /tmp/app.json app.json
+        working-directory: ${{ env.EXAMPLE_APP }}
 
       - name: 🛠 Expo Prebuild for Android
         run: bun expo prebuild -p android
-        working-directory: example-app
+        working-directory: ${{ env.EXAMPLE_APP }}
 
-      - name: 🏗 Build Example App with Android Gradle Plugin
-        run: ./gradlew assembleDebug --configure-on-demand
-        working-directory: example-app/android
+      - name: 🏗 Build Example App with RNRepo
+        run: bunx expo run:android
+        working-directory: ${{ env.EXAMPLE_APP }}
