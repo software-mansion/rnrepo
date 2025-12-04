@@ -115,10 +115,11 @@ RNRepo is currently in beta, and while we're working to improve compatibility, t
 
 1. **Android and New Architecture only:** We currently only support Android builds for React Native projects using the New Architecture. It's safe to install RNRepo even if your project doesn't meet these requirements: iOS and Android builds will simply compile from source in those cases.
 2. **Local build modifications:** If you have local build-time modifications of React Native core or any library code in the form of patches (via patch-package) or build-time feature flags, the prebuilt artifacts may not be compatible with your configuration. In this case, you'll need to explicitly opt out of using prebuilds for specific libraries. If you have a use case where you'd like to use prebuilt patched libraries, reach out to [Software Mansion](https://swmansion.com/contact) to help customize the setup for you.
-3. **Limited library coverage:** We host a limited subset of community libraries for specific React Native versions. Refer to `libraries.json` for the complete list of supported libraries. We're actively expanding coverage (see the section below on adding new libraries).
-4. **react-native-worklets dependencies:** Packages that link with `react-native-worklets` need to specify the range of worklets library versions they support and are built separately for different versions of the worklets library. This is a temporary limitation while we work with the worklets team on a better approach for handling compile-time dependencies.
-5. **C++ compile-time dependencies:** Libraries that require other C++-level compile-time dependencies cannot be pre-compiled (e.g., libraries that use nitro modules). We plan to explore long-term solutions for this limitation.
-6. **Codegen requirements:** Most React Native Android libraries depend on codegen, which currently runs during app build time. Due to technical limitations, we still rely on the codegen step running locally in your build process, even when using prebuilt artifacts. Addressing this limitation is on our immediate roadmap.
+3. **Limited React Native versions supported:** We support all React Native versions from `0.80.0` onwards, plus the latest patch versions for `0.77.3`, `0.78.3`, and `0.79.9`. If your React Native version is not yet supported, prebuilt artifacts will automatically fall back to building from source. For a complete list of supported versions, refer to the `react-native-versions.json` file in our GitHub repository.
+4. **Limited library coverage:** We host a limited subset of community libraries for specific React Native versions. Refer to `libraries.json` for the complete list of supported libraries. We're actively expanding coverage (see the section below on adding new libraries).
+5. **react-native-worklets dependencies:** Packages that link with `react-native-worklets` need to specify the range of worklets library versions they support and are built separately for different versions of the worklets library. This is a temporary limitation while we work with the worklets team on a better approach for handling compile-time dependencies.
+6. **C++ compile-time dependencies:** Libraries that require other C++-level compile-time dependencies cannot be pre-compiled (e.g., libraries that use nitro modules). We plan to explore long-term solutions for this limitation.
+7. **Codegen requirements:** Most React Native Android libraries depend on codegen, which currently runs during app build time. Due to technical limitations, we still rely on the codegen step running locally in your build process, even when using prebuilt artifacts. Addressing this limitation is on our immediate roadmap.
 
 ## Adding new libraries to RNRepo
 
@@ -144,7 +145,7 @@ Enterprises often mandate artifact provenance. RNRepo signs every published arti
 
 ## How RNRepo Works
 
-1. **Curated registry:** We maintain `libraries.json`, a manifest of vetted React Native libraries + versions (and matching RN versions).
+1. **Curated registry:** We maintain `libraries.json`, a manifest of vetted React Native libraries + versions (and matching RN versions in `react-native-versions.json`).
 2. **Automated builds:** Dedicated GitHub Workflows monitor both RN releases and library updates. When an update lands, we spin up isolated builders, compile the Android artifacts (AAR/AAB), run validation, and publish them to our Maven repo.
 3. **Transparency:** Every artifact links back to the exact workflow run, logs, and checksums so you can audit what code produced your binaries.
 4. **Distribution:** Artifacts live in `https://packages.rnrepo.org/releases` and are served via standard Maven metadata, so Gradle can consume them without any custom tooling.
