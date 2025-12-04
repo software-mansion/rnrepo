@@ -10,7 +10,7 @@ on:
 
 jobs:
   run-scheduler:
-    runs-on: ubuntu-latest
+    runs-on: rnrepo-ubuntu-latest
     permissions:
       actions: write
       contents: read
