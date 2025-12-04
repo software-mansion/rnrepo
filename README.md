@@ -129,6 +129,7 @@ If you'd like us to add a specific library or React Native version, you can subm
 1. It needs to have some platform native code (JS/TS only libraries won't benefit from pre-builds anyway).
 2. It needs to support Android and The New Architecture (this is the only setup RNRepo currently supports).
 3. It needs to have no build-time C++ dependencies on other libraries (beyond React Native itself or `react-native-worklets`, which is currently treated as the only exception). Libraries that require a fixed version of another dependency are acceptable, but we cannot pre-build libraries that need to work with multiple versions of external C++ dependencies.
+4. It should be included in the [React Native Nightlies program](https://github.com/react-native-community/nightly-tests). While this is not a hard requirement, it adds credibility to the library and demonstrates ongoing maintenance and compatibility with React Native releases.
 
 ## Advanced / Enterprise: GPG Verification
 
@@ -137,7 +138,6 @@ Enterprises often mandate artifact provenance. RNRepo signs every published arti
 1. Fetch our public key: `curl https://keys.openpgp.org/vks/v1/by-fingerprint/6CBF6E07EBA0219DF11C9F78C9ED010ADBD95DFE | gpg --import`.
 2. If not already done, configure Gradle/Maven signature checks [using the official instructions](https://developer.android.com/build/dependency-verification).
 3. Store the fingerprint in your policy tooling to alert on unexpected key rotations.
-4. It should be included in the [React Native Nightlies program](https://github.com/react-native-community/nightly-tests). While this is not a hard requirement, it adds credibility to the library and demonstrates ongoing maintenance and compatibility with React Native releases.
 
 > **Need help?** Reach out and we will walk your security team through the setup or provide signed attestation bundles.
 
