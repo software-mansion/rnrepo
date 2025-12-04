@@ -32,7 +32,7 @@ export const faqItems: FAQItem[] = [
   {
     question: 'Which React Native versions are supported?',
     answer:
-      'We support all React Native versions above 0.80.0, plus the latest patch versions for 0.77.3, 0.78.3, and 0.79.9. If your React Native version is not supported, prebuilt artifacts will automatically fall back to building from source. For a complete list of all supported versions, refer to the react-native-versions.json file in <a href="https://github.com/software-mansion/rnrepo" class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors">Our GitHub repository</a>.',
+      'We support all React Native versions 0.80.0 and above, plus the latest patch versions for 0.77.3, 0.78.3, and 0.79.9. If your React Native version is not supported, prebuilt artifacts will automatically fall back to building from source. For a complete list of all supported versions, refer to the react-native-versions.json file in <a href="https://github.com/software-mansion/rnrepo" class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors">Our GitHub repository</a>.',
   },
   {
     question: 'How can I see which libraries are pre-built?',
