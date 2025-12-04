@@ -40,15 +40,14 @@ export async function isBuildAlreadyScheduled(
     .eq('retry', false);
 
   // Filter by worklets_version if provided, otherwise check for NULL
-  if (workletsVersion !== undefined) {
-    if (workletsVersion === null) {
-      query = query.is('worklets_version', null);
-    } else {
-      query = query.eq('worklets_version', workletsVersion);
-    }
+  if (workletsVersion) {
+    query = query.eq('worklets_version', workletsVersion);
+  } else {
+    // If workletsVersion is undefined, filter for NULL to match the unique constraint behavior
+    query = query.is('worklets_version', null);
   }
 
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await query.limit(1).maybeSingle();
 
   if (error) {
     console.error(
@@ -159,4 +158,3 @@ export async function updateBuildStatus(
 
 // Re-export types
 export type { Platform, BuildStatus, BuildRecord };
-
