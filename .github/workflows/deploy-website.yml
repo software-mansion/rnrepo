@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: rnrepo-ubuntu-32-core
+    runs-on: rnrepo-ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: rnrepo-ubuntu-32-core
+    runs-on: rnrepo-ubuntu-latest
     needs: build
     steps:
       - name: Deploy to GitHub Pages

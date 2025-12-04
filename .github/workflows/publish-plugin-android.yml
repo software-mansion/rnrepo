@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-rnrepo-plugin-android:
-    runs-on: rnrepo-ubuntu-32-core
+    runs-on: rnrepo-ubuntu-latest
 
     steps:
       - name: 🏗 Checkout repository
