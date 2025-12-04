@@ -7,7 +7,7 @@ export const faqItems: FAQItem[] = [
   {
     question: 'What if I install RNRepo and run iOS build?',
     answer:
-      'In the current version RNRepo only supports Android builds and doesn not interfere with the way iOS builds are performed. iOS builds will continue to build libraries from source as usual.',
+      'In the current version RNRepo only supports Android builds and does not interfere with the way iOS builds are performed. iOS builds will continue to build libraries from source as usual.',
   },
   {
     question: 'How do I verify that RNRepo is set up correctly?',
@@ -47,7 +47,7 @@ export const faqItems: FAQItem[] = [
   {
     question: 'Is RNRepo secure? How can I verify artifacts?',
     answer:
-      "Security is a top priority. All builds run in isolated GitHub workflows that are fully transparent—you can inspect any build's logs and source. Every artifact is GPG-signed, allowing you to verify authenticity. When downloading, you can trace any artifact back to its exact build workflow.",
+      "Security is a top priority. All builds run in isolated GitHub workflows that are fully transparent — you can inspect any build's logs and source. Every artifact is GPG-signed, allowing you to verify authenticity. When downloading, you can trace any artifact back to its exact build workflow.",
   },
   {
     question: 'Do library maintainers need to do anything?',
