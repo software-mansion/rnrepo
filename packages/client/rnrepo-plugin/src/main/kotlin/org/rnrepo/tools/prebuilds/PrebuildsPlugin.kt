@@ -418,7 +418,7 @@ class PrebuildsPlugin : Plugin<Project> {
         val httpRepositories =
             repositories.mapNotNull { repoUnchecked ->
                 val repo = repoUnchecked as? MavenArtifactRepository ?: return@mapNotNull null
-                logger.info ("Found maven repository: ${repo.name} with URL: ${repo.url}")
+                logger.info("Found maven repository: ${repo.name} with URL: ${repo.url}")
                 if (repo.url.scheme != "http" && repo.url.scheme != "https") return@mapNotNull null
                 val host = repo.url.host
                 if (host == null || (!host.endsWith(".rnrepo.org") && host != "rnrepo.org")) return@mapNotNull null
