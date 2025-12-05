@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🌐 RNRepo Documentation
+    url: https://rnrepo.org
+    about: Check out the documentation, your question might already be answered there
+  - name: 📖 RNRepo Troubleshooting
+    url: https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md
+    about: Visit the troubleshooting guide for common issues and their solutions
