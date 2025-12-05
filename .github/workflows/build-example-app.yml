@@ -4,24 +4,55 @@ run-name: Build Example App with Android Gradle Plugin
 
 on:
   workflow_dispatch:
-  # TODO(radoslawrolka): enable on push/pr once published more libs
-  # push:
-  #   branches:
-  #     - main
-  # pull_request:
-  #   branches:
-  #     - main
+    inputs:
+      maven_repository_type:
+        description: 'Releases or Snapshots Maven repository type'
+        type: choice
+        options:
+          - releases
+          - snapshots
+        required: true
+        default: 'releases'
+      rnrepo_prebuilds_plugin_version:
+        description: 'RNRepo prebuilds-plugin version'
+        required: false
+        type: string
+        default: '0.1.0'
+      libraries:
+        description: 'libraries with versions to install, format: libraryName1@version1,libraryName2@version2'
+        required: true
+        type: string
+      react_native_version:
+        description: 'React Native version'
+        required: true
+        type: string
 
 jobs:
   build-example-app:
     runs-on: rnrepo-builder-ubuntu-latest
+    timeout-minutes: 60
     permissions:
       actions: read
       contents: read
+    env:
+      EXAMPLE_APP: exampleApp
 
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+
+      - name: ☕ Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 📱 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: ✅ Accept Android Licenses
+        run: |
+          yes | sdkmanager --licenses || true
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -31,18 +62,20 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install
 
-      - name: 🏗 Build Example App
-        run: bun create expo example-app
+      - name: 🏗 Create Example App
+        run: bunx @react-native-community/cli@latest init ${{ env.EXAMPLE_APP }} --version ${{ github.event.inputs.react_native_version }}
 
-      # Todo(radoslawrolka): Change this step to use remote expo-plugin once it's published
-      # - name: 🚧 Prepare Example App
-      #   run: bunx expo install @rnrepo/expo-config-plugin
-      #   working-directory: example-app
+      - name: 📦 Install your packages to test
+        run: |
+          IFS=',' read -ra LIBS <<< "${{ github.event.inputs.libraries }}"
+          for lib in "${LIBS[@]}"; do
+            bun install "$lib" --save-exact
+          done
+        working-directory: ${{ env.EXAMPLE_APP }}
 
-      - name: 🛠 Expo Prebuild for Android
-        run: bun expo prebuild -p android
-        working-directory: example-app
+      - name: 🛠 Add RNRepo to gradle
+        run: bun run .github/workflows/scripts/applyRNRepoAndroid.ts ${{ env.EXAMPLE_APP }}/android ${{ github.event.inputs.rnrepo_prebuilds_plugin_version }} ${{ github.event.inputs.maven_repository_type }}
 
-      - name: 🏗 Build Example App with Android Gradle Plugin
-        run: ./gradlew assembleDebug --configure-on-demand
-        working-directory: example-app/android
+      - name: 🏗 Build Example App with RNRepo
+        run: ./gradlew :app:assembleDebug --info
+        working-directory: ${{ env.EXAMPLE_APP }}/android
