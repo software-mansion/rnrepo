@@ -32,9 +32,9 @@ Please ensure you've completed the following:
 Please describe the tests you ran to verify your changes. Provide instructions so we can reproduce.
 
 **Steps to reproduce:**
-1. 
-2. 
-3. 
+1. [First step]
+2. [Second step]
+3. [Third step]
 
 ## 📸 Screenshots/Evidence (if applicable)
 
