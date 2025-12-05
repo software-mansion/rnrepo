@@ -13,8 +13,8 @@ on:
           - snapshots
         required: true
         default: 'releases'
-      android_gradle_plugin_version:
-        description: 'Android Gradle Plugin version'
+      rnrepo_prebuilds_plugin_version:
+        description: 'RNRepo prebuilds-plugin version'
         required: false
         type: string
         default: '0.1.0'
@@ -74,7 +74,7 @@ jobs:
         working-directory: ${{ env.EXAMPLE_APP }}
 
       - name: 🛠 Add RNRepo to gradle
-        run: bun run .github/workflows/scripts/applyRNRepoAndroid.ts ${{ env.EXAMPLE_APP }}/android ${{ github.event.inputs.android_gradle_plugin_version }} ${{ github.event.inputs.maven_repository_type }}
+        run: bun run .github/workflows/scripts/applyRNRepoAndroid.ts ${{ env.EXAMPLE_APP }}/android ${{ github.event.inputs.rnrepo_prebuilds_plugin_version }} ${{ github.event.inputs.maven_repository_type }}
 
       - name: 🏗 Build Example App with RNRepo
         run: ./gradlew :app:assembleDebug --info

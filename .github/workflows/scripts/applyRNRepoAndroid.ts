@@ -1,18 +1,18 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Get android directory, plugin version, and maven repository type from command line arguments
+// Get android directory, RNRepo prebuilds-plugin version, and maven repository type from command line arguments
 if (process.argv.length < 5) {
-  console.error('❌ Usage: bun run applyRNRepoAndroid.ts <android_directory> <android_gradle_plugin_version> <maven_repository_type>');
+  console.error('❌ Usage: bun run applyRNRepoAndroid.ts <android_directory> <rnrepo_plugin_version> <maven_repository_type>');
   process.exit(1);
 }
 const androidDir = process.argv[2];
-const androidGradlePluginVersion = process.argv[3];
+const rnrepoPluginVersion = process.argv[3];
 const mavenRepositoryType = process.argv[4] as 'releases' | 'snapshots';
 
 // Configuration constants
 const classpathRegex = /(classpath.*)/;
-const rnrepoClasspath = `classpath("org.rnrepo.tools:prebuilds-plugin:${androidGradlePluginVersion}")`;
+const rnrepoClasspath = `classpath("org.rnrepo.tools:prebuilds-plugin:${rnrepoPluginVersion}")`;
 const mavenCentralRepository = `mavenCentral()`;
 const mavenRepositoryBlock = `
     maven { url "https://packages.rnrepo.org/${mavenRepositoryType}" }`;
@@ -161,7 +161,7 @@ function modifyAppBuildGradle(appBuildGradlePath: string): void {
  * Main function - apply RNRepo configuration to Android project
  */
 function applyRNRepoConfiguration(androidDir: string): void {
-  console.log(`🛠  Applying RNRepo configuration to: ${androidDir}`);
+  console.log(`🛠 Applying RNRepo configuration to: ${androidDir}`);
 
   const projectBuildGradlePath = path.join(androidDir, 'build.gradle');
   const appBuildGradlePath = path.join(androidDir, 'app', 'build.gradle');
