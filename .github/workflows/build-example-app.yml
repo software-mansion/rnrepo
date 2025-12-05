@@ -21,15 +21,32 @@ on:
 jobs:
   build-example-app:
     runs-on: rnrepo-builder-ubuntu-latest
+    timeout-minutes: 60
     permissions:
       actions: read
       contents: read
     env:
       EXAMPLE_APP: example-app
+    concurrency:
+      group: build-example-app-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+
+      - name: ☕ Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 📱 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: ✅ Accept Android Licenses
+        run: |
+          yes | sdkmanager --licenses || true
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
