@@ -42,7 +42,7 @@ Paste logs here...
 - **OS:** (e.g., macOS 14.0, Ubuntu 22.04)
 - **IDE:** (e.g., Android Studio, Xcode)
 
-## 📦 Related Libraries (if applicable)  
+## 📦 Related Libraries (if applicable)
 
 List any libraries related to this issue:
 
