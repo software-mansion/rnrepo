@@ -81,7 +81,7 @@ async function main() {
 
     // Format: "Build for Android {library_name}@{library_version} RN@{react_native_version}( with worklets@{worklets_version})"
     const match = buildRunName.match(
-      /Build for Android (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?$/
+      /Build for Android (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?( - snapshot)?$/
     );
     if (!match) {
       throw new Error(`Could not parse workflow run name: ${buildRunName}`);
@@ -94,6 +94,7 @@ async function main() {
       reactNativeVersion,
       _,
       workletsVersion,
+      isSnapshotRun,
     ] = match;
 
     console.log('📤 Publishing library:');
@@ -103,6 +104,7 @@ async function main() {
     console.log(
       `${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`
     );
+    console.log(`   Snapshot Run: ${isSnapshotRun ? 'Yes' : 'No'}`);
 
     const mavenLibraryName = convertToGradleProjectName(libraryName);
 
@@ -186,6 +188,12 @@ async function main() {
     }
 
     // Update Supabase status to 'completed' after publish is fully complete
+    if (isSnapshotRun) {
+      console.log(
+        '⚠️  Snapshot repository detected - skipping database status update'
+      );
+      process.exit(0);
+    }
     try {
       const githubRunUrl =
         run.html_url ||
