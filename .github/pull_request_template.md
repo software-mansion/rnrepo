@@ -10,6 +10,7 @@ Please delete options that are not relevant:
 
 - [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
 - [ ] ✨ New feature (non-breaking change which adds functionality)
+- [ ] 🧩 New library support
 - [ ] 📚 Documentation update
 - [ ] ♻️ Refactoring (no functional changes)
 - [ ] ⚡ Performance improvement
@@ -26,6 +27,7 @@ Please ensure you've completed the following:
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published
+- [ ] I have added my library in the `./libraries.json` file and `./packages/website/data/libraries.ts` (if applicable)
 
 ## 🧪 Testing
 
