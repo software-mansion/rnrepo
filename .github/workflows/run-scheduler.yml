@@ -7,6 +7,10 @@ on:
         description: 'Maximum number of jobs to schedule (defaults to 1 if not provided)'
         required: false
         type: number
+        default: 1
+  schedule:
+    # Runs every 4 hours at minute 0 (6 times per day)
+    - cron: '0 */4 * * *'
 
 jobs:
   run-scheduler:
@@ -30,7 +34,7 @@ jobs:
       - name: 🔄 Run scheduler
         env:
           GITHUB_TOKEN: ${{ secrets.SCHEDULER_GITHUB_PAT }}
-          SCHEDULER_LIMIT: ${{ inputs.limit || 1 }}
+          SCHEDULER_LIMIT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.limit || 1) || 200 }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: bun run scheduler
