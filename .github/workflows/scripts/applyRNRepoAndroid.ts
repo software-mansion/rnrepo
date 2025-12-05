@@ -8,7 +8,7 @@ if (process.argv.length < 5) {
 }
 const androidDir = process.argv[2];
 const androidGradlePluginVersion = process.argv[3];
-const mavenRepositoryType = process.argv[4];
+const mavenRepositoryType = process.argv[4] as 'releases' | 'snapshots';
 
 // Configuration constants
 const classpathRegex = /(classpath.*)/;
@@ -53,7 +53,7 @@ function addClasspathDependency(content: string): string {
  * Add maven repository to project build.gradle
  */
 function addMavenRepository(content: string): string {
-  if (content.includes('RNRepoMavenRepository')) {
+  if (content.includes('https://packages.rnrepo.org/')) {
     console.log('  ✓ RNRepo maven repository already exists');
     return content;
   }
@@ -118,7 +118,7 @@ function modifyProjectBuildGradle(projectBuildGradlePath: string): void {
 /**
  * Add RNRepo plugin to app build.gradle
  */
-function addRnrepoPlugin(content: string): string {
+function addRNRepoPlugin(content: string): string {
   if (content.includes(applyPluginRNRepo)) {
     console.log('  ✓ RNRepo plugin already applied');
     return content;
@@ -147,7 +147,7 @@ function modifyAppBuildGradle(appBuildGradlePath: string): void {
     let content = fs.readFileSync(appBuildGradlePath, 'utf8');
 
     // Apply modifications
-    content = addRnrepoPlugin(content);
+    content = addRNRepoPlugin(content);
 
     // Write back to file
     fs.writeFileSync(appBuildGradlePath, content, 'utf8');

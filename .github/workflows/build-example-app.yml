@@ -19,7 +19,7 @@ on:
         type: string
         default: '0.1.0'
       libraries:
-        description: 'libraries with versions to install, format: libraryName1:version1,libraryName2:version2'
+        description: 'libraries with versions to install, format: libraryName1@version1,libraryName2@version2'
         required: true
         type: string
       react_native_version:
