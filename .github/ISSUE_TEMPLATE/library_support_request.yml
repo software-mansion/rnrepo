@@ -1,0 +1,107 @@
+name: 📚 Library Support Request
+description: Request support for a new library in RNRepo
+title: "[LIBRARY REQUEST] "
+labels: ["library-request", "feature-request"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for requesting library support! Please fill out the form below as completely as possible.
+
+  - type: textarea
+    id: library-name
+    attributes:
+      label: 📚 Library Name
+      description: What library should be added to RNRepo?
+      placeholder: Library name here...
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## 🔗 Links"
+
+  - type: input
+    id: npm-link
+    attributes:
+      label: NPM Link
+      placeholder: "https://www.npmjs.com/package/..."
+    validations:
+      required: true
+
+  - type: input
+    id: github-link
+    attributes:
+      label: GitHub Repository
+      placeholder: "https://github.com/..."
+    validations:
+      required: true
+
+  - type: input
+    id: docs-link
+    attributes:
+      label: Documentation Link
+      placeholder: "https://..."
+
+  - type: markdown
+    attributes:
+      value: "## ✅ Requirements"
+
+  - type: checkboxes
+    id: requirements
+    attributes:
+      label: Please verify the library meets these requirements
+      options:
+        - label: Library contains native code (Kotlin/Java for Android)
+          required: true
+        - label: Library supports React Native with New Architecture
+          required: true
+        - label: Library is actively maintained
+          required: true
+        - label: Library is popular in the React Native ecosystem
+          required: true
+
+  - type: markdown
+    attributes:
+      value: "## 📊 Popularity"
+
+  - type: textarea
+    id: popularity
+    attributes:
+      label: Why should this library be supported by RNRepo?
+      description: Provide statistics and use case information
+      placeholder: |
+        - NPM weekly downloads: ~...
+        - GitHub ⭐ count: ...
+        - Use case description: ...
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: "## ⏱️ Build Time Impact"
+
+  - type: input
+    id: build-time
+    attributes:
+      label: Estimated build time
+      placeholder: "e.g., 2-3 minutes"
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 📝 Notes
+      description: Add any additional information that might be helpful
+      placeholder: |
+        - Known compilation issues
+        - Dependencies on other libraries
+        - Special requirements
+        - Etc.
+
+  - type: textarea
+    id: related
+    attributes:
+      label: 🔗 Related Issues
+      description: Link any related issues (if any)
+      placeholder: "#(issue number)"
