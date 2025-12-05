@@ -6,6 +6,8 @@ RNRepo is an infrastructure and tooling project from [Software Mansion](https://
 
 To get started quickly, head to the [Installation](#installation) section or visit [RNRepo.org](https://rnrepo.org) for instructions.
 
+Want to see what libraries are supported? Check out the [Supported Libraries](#supported-libraries) section below.
+
 ---
 
 ## About
@@ -140,6 +142,53 @@ Enterprises often mandate artifact provenance. RNRepo signs every published arti
 3. Store the fingerprint in your policy tooling to alert on unexpected key rotations.
 
 > **Need help?** Reach out and we will walk your security team through the setup or provide signed attestation bundles.
+
+---
+
+## Supported Libraries
+
+RNRepo currently supports **50+ popular React Native libraries** with prebuilt Android artifacts. Here are some of our most popular supported libraries:
+
+### Navigation & UI
+- `react-native-gesture-handler` - Gesture handling
+- `react-native-screens` - Native screen management
+- `react-native-safe-area-context` - Safe area handling
+- `react-native-pager-view` - ViewPager component
+
+### Animation & Graphics
+- `react-native-reanimated` - High-performance animations
+- `@shopify/react-native-skia` - GPU-accelerated graphics
+- `react-native-svg` - SVG support
+- `lottie-react-native` - Lottie animations
+
+### Storage
+- `@react-native-async-storage/async-storage` - Local storage
+
+### Firebase
+- `@react-native-firebase/app` - Firebase core
+- `@react-native-firebase/analytics` - Analytics
+- `@react-native-firebase/crashlytics` - Crash reporting
+- `@react-native-firebase/perf` - Performance monitoring
+
+### Device & Permissions
+- `react-native-device-info` - Device information
+- `react-native-permissions` - Permission management
+- `react-native-haptic-feedback` - Haptic feedback
+
+### Maps & Location
+- `@rnmapbox/maps` - Mapbox integration
+- `@react-native-community/geolocation` - Geolocation
+
+### Media & Camera
+- `@react-native-camera-roll/camera-roll` - Camera roll access
+- `react-native-image-picker` - Image picker
+- `react-native-sound` - Audio playback
+
+### Analytics & Monitoring
+- `@sentry/react-native` - Error tracking
+- `react-native-performance` - Performance monitoring
+
+**Want us to support another library?** [Request library support](https://github.com/software-mansion/rnrepo/issues/new?template=library_support_request.yml). For a complete list of supported libraries, refer to the `libraries.json` file in our GitHub repository.
 
 ---
 

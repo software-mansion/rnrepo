@@ -6,8 +6,10 @@ import GettingStarted from '../components/GettingStarted.astro';
 import Features from '../components/Features.astro';
 import HowItWorks from '../components/HowItWorks.astro';
 import CustomSetup from '../components/CustomSetup.astro';
+import SupportedLibraries from '../components/SupportedLibraries.astro';
 import FAQ from '../components/FAQ.astro';
 import Footer from '../components/Footer.astro';
+import libraries from '../data/libraries';
 ---
 
 <BaseLayout>
@@ -18,6 +20,7 @@ import Footer from '../components/Footer.astro';
     <Features />
     <HowItWorks />
     <CustomSetup />
+    <SupportedLibraries libraries={libraries} />
     <FAQ />
   </main>
   <Footer />
