@@ -360,6 +360,7 @@ class PrebuildsPlugin : Plugin<Project> {
             logger.info("Package $packageName is an Expo package, skipping in RNRepo.")
             return false
         }
+        logger.info("Package $packageName is not denied.")
         return true
     }
 
@@ -406,20 +407,25 @@ class PrebuildsPlugin : Plugin<Project> {
             if (isArtifactCached) {
                 logger.info("Package ${packageItem.name} version ${packageItem.version} is cached in Gradle cache.")
                 return true
+            } else {
+                logger.debug("Package ${packageItem.name} version ${packageItem.version} not found in Gradle cache.")
             }
+        } else {
+            logger.debug("Artifact directory does not exist in cache: ${artifactDir.absolutePath}")
         }
 
         // Collect all HTTP/HTTPS repositories to check
         val httpRepositories =
             repositories.mapNotNull { repoUnchecked ->
                 val repo = repoUnchecked as? MavenArtifactRepository ?: return@mapNotNull null
+                logger.info("Found maven repository: ${repo.name} with URL: ${repo.url}")
                 if (repo.url.scheme != "http" && repo.url.scheme != "https") return@mapNotNull null
                 val host = repo.url.host
                 if (host == null || (!host.endsWith(".rnrepo.org") && host != "rnrepo.org")) return@mapNotNull null
                 // This is an HTTP/HTTPS RNRepo repository
                 repo
             }
-
+        logger.info("HTTP RNRepo repositories to check: ${httpRepositories.joinToString("") { "\n - ${it.url}" }}")
         if (httpRepositories.isEmpty()) {
             return false
         }
@@ -482,6 +488,10 @@ class PrebuildsPlugin : Plugin<Project> {
                 .filter { it.exists() }
                 .mapNotNull { getPackageNameAndVersion(it) }
                 .toSet()
+        logger.info(
+            "Detected ${extension.projectPackages.size} packages in project under node_modules: " +
+                extension.projectPackages.joinToString("") { "\n  - ${it.name}@${it.version}" },
+        )
     }
 
     private fun stripVersionToCore(version: String): String {
