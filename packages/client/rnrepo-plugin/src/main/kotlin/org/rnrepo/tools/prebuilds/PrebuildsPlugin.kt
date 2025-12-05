@@ -484,6 +484,13 @@ class PrebuildsPlugin : Plugin<Project> {
                 .toSet()
     }
 
+    private fun stripVersionToCore(version: String): String {
+        // Match only the major, minor and patch versions
+        val regex = """^\d+\.\d+\.\d+""".toRegex()
+        val matchResult = regex.find(version)
+        return matchResult?.value ?: version
+    }
+
     private fun getReactNativeVersion(extension: PackagesManager): Boolean {
         // find react-native package.json
         val reactNativePackageJsonFile =
@@ -503,7 +510,7 @@ class PrebuildsPlugin : Plugin<Project> {
         // parse version
         val reactNativeVersionInfo = getPackageNameAndVersion(reactNativePackageJsonFile)
         return reactNativeVersionInfo?.let {
-            extension.reactNativeVersion = it.version
+            extension.reactNativeVersion = stripVersionToCore(it.version)
             logger.lifecycle("Detected React Native version: ${extension.reactNativeVersion}")
             true
         } ?: run {

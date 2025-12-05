@@ -400,6 +400,30 @@ class PrebuildsPluginHelperMethodsTest {
         assertThat(result).isNull()
     }
 
+    @Test
+    fun `stripVersionToCore should handle react-native version`() {
+        // Given
+        val version = "0.81.5"
+
+        // When
+        val result = invokePrivateMethod<String>(plugin, "stripVersionToCore", arrayOf(String::class.java), version)
+
+        // Then
+        assertThat(result).isEqualTo("0.81.5")
+    }
+
+    @Test
+    fun `stripVersionToCore should handle react-native-tvos version`() {
+        // Given
+        val version = "0.81.5-0"
+
+        // When
+        val result = invokePrivateMethod<String>(plugin, "stripVersionToCore", arrayOf(String::class.java), version)
+
+        // Then
+        assertThat(result).isEqualTo("0.81.5")
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun <T> invokePrivateMethod(
         target: Any,
