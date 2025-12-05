@@ -55,5 +55,5 @@ jobs:
         working-directory: ${{ env.EXAMPLE_APP }}
 
       - name: 🏗 Build Example App with RNRepo
-        run: bunx expo run:android
-        working-directory: ${{ env.EXAMPLE_APP }}
+        run: ./gradlew :app:assembleDebug --configure-on-demand --info
+        working-directory: ${{ env.EXAMPLE_APP }}/android
