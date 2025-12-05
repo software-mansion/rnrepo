@@ -58,7 +58,7 @@
     },
     "packages/expo-config-plugin": {
       "name": "@rnrepo/expo-config-plugin",
-      "version": "0.0.5",
+      "version": "0.1.0-beta.1",
       "dependencies": {
         "@expo/config-plugins": "*",
         "@expo/config-types": "*",
@@ -67,7 +67,7 @@
         "expo-module-scripts": "^5.0.7",
       },
       "peerDependencies": {
-        "expo": "*",
+        "expo": "^54",
         "react": "*",
         "react-native": "*",
       },

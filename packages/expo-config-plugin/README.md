@@ -58,4 +58,4 @@ ISC License
 
 https://www.npmjs.com/package/expo-module-scripts?activeTab=readme
 
-- Building: `bun run build plugin`
+- Building: `bun run build`
