@@ -56,7 +56,7 @@ function getSupportedPlatforms(
 }
 
 async function loadToFile(libraries: LibraryInfo[]) {
-  const filePath = `${__dirname}/libraries.ts`;
+  const filePath = `${new URL('./libraries.ts', import.meta.url).pathname}`;
   const fileContent = `// This file is auto-generated via 'bun run fetch-supported-libs'. Do not edit directly.
 
 import type { LibraryInfo } from './fetch-supported-libs';

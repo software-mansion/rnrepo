@@ -38,7 +38,7 @@ jobs:
         run: bun run fetch-supported-libs
         working-directory: ./packages/website
 
-      - name: Throw if libraries.ts have changed
+      - name: Verify libraries.ts is up-to-date
         run: git diff --exit-code ./packages/website/src/data/libraries.ts
 
       - name: Build
