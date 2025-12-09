@@ -1,6 +1,6 @@
 name: Build Android Library
 
-run-name: Build for Android ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}${{ inputs.worklets_version && format(' with worklets@{0}', inputs.worklets_version) || '' }}
+run-name: Build for Android ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}${{ inputs.worklets_version && format(' with worklets@{0}', inputs.worklets_version) || '' }}${{ inputs.test_run_snapshot && ' - snapshot' || '' }}
 
 on:
   workflow_dispatch:
@@ -21,6 +21,11 @@ on:
         description: 'Worklets version'
         required: false
         type: string
+      test_run_snapshot:
+        description: 'Test build for snapshot repository publishing'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-library-android:
