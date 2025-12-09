@@ -1,11 +1,5 @@
 ---
-import type { LibraryInfo } from '../data/libraries';
-
-interface Props {
-  libraries: LibraryInfo[];
-}
-
-const { libraries } = Astro.props;
+import libraries from '../data/libraries';
 ---
 
 <section id="supported-libraries" class="py-24 relative border-b border-rnrGrey-80">
@@ -15,7 +9,7 @@ const { libraries } = Astro.props;
         Supported Libraries
       </h2>
       <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-2xl mx-auto">
-        RNRepo currently supports +{libraries.length} popular React Native libraries with prebuilt Android artifacts. More libraries are added regularly!
+        RNRepo currently supports {libraries.length} popular React Native libraries with prebuilt Android artifacts. More libraries are added regularly!
       </p>
     </div>
 
@@ -51,7 +45,13 @@ const { libraries } = Astro.props;
 
     <div class="text-center">
       <p class="text-rnrGrey-40 mb-6">
-        Want to see all {libraries.length} supported libraries? Check the full list on our documentation or GitHub.
+        Want to see all {libraries.length} supported libraries? Check the full list on our{' '}
+        <a
+          href="https://github.com/software-mansion/rnrepo/blob/main/libraries.json"
+          class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors"
+        >
+          GitHub repository</a
+        >.
       </p>
       <a
         href="https://github.com/software-mansion/rnrepo/issues/new?template=library_support_request.yml"

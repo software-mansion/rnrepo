@@ -9,7 +9,7 @@ import { Menu, X } from 'lucide-astro';
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
       <div class="flex items-center gap-3">
-        <a href="#" class="navbar-logo-link">
+        <a href="/#" class="navbar-logo-link">
           <Logo name="rnrepo" className="h-8 w-auto" />
         </a>
         <span
@@ -22,16 +22,22 @@ import { Menu, X } from 'lucide-astro';
       <div
         class="hidden md:flex items-center space-x-8 text-sm font-medium text-rnrGrey-40"
       >
-        <a href="#setup" class="hover:text-rnrGrey-0 transition-colors">
+        <a href="/#setup" class="hover:text-rnrGrey-0 transition-colors">
           Setup
         </a>
-        <a href="#benefits" class="hover:text-rnrGrey-0 transition-colors">
+        <a href="/#benefits" class="hover:text-rnrGrey-0 transition-colors">
           Benefits
         </a>
-        <a href="#how-it-works" class="hover:text-rnrGrey-0 transition-colors">
+        <a href="/#how-it-works" class="hover:text-rnrGrey-0 transition-colors">
           How It Works
         </a>
-        <a href="#faq" class="hover:text-rnrGrey-0 transition-colors"> FAQ </a>
+        <a href="/#faq" class="hover:text-rnrGrey-0 transition-colors"> FAQ </a>
+        <a
+          href="/supported-libraries"
+          class="hover:text-rnrGrey-0 transition-colors"
+        >
+          Supported Libraries
+        </a>
 
         <a
           href="https://github.com/software-mansion/rnrepo"
@@ -63,32 +69,39 @@ import { Menu, X } from 'lucide-astro';
     >
       <div class="px-4 pt-2 pb-4 space-y-3">
         <a
-          href="#setup"
+          href="/#setup"
           class="block text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors py-2"
           data-mobile-menu-link
         >
           Setup
         </a>
         <a
-          href="#benefits"
+          href="/#benefits"
           class="block text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors py-2"
           data-mobile-menu-link
         >
           Benefits
         </a>
         <a
-          href="#how-it-works"
+          href="/#how-it-works"
           class="block text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors py-2"
           data-mobile-menu-link
         >
           How It Works
         </a>
         <a
-          href="#faq"
+          href="/#faq"
           class="block text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors py-2"
           data-mobile-menu-link
         >
           FAQ
+        </a>
+        <a
+          href="/supported-libraries"
+          class="block text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors py-2"
+          data-mobile-menu-link
+        >
+          Supported Libraries
         </a>
         <a
           href="https://github.com/software-mansion/rnrepo"

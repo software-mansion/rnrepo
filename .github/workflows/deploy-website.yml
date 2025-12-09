@@ -34,6 +34,13 @@ jobs:
         run: bun install
         working-directory: ./packages/website
 
+      - name: Fetch supported libraries from libraries.json
+        run: bun run fetch-supported-libs
+        working-directory: ./packages/website
+
+      - name: Throw if libraries.ts have changed
+        run: git diff --exit-code ./packages/website/src/data/libraries.ts
+
       - name: Build
         run: bun run build
         working-directory: ./packages/website
