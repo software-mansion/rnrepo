@@ -5,7 +5,8 @@
   "type": "module",
   "main": "./build-library-android.ts",
   "scripts": {
-    "build-android": "bun run build-library-android.ts"
+    "build-android": "bun run build-library-android.ts",
+    "check-library": "bun run library-checker.ts"
   },
   "dependencies": {
     "commander": "^13.1.0",
