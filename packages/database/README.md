@@ -95,20 +95,19 @@ The `builds` table tracks build status for React Native library builds:
 
 The table has a unique constraint on `(package_name, version, rn_version, platform, worklets_version)` to ensure only one build record exists per combination.
 
-### `completed_builds` View
+### `completed_packages` View
 
 A convenient view for querying which libraries have been successfully built and their platform availability, used in the website's supported libraries list:
 
 ```sql
 CREATE OR REPLACE VIEW completed_packages AS
 SELECT
-    DISTINCT package_name,
-    CASE WHEN platform = 'android' THEN true ELSE false END AS android,
-    CASE WHEN platform = 'ios' THEN true ELSE false END AS ios
-FROM
-    builds
-WHERE
-    status = 'completed';
+  package_name,
+  bool_or(CASE WHEN platform = 'android' THEN true ELSE false END) AS android,
+  bool_or(CASE WHEN platform = 'ios' THEN true ELSE false END) AS ios
+FROM builds
+WHERE status = 'completed'
+GROUP BY package_name;
 ```
 
 ## Retry Mechanism

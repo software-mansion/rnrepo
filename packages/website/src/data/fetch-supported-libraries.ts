@@ -16,7 +16,7 @@ interface LibraryConfigRecord {
 
 async function loadLibrariesDescriptions(): Promise<Map<string, string>> {
   try {
-    // Dynamically fetch libraries.json from the workspace root
+    // Load libraries.json from the workspace root
     const librariesJson = await readFile(new URL('../../../../libraries.json', import.meta.url), 'utf-8');
     const librariesConfig: Record<string, LibraryConfigRecord> = JSON.parse(librariesJson);
     console.log(`Loaded libraries configuration from libraries.json`);

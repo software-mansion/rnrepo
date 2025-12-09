@@ -32,6 +32,7 @@ import libraries from '../data/libraries';
             </div>
             {lib.supportedPlatforms?.map((platform) => (
               <span
+                key={platform}
                 class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandGreen-100/10 text-brandGreen-100 whitespace-nowrap flex-shrink-0"
               >
                 {platform} ✓
