@@ -46,7 +46,7 @@ jobs:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_branch }} # Todo(rolkrado): remove after testing
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: 📥 Download Maven artifacts
         uses: actions/download-artifact@v4

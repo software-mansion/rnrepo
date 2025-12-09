@@ -13,13 +13,37 @@ on:
 jobs:
   lint-and-validate:
     runs-on: rnrepo-ubuntu-latest
+    timeout-minutes: 60
     permissions:
       actions: read
       contents: read
-
+      pull-requests: read
+    outputs:
+      typescript: ${{ steps.filter.outputs.typescript }}
+      kotlin: ${{ steps.filter.outputs.kotlin }}
+      json: ${{ steps.filter.outputs.json }}
+    concurrency:
+      group: lint-and-validate-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+
+      - name: 🔍 Check for file changes
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            typescript:
+              - '**/*.ts'
+              - '**/*.tsx'
+              - '.github/workflows/lint-and-validate.yml'
+            kotlin:
+              - 'packages/client/**'
+              - '.github/workflows/lint-and-validate.yml'
+            json:
+              - '*.json'
+              - '.github/workflows/lint-and-validate.yml'
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -30,16 +54,21 @@ jobs:
         run: bun install
 
       - name: 🔍 Lint kotlin
+        if: ${{ steps.filter.outputs.kotlin == 'true' }}
         run: bun run lint-client
 
       - name: 🔍 Lint typescript
+        if: ${{ steps.filter.outputs.typescript == 'true' }}
         run: bun run lint-ts
 
       - name: ✅ Validate JSON files
+        if: ${{ steps.filter.outputs.json == 'true' }}
         run: bun run validate
 
       - name: 🧪 Run client tests
+        if: ${{ steps.filter.outputs.kotlin == 'true' }}
         run: bun run test-client
 
       - name: 🧪 Run ts tests
+        if: ${{ steps.filter.outputs.typescript == 'true' }}
         run: bun test

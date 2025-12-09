@@ -1,10 +1,11 @@
 {
   "name": "@rnrepo/expo-config-plugin",
   "title": "RNRepo expo config plugin",
-  "version": "0.1.0-beta.0",
+  "version": "0.1.0-beta.1",
   "description": "Plugin for configuring RNRepo prebuilt packages in Expo projects",
   "sideEffects": false,
-  "main": ".",
+  "main": "build/withRNRepoPlugin.js",
+  "types": "build/withRNRepoPlugin.d.ts",
   "scripts": {
     "build": "expo-module build",
     "clean": "expo-module clean",
@@ -38,18 +39,12 @@
     "expo-module-scripts": "^5.0.7"
   },
   "peerDependencies": {
-    "expo": "*",
+    "expo": "^54",
     "react": "*",
     "react-native": "*"
   },
   "files": [
-    "package.json",
-    "plugin/build/*",
-    "plugin/src/*",
-    "plugin/tsconfig.json",
-    "src/*",
-    "app.plugin.js",
-    "tsconfig.json",
-    "README.md"
+    "build",
+    "app.plugin.js"
   ]
 }

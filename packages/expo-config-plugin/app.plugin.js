@@ -1,1 +1,1 @@
-module.exports = require('./plugin/build/withRNRepoPlugin');
+module.exports = require('./build/withRNRepoPlugin');
