@@ -74,6 +74,8 @@ To use Supabase CLI from this package:
 
 ## Database Schema
 
+### `builds` Table
+
 The `builds` table tracks build status for React Native library builds:
 
 - `id` - Auto-incrementing primary key
@@ -89,9 +91,25 @@ The `builds` table tracks build status for React Native library builds:
 - `created_at` - Timestamp when the record was created
 - `updated_at` - Timestamp when the record was last updated
 
-### Unique Constraint
+#### Unique Constraint
 
 The table has a unique constraint on `(package_name, version, rn_version, platform, worklets_version)` to ensure only one build record exists per combination.
+
+### `completed_builds` View
+
+A convenient view for querying which libraries have been successfully built and their platform availability, used in the website's supported libraries list:
+
+```sql
+CREATE OR REPLACE VIEW completed_packages AS
+SELECT
+    DISTINCT package_name,
+    CASE WHEN platform = 'android' THEN true ELSE false END AS android,
+    CASE WHEN platform = 'ios' THEN true ELSE false END AS ios
+FROM
+    builds
+WHERE
+    status = 'completed';
+```
 
 ## Retry Mechanism
 

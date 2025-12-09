@@ -11,43 +11,8 @@ const libraries: LibraryInfo[] = [
     ]
   },
   {
-    "name": "@react-native-camera-roll/camera-roll",
-    "description": "Access to camera roll",
-    "supportedPlatforms": [
-      "android"
-    ]
-  },
-  {
-    "name": "@react-native-clipboard/clipboard",
-    "description": "Clipboard access",
-    "supportedPlatforms": [
-      "android"
-    ]
-  },
-  {
-    "name": "@react-native-documents/picker",
-    "description": "Document picker",
-    "supportedPlatforms": [
-      "android"
-    ]
-  },
-  {
-    "name": "@react-native-firebase/analytics",
-    "description": "Firebase Analytics",
-    "supportedPlatforms": [
-      "android"
-    ]
-  },
-  {
-    "name": "@react-native-firebase/app",
-    "description": "Firebase core",
-    "supportedPlatforms": [
-      "android"
-    ]
-  },
-  {
-    "name": "@react-native-firebase/crashlytics",
-    "description": "Firebase Crashlytics",
+    "name": "react-native-gesture-handler",
+    "description": "Gesture handling library",
     "supportedPlatforms": [
       "android"
     ]
@@ -60,15 +25,15 @@ const libraries: LibraryInfo[] = [
     ]
   },
   {
-    "name": "@zoontek/react-native-navigation-bar",
-    "description": "Navigation bar customization",
+    "name": "lottie-react-native",
+    "description": "Lottie animations",
     "supportedPlatforms": [
       "android"
     ]
   },
   {
-    "name": "lottie-react-native",
-    "description": "Lottie animations",
+    "name": "@react-native-firebase/crashlytics",
+    "description": "Firebase Crashlytics",
     "supportedPlatforms": [
       "android"
     ]
@@ -81,43 +46,29 @@ const libraries: LibraryInfo[] = [
     ]
   },
   {
-    "name": "react-native-android-location-enabler",
-    "description": "Enable Android location services",
+    "name": "@react-native-documents/picker",
+    "description": "Document picker",
     "supportedPlatforms": [
       "android"
     ]
   },
   {
-    "name": "react-native-blob-util",
-    "description": "Blob/File handling",
+    "name": "@zoontek/react-native-navigation-bar",
+    "description": "Navigation bar customization",
     "supportedPlatforms": [
       "android"
     ]
   },
   {
-    "name": "react-native-config",
-    "description": "Environment configuration",
+    "name": "@react-native-firebase/app",
+    "description": "Firebase core",
     "supportedPlatforms": [
       "android"
     ]
   },
   {
-    "name": "react-native-device-info",
-    "description": "Device information",
-    "supportedPlatforms": [
-      "android"
-    ]
-  },
-  {
-    "name": "react-native-gesture-handler",
-    "description": "Gesture handling library",
-    "supportedPlatforms": [
-      "android"
-    ]
-  },
-  {
-    "name": "react-native-reanimated",
-    "description": "React Native animation library",
+    "name": "@react-native-camera-roll/camera-roll",
+    "description": "Access to camera roll",
     "supportedPlatforms": [
       "android"
     ]
@@ -130,8 +81,15 @@ const libraries: LibraryInfo[] = [
     ]
   },
   {
-    "name": "react-native-screens",
-    "description": "Native screens for navigation",
+    "name": "react-native-android-location-enabler",
+    "description": "Enable Android location services",
+    "supportedPlatforms": [
+      "android"
+    ]
+  },
+  {
+    "name": "react-native-device-info",
+    "description": "Device information",
     "supportedPlatforms": [
       "android"
     ]
@@ -139,6 +97,48 @@ const libraries: LibraryInfo[] = [
   {
     "name": "react-native-worklets",
     "description": "Run JS in separate threads",
+    "supportedPlatforms": [
+      "android"
+    ]
+  },
+  {
+    "name": "@react-native-firebase/analytics",
+    "description": "Firebase Analytics",
+    "supportedPlatforms": [
+      "android"
+    ]
+  },
+  {
+    "name": "react-native-config",
+    "description": "Environment configuration",
+    "supportedPlatforms": [
+      "android"
+    ]
+  },
+  {
+    "name": "react-native-screens",
+    "description": "Native screens for navigation",
+    "supportedPlatforms": [
+      "android"
+    ]
+  },
+  {
+    "name": "react-native-reanimated",
+    "description": "React Native animation library",
+    "supportedPlatforms": [
+      "android"
+    ]
+  },
+  {
+    "name": "@react-native-clipboard/clipboard",
+    "description": "Clipboard access",
+    "supportedPlatforms": [
+      "android"
+    ]
+  },
+  {
+    "name": "react-native-blob-util",
+    "description": "Blob/File handling",
     "supportedPlatforms": [
       "android"
     ]

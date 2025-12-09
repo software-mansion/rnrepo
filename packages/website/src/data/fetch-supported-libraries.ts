@@ -77,4 +77,11 @@ async function fetchSupportedLibraries() {
   await loadToFile(loadedLibraries);
 }
 
-fetchSupportedLibraries();
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY || process.argv.length > 2) {
+  console.error("Usage: SUPABASE_URL=... SUPABASE_KEY=... bun run fetch-supported-libraries");
+  process.exit(1);
+}
+fetchSupportedLibraries().catch((error) => {
+  console.error('Error fetching supported libraries:', error);
+  process.exit(1);
+});
