@@ -1,0 +1,111 @@
+name: 🐛 Bug Report
+description: Report a bug or issue in RNRepo
+title: "[BUG] "
+labels: ["bug"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill out the form below as completely as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📋 Description
+      description: Please clearly and concisely describe what the issue is
+      placeholder: Describe the issue here...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 🔄 Steps to Reproduce
+      description: Describe the exact steps needed to reproduce the problem
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 🤔 Expected Behavior
+      description: Describe what should happen
+      placeholder: What should happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 😲 Actual Behavior
+      description: Describe what actually happened
+      placeholder: What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📸 Screenshots / Logs
+      description: If applicable, add screenshots or log output (e.g., from `./gradlew build --info`)
+      placeholder: |
+        ```
+        Paste logs here...
+        ```
+
+  - type: markdown
+    attributes:
+      value: "## 🛠️ Environment Information"
+
+  - type: input
+    id: rnrepo-version
+    attributes:
+      label: RNRepo version
+      placeholder: "e.g., 0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: rn-version
+    attributes:
+      label: React Native version
+      placeholder: "e.g., 0.74.0"
+    validations:
+      required: true
+
+  - type: input
+    id: gradle-version
+    attributes:
+      label: Gradle version
+      placeholder: "e.g., 8.3"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: "e.g., macOS 14.0, Ubuntu 22.04"
+    validations:
+      required: true
+
+  - type: textarea
+    id: libraries
+    attributes:
+      label: 📦 Related Libraries (if applicable)
+      description: List any libraries related to this issue
+      placeholder: |
+        - library-name
+        - another-library
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: ➕ Additional Information
+      description: Add any other information that might be helpful
+      placeholder: Any other context?
