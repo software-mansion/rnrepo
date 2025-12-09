@@ -48,20 +48,6 @@ async function loadLibrariesFromDatabase(): Promise<LibraryInfo[]> {
   return mappedLibraries;
 }
 
-function getSupportedPlatforms(
-  config: LibraryConfigRecord
-): Array<'android' | 'ios'> {
-  if (!config) {
-    return [];
-  }
-  const fullSupportKeys = ['publishedAfterDate', 'reactNativeVersion', 'versionMatcher'];
-  if (fullSupportKeys.some(key => key in config)) {
-    return ['android', 'ios'];
-  }
-  const platformKeys: Array<'android' | 'ios'> = ['android', 'ios'];
-  return platformKeys.filter(platform => config[platform]);
-}
-
 async function loadToFile(libraries: LibraryInfo[]) {
   const filePath = `${new URL('./libraries.ts', import.meta.url).pathname}`;
   const fileContent = `// This file is auto-generated via 'bun run fetch-supported-libs'. Do not edit directly.
