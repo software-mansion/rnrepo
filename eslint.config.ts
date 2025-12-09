@@ -12,7 +12,14 @@ export default defineConfig([
     extends: ["js/recommended"],
     languageOptions: { globals: globals.node },
     rules: {
-      "@typescript-eslint/no-unused-vars": ["error", { "varsIgnorePattern": "_.*", "argsIgnorePattern": "_.*" }],
+      "@typescript-eslint/no-unused-vars": [
+        "error", 
+        { 
+          "varsIgnorePattern": "_.*", 
+          "argsIgnorePattern": "_.*",
+          "caughtErrorsIgnorePattern": "_.*"
+        }
+      ],
     }
   },
   { files: ["**/*.js"], languageOptions: { sourceType: "commonjs" } },

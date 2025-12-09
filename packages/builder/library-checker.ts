@@ -1,8 +1,6 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { $ } from 'bun';
-import { get } from 'http';
-
 /**
  * Library Checker Script
  *
@@ -11,7 +9,6 @@ import { get } from 'http';
  * - Presence of native code
  * - Compatibility with New Architecture
  * - Custom gradle plugins
- * - Custom scripts
  * - C++ code
  * - externalNativeBuild settings
  * - Dependencies on other libraries
@@ -36,7 +33,6 @@ interface CheckResult {
   hasAndroidImplementation: boolean;
   hasIOSImplementation: boolean;
   hasCustomGradlePlugins: boolean;
-  hasCustomScripts: boolean;
   hasCppCode: boolean;
   hasExternalNativeBuild: boolean;
   nativeDependencies: string[];
@@ -82,7 +78,6 @@ Package Path: ${workDir}
   - ${result.hasNativeCode ? '✓' : '✗'} Native Code Detected
   - ${result.hasCppCode ? '✓' : '✗'} C++ Code Detected
   - ${result.hasCustomGradlePlugins ? '✓' : '✗'} Custom Gradle Plugins
-  - ${result.hasCustomScripts ? '✓' : '✗'} Custom Scripts
   - ${result.hasExternalNativeBuild ? '✓' : '✗'} External Native Build (Android)
   - ${result.newArchitectureSupport ? '✓' : '✗'} New Architecture Support`);
   printList('🔗 Native Dependencies', result.nativeDependencies);
@@ -150,7 +145,7 @@ function checkGradlePlugins(gradleFilePath: string, result: CheckResult): void {
       }
       
     } catch (error) {
-      result.warnings.push(`Could not read ${gradleFilePath}`);
+      result.warnings.push(`Could not read ${gradleFilePath}, error: ${error}`);
     }
   }
 }
@@ -163,7 +158,7 @@ function checkExternalNativeBuild(gradleFilePath: string, result: CheckResult): 
         result.hasExternalNativeBuild = true;
       }
     } catch (error) {
-      result.warnings.push(`Could not read ${gradleFilePath}`);
+      result.warnings.push(`Could not read ${gradleFilePath}, error: ${error}`);
     }
   }
 }
@@ -200,7 +195,7 @@ function checkCppCode(androidPath: string, result: CheckResult): void {
     // Recursively check for .cpp, .cc, .c, .h, .hpp files
     const checkForCppFilesRecursive = (dir: string): boolean => {
       try {
-        const files = require('fs').readdirSync(dir, { withFileTypes: true });
+        const files = readdirSync(dir, { withFileTypes: true });
         for (const file of files) {
           if (
             file.name.endsWith('.cpp') ||
@@ -217,7 +212,9 @@ function checkCppCode(androidPath: string, result: CheckResult): void {
             }
           }
         }
-      } catch (_error) {}
+      } catch (_error) {
+        // pass
+      }
       return false;
     };
 
@@ -235,29 +232,35 @@ function checkPackageJsonDependencies(packageDir: string, result: CheckResult): 
      
       // Check for native dependencies
       const allDeps = {
-        ...packageJson.dependencies,
         ...packageJson.peerDependencies,
-        ...packageJson.devDependencies,
       };
 
-      const nativeDependencyKeywords = [
-        'react-native',
-        'native',
-        'native-modules',
-        'jni',
-        'ndk',
+      const knownDependencies = [
+        '@react-native/',
+        '@testing',
+        '@types/',
+        'cspell',
+        'typescript',
+        'eslint',
+        'jest',
+        'metro',
+        'react-native-builder-bob',
+        '@babel',
+        'semver',
+        'prettier',
+        'lint-staged',
+        'husky',
+        'patch-package',
+        'madge',
       ];
 
       for (const dep of Object.keys(allDeps || {})) {
-        if (nativeDependencyKeywords.some((keyword) =>
-          dep.toLowerCase().includes(keyword)
-        )) {
+        if (!knownDependencies.some((knownDep) => dep.includes(knownDep))) {
           result.nativeDependencies.push(dep);
         }
       }
-
     } catch (error) {
-      result.warnings.push('Could not parse package.json');
+      result.warnings.push('Could not parse package.json, error: ' + error);
     }
   }
 }
@@ -284,7 +287,7 @@ function checkBuildGradleDependencies(buildGradleFile: string, result: CheckResu
         }
       }
     } catch (error) {
-      result.warnings.push(`Could not read ${buildGradleFile}`);
+      result.warnings.push(`Could not read ${buildGradleFile}, error: ${error}`);
     }
   }
 }
@@ -297,7 +300,7 @@ function checkAndroidNewArchitectureSupport(buildGradleFile: string, result: Che
         result.newArchitectureSupport = true;
       }
     } catch (error) {
-      result.warnings.push(`Could not read ${buildGradleFile}`);
+      result.warnings.push(`Could not read ${buildGradleFile}, error: ${error}`);
     }
   }
 }
@@ -311,7 +314,6 @@ async function checkLibrary(): Promise<void> {
     hasAndroidImplementation: false,
     hasIOSImplementation: false,
     hasCustomGradlePlugins: false,
-    hasCustomScripts: false,
     hasCppCode: false,
     hasExternalNativeBuild: false,
     nativeDependencies: [],
