@@ -303,7 +303,7 @@
     ]
   },
   "react-native-launch-arguments": {
-    "description": "Deep linking",
+    "description": "Launch arguments for testing",
     "android": [
       {
         "versionMatcher": "*",

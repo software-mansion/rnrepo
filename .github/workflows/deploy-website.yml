@@ -32,7 +32,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install
-        working-directory: ./packages/website
 
       - name: Fetch supported libraries from database
         run: bun run fetch-supported-libs

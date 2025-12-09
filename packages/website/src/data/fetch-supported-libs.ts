@@ -1,4 +1,4 @@
-import { writeFile } from 'fs/promises';
+import { writeFile, readFile } from 'fs/promises';
 import { getAllCompletedBuilds, type BuildRecordCompleted } from '@rnrepo/database';
 
 export interface LibraryInfo {
@@ -17,9 +17,9 @@ interface LibraryConfigRecord {
 async function loadLibrariesDescriptions(): Promise<Map<string, string>> {
   try {
     // Dynamically fetch libraries.json from the workspace root
-    const librariesJson = await fetch(new URL('../../../../libraries.json', import.meta.url));
-    const librariesConfig: Record<string, LibraryConfigRecord> = await librariesJson.json();
-    console.log(`Loaded libraries configuration from ${librariesJson.url}`);
+    const librariesJson = await readFile(new URL('../../../../libraries.json', import.meta.url), 'utf-8');
+    const librariesConfig: Record<string, LibraryConfigRecord> = JSON.parse(librariesJson);
+    console.log(`Loaded libraries configuration from libraries.json`);
 
     // Transform the configuration into LibraryInfo format
     const descriptionMap = new Map<string, string>(
@@ -31,7 +31,7 @@ async function loadLibrariesDescriptions(): Promise<Map<string, string>> {
     return descriptionMap;
   } catch (error) {
     console.error('Failed to load libraries from config:', error);
-    return new Map<string, string>();
+    throw error;
   }
 }
 
@@ -42,14 +42,15 @@ async function loadLibrariesFromDatabase(): Promise<LibraryInfo[]> {
   const mappedLibraries: LibraryInfo[] = libraries.map(lib => ({
     name: lib.package_name,
     description: libsDescriptions.get(lib.package_name) || '',
-    supportedPlatforms: [lib.android ? 'android' : null, lib.ios ? 'ios' : null].filter(Boolean) as Array<'android' | 'ios'>,
+    supportedPlatforms: [lib.android && 'android', lib.ios && 'ios'].filter((p): p is 'android' | 'ios' => Boolean(p)),
   }));
   return mappedLibraries;
 }
 
 async function loadToFile(libraries: LibraryInfo[]) {
-  const filePath = `${new URL('./libraries.ts', import.meta.url).pathname}`;
-  const fileContent = `// This file is auto-generated via 'bun run fetch-supported-libs'. Do not edit directly.
+  try {
+    const filePath = `${new URL('./libraries.ts', import.meta.url).pathname}`;
+    const fileContent = `// This file is auto-generated via 'bun run fetch-supported-libs'. Do not edit directly.
 
 import type { LibraryInfo } from './fetch-supported-libs';
 
@@ -57,9 +58,13 @@ const libraries: LibraryInfo[] = ${JSON.stringify(libraries, null, 2)};
 
 export default libraries;
 `;
-  // write to file
-  await writeFile(filePath, fileContent);
-  console.log(`Supported libraries written to ${filePath}`);
+    // write to file
+    await writeFile(filePath, fileContent);
+    console.log(`Supported libraries written to ${filePath}`);
+  } catch (error) {
+    console.error('Failed to write supported libraries to file:', error);
+    throw error;
+  }
 }
 
 async function fetchSupportedLibraries() {
