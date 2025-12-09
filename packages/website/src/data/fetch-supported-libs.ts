@@ -1,4 +1,5 @@
 import { writeFile } from 'fs/promises';
+import { getAllCompletedBuilds, type BuildRecordCompleted } from '@rnrepo/database';
 
 export interface LibraryInfo {
   name: string;
@@ -13,12 +14,7 @@ interface LibraryConfigRecord {
   [key: string]: unknown;
 }
 
-/**
- * Load supported libraries from libraries.json
- * This function reads the libraries configuration and transforms it
- * into the LibraryInfo format for the website
- */
-async function loadLibrariesFromConfig(): Promise<LibraryInfo[]> {
+async function loadLibrariesDescriptions(): Promise<Map<string, string>> {
   try {
     // Dynamically fetch libraries.json from the workspace root
     const librariesJson = await fetch(new URL('../../../../libraries.json', import.meta.url));
@@ -26,19 +22,30 @@ async function loadLibrariesFromConfig(): Promise<LibraryInfo[]> {
     console.log(`Loaded libraries configuration from ${librariesJson.url}`);
 
     // Transform the configuration into LibraryInfo format
-    const libraries: LibraryInfo[] = Object.entries(librariesConfig).map(
-      ([name, config]) => ({
-        name,
-        description: config.description,
-        supportedPlatforms: getSupportedPlatforms(config),
-      })
+    const descriptionMap = new Map<string, string>(
+        librariesConfig &&
+        Object.entries(librariesConfig).map(([name, config]) => [
+            name,
+            config.description || '',
+        ])
     );
-    console.log(`Transformed ${libraries.length} libraries into LibraryInfo format`);
-    return libraries;
+    return descriptionMap;
   } catch (error) {
     console.error('Failed to load libraries from config:', error);
-    return [];
+    return new Map<string, string>();
   }
+}
+
+async function loadLibrariesFromDatabase(): Promise<LibraryInfo[]> {
+  const libraries: BuildRecordCompleted[] = await getAllCompletedBuilds();
+  console.log(`Fetched ${libraries.length} completed builds from database`);
+  const libsDescriptions = await loadLibrariesDescriptions();
+  const mappedLibraries: LibraryInfo[] = libraries.map(lib => ({
+    name: lib.package_name,
+    description: libsDescriptions.get(lib.package_name) || '',
+    supportedPlatforms: [lib.android ? 'android' : null, lib.ios ? 'ios' : null].filter(Boolean) as Array<'android' | 'ios'>,
+  }));
+  return mappedLibraries;
 }
 
 function getSupportedPlatforms(
@@ -71,7 +78,7 @@ export default libraries;
 }
 
 async function fetchSupportedLibraries() {
-  const loadedLibraries = await loadLibrariesFromConfig();
+  const loadedLibraries = await loadLibrariesFromDatabase();
   await loadToFile(loadedLibraries);
 }
 

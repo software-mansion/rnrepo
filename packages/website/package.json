@@ -14,7 +14,8 @@
   "dependencies": {
     "astro": "^4.16.6",
     "lucide-astro": "^0.555.0",
-    "shiki": "^3.17.1"
+    "shiki": "^3.17.1",
+    "@rnrepo/database": "workspace:*"
   },
   "devDependencies": {
     "@astrojs/react": "^3.6.0",
