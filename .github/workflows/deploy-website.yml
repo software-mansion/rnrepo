@@ -34,9 +34,12 @@ jobs:
         run: bun install
         working-directory: ./packages/website
 
-      - name: Fetch supported libraries from libraries.json
+      - name: Fetch supported libraries from database
         run: bun run fetch-supported-libs
         working-directory: ./packages/website
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
 
       - name: Verify libraries.ts is up-to-date
         run: git diff --exit-code ./packages/website/src/data/libraries.ts

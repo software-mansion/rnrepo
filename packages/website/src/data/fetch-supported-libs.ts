@@ -23,11 +23,10 @@ async function loadLibrariesDescriptions(): Promise<Map<string, string>> {
 
     // Transform the configuration into LibraryInfo format
     const descriptionMap = new Map<string, string>(
-        librariesConfig &&
-        Object.entries(librariesConfig).map(([name, config]) => [
-            name,
-            config.description || '',
-        ])
+      Object.entries(librariesConfig || {}).map(([name, config]) => [
+        name,
+        config.description || '',
+      ])
     );
     return descriptionMap;
   } catch (error) {
