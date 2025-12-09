@@ -36,23 +36,28 @@ async function loadLibrariesDescriptions(): Promise<Map<string, string>> {
 }
 
 async function loadLibrariesFromDatabase(): Promise<LibraryInfo[]> {
-  const libraries: BuildRecordCompleted[] = await getAllCompletedBuilds();
-  console.log(`Fetched ${libraries.length} completed builds from database`);
-  const libsDescriptions = await loadLibrariesDescriptions();
-  const mappedLibraries: LibraryInfo[] = libraries.map(lib => ({
-    name: lib.package_name,
-    description: libsDescriptions.get(lib.package_name) || '',
-    supportedPlatforms: [lib.android && 'android', lib.ios && 'ios'].filter((p): p is 'android' | 'ios' => Boolean(p)),
-  }));
-  return mappedLibraries;
+  try {
+    const libraries: BuildRecordCompleted[] = await getAllCompletedBuilds();
+    console.log(`Fetched ${libraries.length} completed builds from database`);
+    const libsDescriptions = await loadLibrariesDescriptions();
+    const mappedLibraries: LibraryInfo[] = libraries.map(lib => ({
+      name: lib.package_name,
+      description: libsDescriptions.get(lib.package_name) || '',
+      supportedPlatforms: [lib.android && 'android', lib.ios && 'ios'].filter((p): p is 'android' | 'ios' => Boolean(p)),
+    }));
+    return mappedLibraries;
+  } catch (error) {
+    console.error('Failed to load libraries from database:', error);
+    throw error;
+  }
 }
 
 async function loadToFile(libraries: LibraryInfo[]) {
   try {
     const filePath = `${new URL('./libraries.ts', import.meta.url).pathname}`;
-    const fileContent = `// This file is auto-generated via 'bun run fetch-supported-libs'. Do not edit directly.
+    const fileContent = `// This file is auto-generated via the 'fetch-supported-libraries' script. Do not edit directly.
 
-import type { LibraryInfo } from './fetch-supported-libs';
+import type { LibraryInfo } from './fetch-supported-libraries';
 
 const libraries: LibraryInfo[] = ${JSON.stringify(libraries, null, 2)};
 

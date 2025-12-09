@@ -161,7 +161,7 @@ export async function getAllCompletedBuilds(): Promise<BuildRecordCompleted[]> {
 
   const { data, error } = await supabase
     .from('completed_packages')
-    .select('*');
+    .select('package_name, android, ios');
 
   if (error) {
     throw new Error(`Failed to fetch completed builds: ${error.message}`);

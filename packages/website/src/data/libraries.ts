@@ -1,6 +1,6 @@
-// This file is auto-generated via 'bun run fetch-supported-libs'. Do not edit directly.
+// This file is auto-generated via the 'fetch-supported-libraries' script. Do not edit directly.
 
-import type { LibraryInfo } from './fetch-supported-libs';
+import type { LibraryInfo } from './fetch-supported-libraries';
 
 const libraries: LibraryInfo[] = [
   {

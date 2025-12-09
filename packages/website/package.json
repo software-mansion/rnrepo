@@ -9,7 +9,7 @@
     "preview": "astro preview",
     "check": "astro check",
     "deploy": "npm run build",
-    "fetch-supported-libs": "bun run src/data/fetch-supported-libs.ts"
+    "fetch-supported-libraries": "bun run src/data/fetch-supported-libraries.ts"
   },
   "dependencies": {
     "astro": "^4.16.6",
