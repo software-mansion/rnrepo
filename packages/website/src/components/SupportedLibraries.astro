@@ -16,7 +16,7 @@ const libraries = await getLibraries();
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
-      {libraries.slice(0, 12).map((lib) => (
+      {libraries.map((lib) => (
         <div class="bg-surface/40 border border-rnrGrey-80 hover:border-rnrGrey-60 p-4 rounded-sm transition-colors">
           <div class="flex items-start justify-between gap-2">
             <div class="flex-1 min-w-0">
