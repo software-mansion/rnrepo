@@ -405,5 +405,21 @@
         "publishedAfterDate": "2025-01-01"
       }
     ]
+  },
+  "@maplibre/maplibre-react-native": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "@react-native-community/slider": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
   }
 }
