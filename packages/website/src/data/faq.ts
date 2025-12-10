@@ -17,12 +17,12 @@ export const faqItems: FAQItem[] = [
   {
     question: 'How do I opt out of RNRepo for specific libraries?',
     answer:
-      'You can opt out globally by setting the DISABLE_RNREPO environment variable. For granular control, you can exclude specific libraries using the JSON configuration file. This allows you to continue using RNRepo for most libraries while building specific ones from source when needed.',
+      'You can opt out globally by setting the DISABLE_RNREPO environment variable. For granular control, you can exclude specific libraries using the JSON configuration file. This allows you to continue using RNRepo for most libraries while building specific ones from source when needed. More details can be found in <a href="https://github.com/software-mansion/rnrepo?tab=readme-ov-file#configuration" class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors">our GitHub repository</a>.',
   },
   {
     question: 'What happens if I have local patches for a library?',
     answer:
-      "If your patches modify native code (Objective-C, Java, or Kotlin), you'll need to add that library to the opt-out list so it builds from your patched source. JavaScript-only patches don't require opting out since they don't affect the native build artifacts.",
+      "If your patches modify native code (Objective-C, Java, or Kotlin), you'll need to add that library to the opt-out list so it builds from your patched source. JavaScript-only patches don't require opting out since they don't affect the native build artifacts. More details can be found in <a href=\"https://github.com/software-mansion/rnrepo?tab=readme-ov-file#configuration\" class=\"text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors\">our GitHub repository</a>.",
   },
   {
     question: "What if a library or React Native version isn't supported?",
@@ -32,12 +32,12 @@ export const faqItems: FAQItem[] = [
   {
     question: 'Which React Native versions are supported?',
     answer:
-      'We support all React Native versions 0.80.0 and above, plus the latest patch versions for 0.77.3, 0.78.3, and 0.79.7. If your React Native version is not supported, prebuilt artifacts will automatically fall back to building from source. For a complete list of all supported versions, refer to the react-native-versions.json file in <a href="https://github.com/software-mansion/rnrepo" class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors">Our GitHub repository</a>.',
+      'We support all React Native versions 0.80.0 and above, plus the latest patch versions for 0.77.3, 0.78.3, and 0.79.7. If your React Native version is not supported, prebuilt artifacts will automatically fall back to building from source. For a complete list of all supported versions, refer to the react-native-versions.json file in <a href="https://github.com/software-mansion/rnrepo" class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors">our GitHub repository</a>.',
   },
   {
     question: 'How can I see which libraries are pre-built?',
     answer:
-      'The complete list of supported libraries is maintained in the libraries.json file in our GitHub repository. This file contains all library names and the React Native versions we build against. Check <a href="https://github.com/software-mansion/rnrepo" class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors">Our GitHub repository</a> for the current list.',
+      'The complete list of supported libraries is maintained in the libraries.json file in our GitHub repository. This file contains all library names and the React Native versions we build against. Check <a href="https://github.com/software-mansion/rnrepo" class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors">our GitHub repository</a> for the current list.',
   },
   {
     question: 'How do I request a new library to be added?',
