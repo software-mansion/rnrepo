@@ -107,7 +107,7 @@ DISABLE_RNREPO=1 ./gradlew app:assembleDebug
 
 ### Disable RNRepo for specific libraries
 
-To opt out of using RNRepo for specific libraries, you can add the `rnrepo.config.json` file to you project's root directory with the following structure:
+To opt out of using RNRepo for specific libraries, you can add the `rnrepo.config.json` file to your project's root directory with the following structure:
 
 ```json
 {
