@@ -1,5 +1,7 @@
 ---
-import libraries from '../data/libraries';
+import { getLibraries } from '../data/fetch-supported-libraries';
+
+const libraries = await getLibraries();
 ---
 
 <section id="supported-libraries" class="py-24 relative border-b border-rnrGrey-80">

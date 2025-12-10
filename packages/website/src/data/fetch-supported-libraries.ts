@@ -1,5 +1,5 @@
-import { writeFile, readFile } from 'fs/promises';
-import { getAllCompletedBuilds, type BuildRecordCompleted } from '@rnrepo/database';
+import { readFile } from 'fs/promises';
+import { getAllCompletedBuilds } from '@rnrepo/database';
 
 export interface LibraryInfo {
   name: string;
@@ -35,11 +35,13 @@ async function loadLibrariesDescriptions(): Promise<Map<string, string>> {
   }
 }
 
-async function loadLibrariesFromDatabase(): Promise<LibraryInfo[]> {
+export async function getLibraries(): Promise<LibraryInfo[]> {
   try {
-    const libraries: BuildRecordCompleted[] = await getAllCompletedBuilds();
+    const [libraries, libsDescriptions] = await Promise.all([
+      getAllCompletedBuilds(),
+      loadLibrariesDescriptions()
+    ]);
     console.log(`Fetched ${libraries.length} completed builds from database`);
-    const libsDescriptions = await loadLibrariesDescriptions();
     const mappedLibraries: LibraryInfo[] = libraries.map(lib => ({
       name: lib.package_name,
       description: libsDescriptions.get(lib.package_name) || '',
@@ -48,40 +50,6 @@ async function loadLibrariesFromDatabase(): Promise<LibraryInfo[]> {
     return mappedLibraries;
   } catch (error) {
     console.error('Failed to load libraries from database:', error);
-    throw error;
+    return []; // Return an empty array on failure
   }
 }
-
-async function loadToFile(libraries: LibraryInfo[]) {
-  try {
-    const filePath = `${new URL('./libraries.ts', import.meta.url).pathname}`;
-    const fileContent = `// This file is auto-generated via the 'fetch-supported-libraries' script. Do not edit directly.
-
-import type { LibraryInfo } from './fetch-supported-libraries';
-
-const libraries: LibraryInfo[] = ${JSON.stringify(libraries, null, 2)};
-
-export default libraries;
-`;
-    // write to file
-    await writeFile(filePath, fileContent);
-    console.log(`Supported libraries written to ${filePath}`);
-  } catch (error) {
-    console.error('Failed to write supported libraries to file:', error);
-    throw error;
-  }
-}
-
-async function fetchSupportedLibraries() {
-  const loadedLibraries = await loadLibrariesFromDatabase();
-  await loadToFile(loadedLibraries);
-}
-
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY || process.argv.length > 2) {
-  console.error("Usage: SUPABASE_URL=... SUPABASE_KEY=... bun run fetch-supported-libraries");
-  process.exit(1);
-}
-fetchSupportedLibraries().catch((error) => {
-  console.error('Error fetching supported libraries:', error);
-  process.exit(1);
-});
