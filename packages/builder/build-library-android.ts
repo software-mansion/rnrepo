@@ -189,6 +189,23 @@ function extractAndVerifyLicense(appDir: string): AllowedLicense {
   return licenseName as AllowedLicense;
 }
 
+function checkRnVersion(appDir: string, expectedVersion: string) {
+  const rnPackageJsonPath = join(
+    appDir,
+    'node_modules',
+    'react-native',
+    'package.json'
+  );
+  const rnPackageJson = JSON.parse(readFileSync(rnPackageJsonPath, 'utf-8'));
+  const actualVersion = rnPackageJson.version;
+  if (actualVersion !== expectedVersion) {
+    throw new Error(
+      `React Native version mismatch: expected ${expectedVersion}, got ${actualVersion}`
+    );
+  }
+  console.log(`✓ React Native version ${actualVersion} is correct`);
+}
+
 async function buildLibrary() {
   const appDir = join(workDir, 'rnrepo_build_app');
 
@@ -236,6 +253,9 @@ async function buildLibrary() {
     // Install all dependencies
     console.log('📦 Installing all dependencies...');
     await $`npm install`.quiet();
+
+    // Check if the react-native version is correctly set
+    checkRnVersion(appDir, reactNativeVersion);
 
     // Build AAR
     console.log('🔨 Building AAR...');
