@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { Platform, BuildStatus, BuildRecord } from './types';
+import type { Platform, BuildStatus, BuildRecord, BuildRecordCompleted } from './types';
 
 // Initialize Supabase client
 // Uses SUPABASE_KEY with RLS policies
@@ -156,5 +156,19 @@ export async function updateBuildStatus(
   }
 }
 
+export async function getAllCompletedBuilds(): Promise<BuildRecordCompleted[]> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('completed_packages')
+    .select('package_name, android, ios');
+
+  if (error) {
+    throw new Error(`Failed to fetch completed builds: ${error.message}`);
+  }
+
+  return data || [];
+}
+
 // Re-export types
-export type { Platform, BuildStatus, BuildRecord };
+export type { Platform, BuildStatus, BuildRecord, BuildRecordCompleted };

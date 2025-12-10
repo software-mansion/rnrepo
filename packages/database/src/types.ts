@@ -17,3 +17,8 @@ export interface BuildRecord {
   updated_at?: string;
 }
 
+export interface BuildRecordCompleted {
+  package_name: string;
+  android: boolean;
+  ios: boolean;
+}
