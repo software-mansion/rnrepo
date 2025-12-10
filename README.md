@@ -99,7 +99,7 @@ That's it! Now build your app as usual and Gradle will pull prebuilt artifacts f
 
 ### Disable RNRepo for builds
 
-If you want to disable RNRepo for specific builds (for example, to debug build issues or test local changes), you can set the `DISABLE_RNREPO` environment variable to any value:
+If you want to disable RNRepo for specific builds (for example, to debug build issues or test local changes), you can run the build with `DISABLE_RNREPO` environment variable set:
 
 ```bash
 DISABLE_RNREPO=1 ./gradlew app:assembleDebug
