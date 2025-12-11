@@ -49,7 +49,6 @@ open class PackagesManager {
 class PrebuildsPlugin : Plugin<Project> {
     private val logger: PrefixedLogger = PrefixedLogger(Logging.getLogger("PrebuildsPlugin"))
     private var REACT_NATIVE_ROOT_DIR: File? = null
-    private var BUILD_TYPE: String = "debug"
 
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
@@ -57,30 +56,31 @@ class PrebuildsPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
         REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project)
-        BUILD_TYPE = getBuildType(project)
         if (!getReactNativeVersion(extension)) {
             logger.error("Could not determine React Native version, aborting RNRepo plugin setup.")
             return
         }
         if (shouldPluginExecute(project, extension)) {
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
+            getProjectPackages(project.rootProject.allprojects, extension)
 
             // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
-            val androidExtension = project.extensions.getByName("android") as? BaseExtension
-            androidExtension?.let { android ->
-                android.packagingOptions.apply {
-                    jniLibs.pickFirsts += "lib/arm64-v8a/libworklets.so"
-                    jniLibs.pickFirsts += "lib/armeabi-v7a/libworklets.so"
-                    jniLibs.pickFirsts += "lib/x86/libworklets.so"
-                    jniLibs.pickFirsts += "lib/x86_64/libworklets.so"
+            extension.projectPackages.find { it.name == "react-native-reanimated" }?.let {
+                val androidExtension = project.extensions.getByName("android") as? BaseExtension
+                androidExtension?.let { android ->
+                    android.packagingOptions.apply {
+                        jniLibs.pickFirsts += "lib/arm64-v8a/libworklets.so"
+                        jniLibs.pickFirsts += "lib/armeabi-v7a/libworklets.so"
+                        jniLibs.pickFirsts += "lib/x86/libworklets.so"
+                        jniLibs.pickFirsts += "lib/x86_64/libworklets.so"
+                    }
+                } ?: run {
+                    logger.warn("The Android Gradle Plugin is not applied to this project.")
                 }
-            } ?: run {
-                logger.warn("The Android Gradle Plugin is not applied to this project.")
             }
 
             project.gradle.projectsEvaluated {
                 // Check what packages are in project and which are we supporting
-                getProjectPackages(project.rootProject.allprojects, extension)
                 loadDenyList(extension)
                 determineSupportedPackages(project, extension)
 
@@ -200,11 +200,19 @@ class PrebuildsPlugin : Plugin<Project> {
     }
 
     private fun getBuildType(project: Project): String {
-        val isRelease =
+        val taskNames =
             project.gradle.startParameter.taskNames
-                .any { it.contains("Release") }
-        logger.info("Determined build type: ${if (isRelease) "release" else "debug"}")
-        return if (isRelease) "release" else "debug"
+                .map { it.lowercase() }
+        val isRelease = taskNames.any { it.contains("release") }
+        val isDebug = taskNames.any { it.contains("debug") }
+        val buildType =
+            when {
+                isRelease -> "release"
+                isDebug -> "debug"
+                else -> "debug" // Default to debug if neither is found
+            }
+        logger.info("Determined build type: $buildType")
+        return buildType
     }
 
     /**
@@ -659,15 +667,17 @@ class PrebuildsPlugin : Plugin<Project> {
         }
         workletsList.firstOrNull()?.let { workletsPackage ->
             logger.info("Handling react-native-worklets package after others.")
-            val elseClosurer: () -> Unit = {
-                if (BUILD_TYPE == "release") {
+            val elseClosure: () -> Unit = {
+                if (getBuildType(project) == "release") {
                     supportedPackages.add(workletsPackage)
                 } else {
-                    logger.info("react-native-worklets can be applied only in release builds when it is consumed.")
+                    logger.info(
+                        "In debug builds, react-native-worklets requires all consumer packages to be supported; otherwise, it will not be applied.",
+                    )
                     checkDependencies(workletsPackage, project.rootProject, supportedPackages, unavailablePackages)
                 }
             }
-            checkIfPackageIsSupported(workletsPackage, project.repositories, extension, unavailablePackages, elseClosurer)
+            checkIfPackageIsSupported(workletsPackage, project.repositories, extension, unavailablePackages, elseClosure)
         }
 
         extension.supportedPackages = supportedPackages
