@@ -44,16 +44,18 @@ export async function processLibrary(
         pkgMatcher,
         publishedAfterDate
       );
+      // If reactNativeMatcher is not set, accept any version
+      const reactNativeMatchingVersions = await findMatchingVersionsFromNPM(
+        'react-native',
+        reactNativeMatcher ?? '*'
+      ).then(versions => versions.map(v => v.version));
 
       for (const pkgVersionInfo of matchingVersions) {
         const pkgVersion = pkgVersionInfo.version;
 
         for (const rnVersion of rnVersions) {
-          // If reactNativeMatcher is not set, accept any version
-          if (
-            reactNativeMatcher &&
-            !matchesVersionPattern(rnVersion, reactNativeMatcher)
-          ) {
+          if (!matchesVersionPattern(rnVersion, reactNativeMatchingVersions)) {
+            console.log(`   ❌ Skipping RN ${rnVersion} - does not match reactNativeVersion criteria`);
             continue;
           }
 
