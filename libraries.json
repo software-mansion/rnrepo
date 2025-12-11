@@ -13,9 +13,13 @@
     "description": "React Native animation library",
     "android": [
       {
-        "versionMatcher": "*",
+        "versionMatcher": "<4.2",
         "withWorkletsVersion": ["0.5.1", "0.6.1"],
         "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.2",
+        "withWorkletsVersion": ["0.7.1"]
       }
     ]
   },
