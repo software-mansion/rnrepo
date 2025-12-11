@@ -209,11 +209,11 @@ const supportedLibraryNames = await getSupportedLibraryNames();
                           )}
                         </div>
                       ) : (
-                        <span class="ios-empty hidden text-xs text-rnrGrey-40 italic">Not available for  RN {version}</span>
+                        <span class="ios-empty hidden text-xs text-rnrGrey-40 italic">Not available for RN {version}</span>
                       )}
                     </>
                   ) : (
-                    <span class="text-xs text-rnrGrey-40 italic">Not available for  RN {version}</span>
+                    <span class="text-xs text-rnrGrey-40 italic">Not available for RN {version}</span>
                   )}
                 </div>
               </div>
@@ -278,7 +278,7 @@ const supportedLibraryNames = await getSupportedLibraryNames();
   const platformButtons = document.querySelectorAll('.platform-btn');
   const versionsHeader = document.getElementById('versions-header');
 
-  let activeVersion = Object.keys(JSON.parse(document.querySelector('script[type="application/json"]')?.textContent || '{}'))[0] || null;
+  let activeVersion = null;
   let activePlatform = 'android';
 
   // Set first version button as active by default (highest minor, then highest patch)

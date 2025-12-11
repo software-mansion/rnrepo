@@ -178,7 +178,7 @@ export async function getCompletedPackagesNames(): Promise<string[]> {
     .select('package_name');
 
   if (error) {
-    throw new Error(`Failed to fetch completed builds: ${error.message}`);
+    throw new Error(`Failed to fetch completed build names: ${error.message}`);
   }
   return data?.map((record) => record.package_name) || [];
 }
