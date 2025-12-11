@@ -3,7 +3,7 @@ import type {
   Platform,
   BuildStatus,
   BuildRecord,
-  BuildRecordCompleted,
+  LibrariesData
 } from './types';
 
 // Initialize Supabase client
@@ -161,19 +161,32 @@ export async function updateBuildStatus(
   }
 }
 
-export async function getAllCompletedBuilds(): Promise<BuildRecordCompleted[]> {
+export async function getAllCompletedBuilds(): Promise<LibrariesData> {
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
     .from('completed_packages')
-    .select('package_name, android, ios');
+    .select('final_output');
 
   if (error) {
     throw new Error(`Failed to fetch completed builds: ${error.message}`);
   }
 
-  return data || [];
+  return data?.[0]?.final_output || {};
+}
+
+export async function getCompletedPackagesNames(): Promise<string[]> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('completed_packages_names')
+    .select('package_name');
+
+  if (error) {
+    throw new Error(`Failed to fetch completed build names: ${error.message}`);
+  }
+  return data?.map((record) => record.package_name) || [];
 }
 
 // Re-export types
-export type { Platform, BuildStatus, BuildRecord, BuildRecordCompleted };
+export type { Platform, BuildStatus, BuildRecord, LibrariesData };
