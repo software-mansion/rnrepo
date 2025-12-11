@@ -1,66 +1,287 @@
 ---
-import { getLibraries } from '../data/fetch-supported-libraries';
+import { getLibraries, getSupportedLibraryNames } from '../data/fetch-supported-libraries';
+import { Info } from 'lucide-astro';
 
 const libraries = await getLibraries();
+const allRNVersions = Object.keys(libraries);
+const supportedLibraryNames = await getSupportedLibraryNames();
 ---
 
 <section id="supported-libraries" class="py-24 relative border-b border-rnrGrey-80">
   <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    {/* Page Header */}
     <div class="text-center mb-16">
-      <h2 class="text-3xl md:text-4xl font-medium text-rnrGrey-0 mb-6 leading-tight">
-        Supported Libraries
-      </h2>
+      <h1 class="text-3xl md:text-5xl font-bold tracking-tight text-rnrGrey-0 mb-6">
+        Supported <span class="text-brandSeaBlue-100">Libraries</span>
+      </h1>
       <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-2xl mx-auto">
-        RNRepo currently supports {libraries.length} popular React Native libraries with prebuilt Android artifacts. More libraries are added regularly!
+        Browse all React Native libraries with pre-built artifacts available in RNRepo. {supportedLibraryNames.length} libraries and counting.
       </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
-      {libraries.map((lib) => (
-        <div class="bg-surface/40 border border-rnrGrey-80 hover:border-rnrGrey-60 p-4 rounded-sm transition-colors">
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex-1 min-w-0">
-              <a 
-                href={`https://www.npmjs.com/package/${lib.name}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="font-semibold text-rnrGrey-0 hover:text-brandPink-100 break-words text-sm transition-colors"
-              >
-                {lib.name}
-              </a>
-              {lib.description && (
-                <p class="text-xs text-rnrGrey-40 mt-1">{lib.description}</p>
-              )}
-            </div>
-            {lib.supportedPlatforms?.map((platform) => (
-              <span
-                key={platform}
-                class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandGreen-100/10 text-brandGreen-100 whitespace-nowrap flex-shrink-0"
-              >
-                {platform} ✓
-              </span>
-            ))}
-          </div>
+    {/* React Native Versions Card */}
+    <div class="rounded-lg border border-rnrGrey-80 bg-surface/40 p-6 mb-8">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-rnrGrey-0">React Native Versions</h2>
+          <p class="text-sm text-rnrGrey-40">We build artifacts for these React Native versions</p>
         </div>
-      ))}
+        <div class="flex flex-wrap gap-2">
+          {allRNVersions.map((version) => (
+            <button
+              id={`rn-version-${version}`}
+              class="rn-version-btn inline-flex items-center px-3 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 hover:bg-brandSeaBlue-100/20 transition-colors cursor-pointer"
+              data-version={version}
+            >
+              RN {version} 
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
 
-    <div class="text-center">
-      <p class="text-rnrGrey-40 mb-6">
-        Want to see all {libraries.length} supported libraries? Check the full list on our{' '}
-        <a
-          href="https://github.com/software-mansion/rnrepo/blob/main/libraries.json"
-          class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors"
-        >
-          GitHub repository</a
-        >.
-      </p>
+    {/* Search Input */}
+    <div class="relative mb-8">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-rnrGrey-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+      <input 
+        type="text"
+        placeholder="Search libraries..."
+        id="library-search"
+        class="w-full h-12 bg-surface/40 border border-rnrGrey-80 focus:border-brandSeaBlue-100 text-rnrGrey-0 placeholder:text-rnrGrey-40 pl-10 pr-4 rounded-lg outline-none transition-colors focus:ring-2 focus:ring-brandSeaBlue-100/20"
+      />
+    </div>
+
+    {/* Results Count */}
+    <div class="text-sm text-rnrGrey-40 mb-6">
+      Showing <span id="library-count" data-total={Object.values(libraries).reduce((acc, versionInfo) => acc + Object.keys(versionInfo).length, 0)}>{Object.values(libraries).reduce((acc, versionInfo) => acc + Object.keys(versionInfo).length, 0)}</span> of {supportedLibraryNames.length} libraries
+    </div>
+
+    {/* Libraries Table/List */}
+    <div class="overflow-hidden rounded-lg border border-rnrGrey-80">
+      <div class="bg-rnrGrey-90/30 border-b border-rnrGrey-80 px-6 py-3 hidden sm:grid grid-cols-3 gap-4">
+        <div class="text-sm font-medium text-rnrGrey-0">Library</div>
+        <div class="text-sm font-medium text-rnrGrey-0">Versions</div>
+      </div>
+      <div id="libraries-list">
+        {allRNVersions.map((version) =>
+          [...supportedLibraryNames].sort().map((libName) => {
+            const libInfo = libraries[version]?.[libName];
+            const isAvailable = !!libInfo;
+            
+            return (
+              <div class="library-row border-b border-rnrGrey-80 last:border-0 px-6 py-4 hover:bg-surface/40 transition-colors grid grid-cols-1 sm:grid-cols-3 gap-4 sm:items-center" data-rn-version={version} data-library-name={libName}>
+                <div class="flex items-center gap-3">
+                  <div class="flex h-9 w-9 items-center justify-center rounded-md bg-brandSeaBlue-100/10 flex-shrink-0">
+                    <svg class="w-5 h-5 text-brandSeaBlue-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4m0 0L4 7m16 0l-8 4m0 0l8 4m-8-4v10m0 0L4 15m16 0l-8 4"></path>
+                    </svg>
+                  </div>
+                  <a 
+                    href={`https://www.npmjs.com/package/${libName}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="font-semibold text-rnrGrey-0 hover:text-brandSeaBlue-100 transition-colors inline-flex items-center gap-2 text-sm"
+                  >
+                    {libName}
+                    <svg class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M11 3a1 1 0 100 2h3.414l-8.707 8.707a1 1 0 001.414 1.414L15.828 6.414V10a1 1 0 102 0V4a1 1 0 00-1-1h-6z"></path>
+                    </svg>
+                  </a>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  {isAvailable ? (
+                    <>
+                      {libInfo.android_versions && libInfo.android_versions.length > 0 ? (
+                        <>
+                          {libInfo.android_versions.slice(0, 5).map((ver) => (
+                            <span
+                              key={ver}
+                              class="version-tag inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100"
+                            >
+                              {ver}
+                            </span>
+                          ))}
+                          {libInfo.android_versions.slice(5).map((ver) => (
+                            <span
+                              key={ver}
+                              class="version-tag version-hidden inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 hidden"
+                            >
+                              {ver}
+                            </span>
+                          ))}
+                          {libInfo.android_versions && libInfo.android_versions.length > 5 && (
+                            <button
+                              class="expand-versions-btn inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer"
+                              aria-expanded="false"
+                            >
+                              +{libInfo.android_versions.length - 5} more
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <span class="text-xs text-rnrGrey-40">—</span>
+                      )}
+                    </>
+                  ) : (
+                    <span class="text-xs text-rnrGrey-40 italic">Nie dostępne dla RN {version}</span>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div id="no-results" class="hidden text-center py-12">
+        <svg class="h-12 w-12 text-rnrGrey-40/50 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+        </svg>
+        <p class="text-lg font-medium text-rnrGrey-0 mb-1">No libraries found</p>
+        <p class="text-sm text-rnrGrey-40">Try adjusting your search query</p>
+      </div>
+    </div>
+
+    {/* Footer Section */}
+    <div class="text-center space-y-6">
+      {/* Beta Disclaimer */}
+      <div
+        class="mb-6 p-4 bg-brandYellow-100/10 border border-brandYellow-100/30 rounded-sm flex gap-3 items-center"
+      >
+        <div class="flex-shrink-0">
+          <Info class="w-5 h-5 text-brandYellow-100" />
+        </div>
+        <div class="flex-1">
+          <p class="text-sm text-rnrGrey-30 leading-relaxed">
+            RNRepo is currently in
+            <strong class="text-brandYellow-100">Beta</strong> and available for
+            <strong class="text-rnrGrey-0">Android only</strong>.
+          </p>
+          <p class="text-sm text-rnrGrey-30 leading-relaxed mt-1">
+            Please report any feedback or issues with your setup via our{' '}
+            <a
+              href="https://github.com/software-mansion/rnrepo"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-brandSeaBlue-100 hover:underline">GitHub</a
+            >.
+          </p>
+        </div>
+      </div>
+      
       <a
         href="https://github.com/software-mansion/rnrepo/issues/new?template=library_support_request.yml"
-        class="inline-flex items-center px-6 py-3 bg-brandPink-100 text-rnrGrey-100 font-semibold rounded-sm hover:bg-brandPink-90 transition-colors"
+        class="inline-flex items-center px-6 py-3 bg-brandPink-100 text-rnrGrey-100 font-semibold rounded-lg hover:bg-brandPink-90 transition-colors"
       >
         Request Library Support
       </a>
     </div>
   </div>
 </section>
+
+<script>
+  const searchInput = document.getElementById('library-search');
+  const librariesList = document.getElementById('libraries-list');
+  const noResults = document.getElementById('no-results');
+  const libraryCount = document.getElementById('library-count');
+  const libraryRows = document.querySelectorAll('.library-row');
+  const versionButtons = document.querySelectorAll('.rn-version-btn');
+  const expandButtons = document.querySelectorAll('.expand-versions-btn');
+
+  let activeVersion = Object.keys(JSON.parse(document.querySelector('script[type="application/json"]')?.textContent || '{}'))[0] || null;
+
+  // Set first version button as active by default
+  if (versionButtons.length > 0) {
+    versionButtons[0].classList.add('active');
+    updateButtonStyle(versionButtons[0]);
+    activeVersion = versionButtons[0].dataset.version;
+  }
+
+  function updateButtonStyle(btn) {
+    btn.classList.remove('bg-brandSeaBlue-100/10');
+    btn.classList.add('bg-brandSeaBlue-100', 'text-rnrGrey-100');
+  }
+
+  function resetButtonStyle(btn) {
+    btn.classList.add('bg-brandSeaBlue-100/10');
+    btn.classList.remove('bg-brandSeaBlue-100', 'text-rnrGrey-100');
+  }
+
+  // Handle expand buttons
+  expandButtons.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const container = btn.closest('.flex');
+      const hiddenVersions = container.querySelectorAll('.version-hidden');
+      const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+
+      hiddenVersions.forEach((version) => {
+        if (isExpanded) {
+          version.classList.add('hidden');
+        } else {
+          version.classList.remove('hidden');
+        }
+      });
+
+      btn.setAttribute('aria-expanded', !isExpanded);
+      btn.textContent = isExpanded 
+        ? `+${hiddenVersions.length} more` 
+        : `show less`;
+    });
+  });
+
+  function updateLibraryDisplay() {
+    let visibleCount = 0;
+    const searchQuery = searchInput?.value.toLowerCase().trim() || '';
+
+    libraryRows.forEach((row) => {
+      const rnVersion = row.dataset.rnVersion;
+      const libraryName = row.dataset.libraryName?.toLowerCase() || '';
+      const matchesVersion = rnVersion === activeVersion;
+      const matchesSearch = !searchQuery || libraryName.includes(searchQuery);
+      const shouldShow = matchesVersion && matchesSearch;
+
+      if (shouldShow) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (libraryCount) {
+      libraryCount.textContent = visibleCount;
+    }
+
+    if (visibleCount === 0) {
+      noResults?.classList.remove('hidden');
+    } else {
+      noResults?.classList.add('hidden');
+    }
+  }
+
+  // Handle version button clicks
+  versionButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      versionButtons.forEach((b) => {
+        b.classList.remove('active');
+        resetButtonStyle(b);
+      });
+      btn.classList.add('active');
+      updateButtonStyle(btn);
+      activeVersion = btn.dataset.version;
+      updateLibraryDisplay();
+    });
+  });
+
+  // Handle search input
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      updateLibraryDisplay();
+    });
+  }
+
+  // Initial display
+  updateLibraryDisplay();
+</script>
