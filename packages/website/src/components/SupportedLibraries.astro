@@ -3,7 +3,34 @@ import { getLibraries, getSupportedLibraryNames } from '../data/fetch-supported-
 import { Info } from 'lucide-astro';
 
 const libraries = await getLibraries();
-const allRNVersions = Object.keys(libraries);
+const allRNVersions = Object.keys(libraries).sort((a, b) => {
+  const aParts = a.split('.').map(Number);
+  const bParts = b.split('.').map(Number);
+  
+  // Compare major
+  if (aParts[0] !== bParts[0]) return bParts[0] - aParts[0];
+  // Compare minor
+  if (aParts[1] !== bParts[1]) return bParts[1] - aParts[1];
+  // Compare patch
+  return bParts[2] - aParts[2];
+});
+
+// Group versions by minor version
+const groupedVersions = allRNVersions.reduce((acc, version) => {
+  const [major, minor] = version.split('.');
+  const key = `${major}.${minor}`;
+  if (!acc[key]) acc[key] = [];
+  acc[key].push(version);
+  return acc;
+}, {} as Record<string, string[]>);
+
+const sortedGroups = Object.keys(groupedVersions).sort((a, b) => {
+  const aParts = a.split('.').map(Number);
+  const bParts = b.split('.').map(Number);
+  if (aParts[0] !== bParts[0]) return bParts[0] - aParts[0];
+  return bParts[1] - aParts[1];
+});
+
 const supportedLibraryNames = await getSupportedLibraryNames();
 ---
 
@@ -26,17 +53,48 @@ const supportedLibraryNames = await getSupportedLibraryNames();
           <h2 class="text-lg font-semibold text-rnrGrey-0">React Native Versions</h2>
           <p class="text-sm text-rnrGrey-40">We build artifacts for these React Native versions</p>
         </div>
-        <div class="flex flex-wrap gap-2">
-          {allRNVersions.map((version) => (
-            <button
-              id={`rn-version-${version}`}
-              class="rn-version-btn inline-flex items-center px-3 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 hover:bg-brandSeaBlue-100/20 transition-colors cursor-pointer"
-              data-version={version}
-            >
-              RN {version} 
-            </button>
+        <div class="space-y-3">
+          {sortedGroups.map((groupKey) => (
+            <div class="flex flex-wrap gap-2">
+              {groupedVersions[groupKey].sort((a, b) => {
+                const aPatch = parseInt(a.split('.')[2]);
+                const bPatch = parseInt(b.split('.')[2]);
+                return bPatch - aPatch;
+              }).map((version) => (
+                <button
+                  id={`rn-version-${version}`}
+                  class="rn-version-btn inline-flex items-center px-3 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 hover:bg-brandSeaBlue-100/20 transition-colors cursor-pointer"
+                  data-version={version}
+                >
+                  RN {version} 
+                </button>
+              ))}
+            </div>
           ))}
         </div>
+      </div>
+    </div>
+
+    {/* Platform Switch */}
+    <div class="flex items-center gap-4 mb-8">
+      <span class="text-sm font-medium text-rnrGrey-0">Platform:</span>
+      <div class="inline-flex rounded-lg border border-rnrGrey-80 bg-rnrGrey-90/30 p-1">
+        <button
+          id="platform-android"
+          class="platform-btn active px-4 py-2 rounded-md text-sm font-medium bg-brandSeaBlue-100 text-rnrGrey-100 transition-colors cursor-not-allowed opacity-50"
+          data-platform="android"
+          disabled
+        >
+          Android
+        </button>
+        <button
+          id="platform-ios"
+          class="platform-btn px-4 py-2 rounded-md text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors cursor-not-allowed opacity-50"
+          data-platform="ios"
+          disabled
+        >
+          iOS (soon)
+        </button>
       </div>
     </div>
 
@@ -62,7 +120,7 @@ const supportedLibraryNames = await getSupportedLibraryNames();
     <div class="overflow-hidden rounded-lg border border-rnrGrey-80">
       <div class="bg-rnrGrey-90/30 border-b border-rnrGrey-80 px-6 py-3 hidden sm:grid grid-cols-3 gap-4">
         <div class="text-sm font-medium text-rnrGrey-0">Library</div>
-        <div class="text-sm font-medium text-rnrGrey-0">Versions</div>
+        <div id="versions-header" class="text-sm font-medium text-rnrGrey-0">Android Versions</div>
       </div>
       <div id="libraries-list">
         {allRNVersions.map((version) =>
@@ -90,15 +148,15 @@ const supportedLibraryNames = await getSupportedLibraryNames();
                     </svg>
                   </a>
                 </div>
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap gap-2 versions-container">
                   {isAvailable ? (
                     <>
                       {libInfo.android_versions && libInfo.android_versions.length > 0 ? (
-                        <>
+                        <div class="android-versions-wrapper flex flex-wrap gap-2">
                           {libInfo.android_versions.slice(0, 5).map((ver) => (
                             <span
                               key={ver}
-                              class="version-tag inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100"
+                              class="version-tag android-version inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100"
                             >
                               {ver}
                             </span>
@@ -106,26 +164,56 @@ const supportedLibraryNames = await getSupportedLibraryNames();
                           {libInfo.android_versions.slice(5).map((ver) => (
                             <span
                               key={ver}
-                              class="version-tag version-hidden inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 hidden"
+                              class="version-tag android-version android-hidden inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 hidden"
                             >
                               {ver}
                             </span>
                           ))}
                           {libInfo.android_versions && libInfo.android_versions.length > 5 && (
                             <button
-                              class="expand-versions-btn inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer"
+                              class="expand-android-btn inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer"
                               aria-expanded="false"
                             >
                               +{libInfo.android_versions.length - 5} more
                             </button>
                           )}
-                        </>
+                        </div>
                       ) : (
-                        <span class="text-xs text-rnrGrey-40">—</span>
+                        <span class="android-empty text-xs text-rnrGrey-40 italic">Not available for RN {version}</span>
+                      )}
+                      {libInfo.ios_versions && libInfo.ios_versions.length > 0 ? (
+                        <div class="ios-versions-wrapper hidden flex flex-wrap gap-2">
+                          {libInfo.ios_versions.slice(0, 5).map((ver) => (
+                            <span
+                              key={ver}
+                              class="version-tag ios-version inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100"
+                            >
+                              {ver}
+                            </span>
+                          ))}
+                          {libInfo.ios_versions.slice(5).map((ver) => (
+                            <span
+                              key={ver}
+                              class="version-tag ios-version ios-hidden inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 hidden"
+                            >
+                              {ver}
+                            </span>
+                          ))}
+                          {libInfo.ios_versions && libInfo.ios_versions.length > 5 && (
+                            <button
+                              class="expand-ios-btn inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer"
+                              aria-expanded="false"
+                            >
+                              +{libInfo.ios_versions.length - 5} more
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span class="ios-empty hidden text-xs text-rnrGrey-40 italic">Not available for  RN {version}</span>
                       )}
                     </>
                   ) : (
-                    <span class="text-xs text-rnrGrey-40 italic">Nie dostępne dla RN {version}</span>
+                    <span class="text-xs text-rnrGrey-40 italic">Not available for  RN {version}</span>
                   )}
                 </div>
               </div>
@@ -187,11 +275,13 @@ const supportedLibraryNames = await getSupportedLibraryNames();
   const libraryCount = document.getElementById('library-count');
   const libraryRows = document.querySelectorAll('.library-row');
   const versionButtons = document.querySelectorAll('.rn-version-btn');
-  const expandButtons = document.querySelectorAll('.expand-versions-btn');
+  const platformButtons = document.querySelectorAll('.platform-btn');
+  const versionsHeader = document.getElementById('versions-header');
 
   let activeVersion = Object.keys(JSON.parse(document.querySelector('script[type="application/json"]')?.textContent || '{}'))[0] || null;
+  let activePlatform = 'android';
 
-  // Set first version button as active by default
+  // Set first version button as active by default (highest minor, then highest patch)
   if (versionButtons.length > 0) {
     versionButtons[0].classList.add('active');
     updateButtonStyle(versionButtons[0]);
@@ -208,26 +298,82 @@ const supportedLibraryNames = await getSupportedLibraryNames();
     btn.classList.remove('bg-brandSeaBlue-100', 'text-rnrGrey-100');
   }
 
-  // Handle expand buttons
-  expandButtons.forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const container = btn.closest('.flex');
-      const hiddenVersions = container.querySelectorAll('.version-hidden');
-      const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+  function setupExpandButtons() {
+    const expandAndroidButtons = document.querySelectorAll('.expand-android-btn');
+    const expandIosButtons = document.querySelectorAll('.expand-ios-btn');
 
-      hiddenVersions.forEach((version) => {
-        if (isExpanded) {
-          version.classList.add('hidden');
-        } else {
-          version.classList.remove('hidden');
-        }
+    expandAndroidButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const wrapper = btn.closest('.android-versions-wrapper');
+        const hiddenVersions = wrapper.querySelectorAll('.android-hidden');
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+
+        hiddenVersions.forEach((version) => {
+          if (isExpanded) {
+            version.classList.add('hidden');
+          } else {
+            version.classList.remove('hidden');
+          }
+        });
+
+        btn.setAttribute('aria-expanded', !isExpanded);
+        btn.textContent = isExpanded 
+          ? `+${hiddenVersions.length} more` 
+          : `show less`;
       });
+    });
 
-      btn.setAttribute('aria-expanded', !isExpanded);
-      btn.textContent = isExpanded 
-        ? `+${hiddenVersions.length} more` 
-        : `show less`;
+    expandIosButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const wrapper = btn.closest('.ios-versions-wrapper');
+        const hiddenVersions = wrapper.querySelectorAll('.ios-hidden');
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+
+        hiddenVersions.forEach((version) => {
+          if (isExpanded) {
+            version.classList.add('hidden');
+          } else {
+            version.classList.remove('hidden');
+          }
+        });
+
+        btn.setAttribute('aria-expanded', !isExpanded);
+        btn.textContent = isExpanded 
+          ? `+${hiddenVersions.length} more` 
+          : `show less`;
+      });
+    });
+  }
+
+  function updatePlatformDisplay() {
+    if (activePlatform === 'android') {
+      document.querySelectorAll('.android-versions-wrapper').forEach(el => el.classList.remove('hidden'));
+      document.querySelectorAll('.ios-versions-wrapper').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.android-empty').forEach(el => el.classList.remove('hidden'));
+      document.querySelectorAll('.ios-empty').forEach(el => el.classList.add('hidden'));
+      versionsHeader.textContent = 'Android Versions';
+    } else {
+      document.querySelectorAll('.android-versions-wrapper').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.ios-versions-wrapper').forEach(el => el.classList.remove('hidden'));
+      document.querySelectorAll('.android-empty').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.ios-empty').forEach(el => el.classList.remove('hidden'));
+      versionsHeader.textContent = 'iOS Versions';
+    }
+  }
+
+  // Handle platform button clicks
+  platformButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      platformButtons.forEach((b) => {
+        b.classList.remove('active', 'bg-brandSeaBlue-100', 'text-rnrGrey-100');
+        b.classList.add('text-rnrGrey-40');
+      });
+      btn.classList.add('active', 'bg-brandSeaBlue-100', 'text-rnrGrey-100');
+      btn.classList.remove('text-rnrGrey-40');
+      activePlatform = btn.dataset.platform;
+      updatePlatformDisplay();
     });
   });
 
@@ -259,6 +405,9 @@ const supportedLibraryNames = await getSupportedLibraryNames();
     } else {
       noResults?.classList.add('hidden');
     }
+
+    // Setup expand buttons after display update
+    setupExpandButtons();
   }
 
   // Handle version button clicks
@@ -284,4 +433,5 @@ const supportedLibraryNames = await getSupportedLibraryNames();
 
   // Initial display
   updateLibraryDisplay();
+  updatePlatformDisplay();
 </script>
