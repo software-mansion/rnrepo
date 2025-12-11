@@ -1,0 +1,29 @@
+name: Check Build Consistency
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-build-consistency:
+    runs-on: rnrepo-ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔍 Run consistency check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          bun run --cwd packages/database src/check-build-consistency.ts --write
