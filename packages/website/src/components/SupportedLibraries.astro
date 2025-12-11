@@ -52,36 +52,46 @@ const supportedLibraryNames = await getSupportedLibraryNames();
         <div>
           <h2 class="text-lg font-semibold text-rnrGrey-0">React Native Version</h2>
         </div>
-        <div id="rn-versions-container" class="space-y-2">
-          {sortedGroups.map((groupKey) => (
-            <div class="rn-version-group" data-group={groupKey}>
-              <div class="space-x-2">
-                {groupedVersions[groupKey].sort((a, b) => {
-                  const aPatch = parseInt(a.split('.')[2]);
-                  const bPatch = parseInt(b.split('.')[2]);
-                  return bPatch - aPatch;
-                }).map((version) => (
-                  <button
-                    id={`rn-version-${version}`}
-                    class="rn-version-btn px-3 py-1 inline-flex items-center justify-center rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 hover:bg-brandSeaBlue-100/20 transition-colors cursor-pointer whitespace-nowrap"
-                    style="min-width: max-content"
-                    data-version={version}
-                    data-group={groupKey}
-                  >
-                    RN {version} 
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div id="rn-versions-container" class="flex flex-wrap items-center gap-2">
+          {allRNVersions.slice(0, 5).map((version) => (
+            <button
+              id={`rn-version-${version}`}
+              class={`rn-version-btn px-3 py-1 inline-flex items-center justify-center rounded-sm text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${allRNVersions.indexOf(version) === 0 ? 'bg-brandSeaBlue-100 text-rnrGrey-100 hover:bg-brandSeaBlue-100/90' : 'bg-brandSeaBlue-100/10 text-brandSeaBlue-100 hover:bg-brandSeaBlue-100/20'}`}
+              style="min-width: max-content"
+              data-version={version}
+            >
+              RN {version}
+            </button>
           ))}
+          {allRNVersions.length > 5 && (
+            <button
+              id="expand-rn-versions"
+              class="expand-rn-btn px-3 py-1 inline-flex items-center justify-center rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer whitespace-nowrap"
+              aria-expanded="false"
+              style="display: inline-flex;"
+            >
+              +{allRNVersions.length - 5} more
+            </button>
+          )}
+          <div id="rn-versions-list" class="rn-versions-hidden hidden flex flex-wrap gap-2 w-full items-center">
+            {allRNVersions.slice(5).map((version) => (
+              <button
+                id={`rn-version-${version}`}
+                class="rn-version-btn px-3 py-1 inline-flex items-center justify-center rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 hover:bg-brandSeaBlue-100/20 transition-colors cursor-pointer whitespace-nowrap"
+                style="min-width: max-content"
+                data-version={version}
+              >
+                RN {version}
+              </button>
+            ))}
+            <button
+              id="collapse-rn-versions"
+              class="collapse-rn-btn px-3 py-1 inline-flex items-center justify-center rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer whitespace-nowrap ml-auto"
+            >
+              show less
+            </button>
+          </div>
         </div>
-        <button
-          id="toggle-rn-versions"
-          class="self-start inline-flex items-center px-3 py-1 rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer"
-          aria-expanded="false"
-        >
-          Show other versions
-        </button>
       </div>
     </div>
 
@@ -108,7 +118,7 @@ const supportedLibraryNames = await getSupportedLibraryNames();
       <div class="bg-rnrGrey-90/30 border-b border-rnrGrey-80 px-6 py-3 hidden sm:grid gap-4" style="grid-template-columns: 1fr auto 1fr;">
         <div class="text-sm font-medium text-rnrGrey-0 min-w-0">Library</div>
         <div class="text-sm font-medium text-rnrGrey-0 min-w-0">Platform</div>
-        <div id="versions-header" class="text-sm font-medium text-rnrGrey-0 min-w-0">Android Versions</div>
+        <div id="versions-header" class="text-sm font-medium text-rnrGrey-0 min-w-0">Library Versions</div>
       </div>
       <div id="libraries-list">
         {allRNVersions.map((version) =>
@@ -236,113 +246,38 @@ const supportedLibraryNames = await getSupportedLibraryNames();
   const libraryCount = document.getElementById('library-count');
   const libraryRows = document.querySelectorAll('.library-row');
   const versionButtons = document.querySelectorAll('.rn-version-btn');
-  const toggleRNVersionsBtn = document.getElementById('toggle-rn-versions');
 
   let activeVersion = null;
-  let rnVersionsExpanded = false;
 
-  // Set first version button as active by default (highest minor, then highest patch)
+  // Set first version button as active by default
   if (versionButtons.length > 0) {
-    versionButtons[0].classList.add('active');
-    updateButtonStyle(versionButtons[0]);
     activeVersion = versionButtons[0].dataset.version;
+    versionButtons[0].classList.add('bg-brandSeaBlue-100', 'text-rnrGrey-100');
+    versionButtons[0].classList.remove('bg-brandSeaBlue-100/10', 'text-brandSeaBlue-100');
+  }
+
+  function setupRNVersionsExpand() {
+    const expandBtn = document.getElementById('expand-rn-versions');
+    const collapseBtn = document.getElementById('collapse-rn-versions');
+    const versionsList = document.getElementById('rn-versions-list');
     
-    // Hide all other version buttons
-    versionButtons.forEach((btn) => {
-      if (btn.dataset.version !== activeVersion) {
-        btn.classList.add('hidden');
-      }
-    });
+    if (!expandBtn) return;
 
-    // Set all version buttons to the same width (max width of any button)
-    setTimeout(() => {
-      let maxWidth = 0;
-      versionButtons.forEach((btn) => {
-        const width = btn.offsetWidth;
-        if (width > maxWidth) maxWidth = width;
-      });
-      versionButtons.forEach((btn) => {
-        btn.style.width = maxWidth + 'px';
-      });
-    }, 0);
-  }
-
-  function updateButtonStyle(btn) {
-    btn.classList.remove('bg-brandSeaBlue-100/10');
-    btn.classList.add('bg-brandSeaBlue-100', 'text-rnrGrey-100');
-  }
-
-  function resetButtonStyle(btn) {
-    btn.classList.add('bg-brandSeaBlue-100/10');
-    btn.classList.remove('bg-brandSeaBlue-100', 'text-rnrGrey-100');
-  }
-
-  function setupRNVersionsCollapse() {
-    // When clicking a version button, show/hide all versions based on if it's the active one
-    versionButtons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const clickedVersion = btn.dataset.version;
-        
-        // If clicking a different version, set it as active and collapse
-        if (clickedVersion !== activeVersion) {
-          rnVersionsExpanded = false;
-          activeVersion = clickedVersion;
-          
-          document.querySelectorAll('.rn-version-btn').forEach((b) => {
-            if (b.dataset.version === clickedVersion) {
-              b.classList.remove('hidden');
-            } else {
-              b.classList.add('hidden');
-            }
-          });
-          toggleRNVersionsBtn.classList.remove('hidden');
-          toggleRNVersionsBtn.textContent = 'Show other versions';
-          return;
-        }
-        
-        // If this is already the active version and menu is collapsed, expand it
-        if (clickedVersion === activeVersion && !rnVersionsExpanded) {
-          rnVersionsExpanded = true;
-          document.querySelectorAll('.rn-version-btn').forEach((b) => {
-            b.classList.remove('hidden');
-          });
-          toggleRNVersionsBtn.classList.remove('hidden');
-          toggleRNVersionsBtn.textContent = 'Hide other versions';
-          return;
-        }
-        
-        // If menu is expanded and clicking active version, collapse it
-        if (clickedVersion === activeVersion && rnVersionsExpanded) {
-          rnVersionsExpanded = false;
-          document.querySelectorAll('.rn-version-btn').forEach((b) => {
-            if (b.dataset.version !== activeVersion) {
-              b.classList.add('hidden');
-            }
-          });
-          toggleRNVersionsBtn.textContent = 'Show other versions';
-        }
-      });
-    });
-
-    // Toggle button to show/hide all versions
-    toggleRNVersionsBtn.addEventListener('click', (e) => {
+    expandBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      rnVersionsExpanded = !rnVersionsExpanded;
-      
-      if (rnVersionsExpanded) {
-        document.querySelectorAll('.rn-version-btn').forEach((btn) => {
-          btn.classList.remove('hidden');
-        });
-        toggleRNVersionsBtn.textContent = 'Hide other versions';
-      } else {
-        document.querySelectorAll('.rn-version-btn').forEach((btn) => {
-          if (btn.dataset.version !== activeVersion) {
-            btn.classList.add('hidden');
-          }
-        });
-        toggleRNVersionsBtn.textContent = 'Show other versions';
-      }
+      versionsList.classList.remove('hidden');
+      expandBtn.style.display = 'none';
+      expandBtn.setAttribute('aria-expanded', 'true');
     });
+
+    if (collapseBtn) {
+      collapseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        versionsList.classList.add('hidden');
+        expandBtn.style.display = 'inline-flex';
+        expandBtn.setAttribute('aria-expanded', 'false');
+      });
+    }
   }
 
   function setupExpandButtons() {
@@ -406,12 +341,15 @@ const supportedLibraryNames = await getSupportedLibraryNames();
   // Handle version button clicks
   versionButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
+      // Remove highlight from all buttons and reset styles
       versionButtons.forEach((b) => {
-        b.classList.remove('active');
-        resetButtonStyle(b);
+        b.classList.remove('bg-brandSeaBlue-100', 'text-rnrGrey-100');
+        b.classList.add('bg-brandSeaBlue-100/10', 'text-brandSeaBlue-100');
       });
-      btn.classList.add('active');
-      updateButtonStyle(btn);
+
+      // Highlight clicked button
+      btn.classList.remove('bg-brandSeaBlue-100/10', 'text-brandSeaBlue-100');
+      btn.classList.add('bg-brandSeaBlue-100', 'text-rnrGrey-100');
       activeVersion = btn.dataset.version;
       updateLibraryDisplay();
     });
@@ -427,5 +365,5 @@ const supportedLibraryNames = await getSupportedLibraryNames();
   // Initial display
   updateLibraryDisplay();
   setupExpandButtons();
-  setupRNVersionsCollapse();
+  setupRNVersionsExpand();
 </script>
