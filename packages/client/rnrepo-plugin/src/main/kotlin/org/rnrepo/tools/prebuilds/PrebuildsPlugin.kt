@@ -49,6 +49,7 @@ open class PackagesManager {
 class PrebuildsPlugin : Plugin<Project> {
     private val logger: PrefixedLogger = PrefixedLogger(Logging.getLogger("PrebuildsPlugin"))
     private var REACT_NATIVE_ROOT_DIR: File? = null
+    private var BUILD_TYPE: String = "debug"
 
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
@@ -56,6 +57,7 @@ class PrebuildsPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
         REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project)
+        BUILD_TYPE = getBuildType(project)
         if (!getReactNativeVersion(extension)) {
             logger.error("Could not determine React Native version, aborting RNRepo plugin setup.")
             return
@@ -63,40 +65,38 @@ class PrebuildsPlugin : Plugin<Project> {
         if (shouldPluginExecute(project, extension)) {
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
 
-            // Check what packages are in project and which are we supporting
-            getProjectPackages(project.rootProject.allprojects, extension)
-            loadDenyList(extension)
-            determineSupportedPackages(project, extension)
-
-            // Setup
-            extension.supportedPackages.forEach { packageItem ->
-                addDependency(
-                    project,
-                    "implementation",
-                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
-                )
-            }
-
             // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
-            extension.supportedPackages.find { it.name == "react-native-reanimated" }?.let {
-                val androidExtension = project.extensions.getByName("android") as? BaseExtension
-                androidExtension?.let { android ->
-                    android.packagingOptions.apply {
-                        jniLibs.pickFirsts += "lib/arm64-v8a/libworklets.so"
-                        jniLibs.pickFirsts += "lib/armeabi-v7a/libworklets.so"
-                        jniLibs.pickFirsts += "lib/x86/libworklets.so"
-                        jniLibs.pickFirsts += "lib/x86_64/libworklets.so"
-                    }
-                } ?: run {
-                    logger.warn("The Android Gradle Plugin is not applied to this project.")
+            val androidExtension = project.extensions.getByName("android") as? BaseExtension
+            androidExtension?.let { android ->
+                android.packagingOptions.apply {
+                    jniLibs.pickFirsts += "lib/arm64-v8a/libworklets.so"
+                    jniLibs.pickFirsts += "lib/armeabi-v7a/libworklets.so"
+                    jniLibs.pickFirsts += "lib/x86/libworklets.so"
+                    jniLibs.pickFirsts += "lib/x86_64/libworklets.so"
                 }
+            } ?: run {
+                logger.warn("The Android Gradle Plugin is not applied to this project.")
             }
 
-            // Add dependency on generating codegen schema for each library so that task is not dropped
-            extension.supportedPackages.forEach { packageItem ->
-                val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                project.evaluationDependsOn(":${packageItem.name}")
-                project.afterEvaluate {
+            project.gradle.projectsEvaluated {
+                // Check what packages are in project and which are we supporting
+                getProjectPackages(project.rootProject.allprojects, extension)
+                loadDenyList(extension)
+                determineSupportedPackages(project, extension)
+
+                // Setup
+                extension.supportedPackages.forEach { packageItem ->
+                    addDependency(
+                        project,
+                        "implementation",
+                        "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
+                    )
+                }
+
+                // Add dependency on generating codegen schema for each library so that task is not dropped
+                extension.supportedPackages.forEach { packageItem ->
+                    val codegenTaskName = "generateCodegenArtifactsFromSchema"
+                    project.evaluationDependsOn(":${packageItem.name}")
                     try {
                         val libraryProject = project.project(":${packageItem.name}")
                         val libraryCodegenTaskProvider = libraryProject.tasks.named(codegenTaskName)
@@ -109,44 +109,44 @@ class PrebuildsPlugin : Plugin<Project> {
                         logger.lifecycle("⚠️ Failed to find or link task :${packageItem.name}:$codegenTaskName. Error: ${e.message}")
                     }
                 }
-            }
 
-            // Add substitution for supported packages for all projects and all configurations
-            project.rootProject.allprojects.forEach { subproject ->
-                if (subproject == project.rootProject) return@forEach
-                val substitutionAction =
-                    Action<Project> { evaluatedProject ->
-                        extension.supportedPackages.forEach { packageItem ->
-                            val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
-                            evaluatedProject.configurations.all { config ->
-                                config.resolutionStrategy.dependencySubstitution { substitutions ->
-                                    substitutions.all { dependencySubstitution ->
-                                        if (dependencySubstitution.requested.displayName.contains("${packageItem.name}")) {
-                                            dependencySubstitution.useTarget(substitutions.module(module))
-                                            dependencySubstitution.artifactSelection {
-                                                it.selectArtifact(
-                                                    "aar",
-                                                    "aar",
-                                                    "rn${extension.reactNativeVersion}${packageItem.classifier}",
+                // Add substitution for supported packages for all projects and all configurations
+                project.rootProject.allprojects.forEach { subproject ->
+                    if (subproject == project.rootProject) return@forEach
+                    val substitutionAction =
+                        Action<Project> { evaluatedProject ->
+                            extension.supportedPackages.forEach { packageItem ->
+                                val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
+                                evaluatedProject.configurations.all { config ->
+                                    config.resolutionStrategy.dependencySubstitution { substitutions ->
+                                        substitutions.all { dependencySubstitution ->
+                                            if (dependencySubstitution.requested.displayName.contains("${packageItem.name}")) {
+                                                dependencySubstitution.useTarget(substitutions.module(module))
+                                                dependencySubstitution.artifactSelection {
+                                                    it.selectArtifact(
+                                                        "aar",
+                                                        "aar",
+                                                        "rn${extension.reactNativeVersion}${packageItem.classifier}",
+                                                    )
+                                                }
+                                                logger.info(
+                                                    "Adding substitution for ${packageItem.name} using $module " +
+                                                        "in config ${config.name} of project ${evaluatedProject.name}",
                                                 )
                                             }
-                                            logger.info(
-                                                "Adding substitution for ${packageItem.name} using $module " +
-                                                    "in config ${config.name} of project ${evaluatedProject.name}",
-                                            )
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                substitutionAction.execute(subproject)
-                // TODO(radoslawrolka): keeping in case of issues with afterEvaluate
-                // if (subproject.state.executed) {
-                //     substitutionAction.execute(subproject)
-                // } else {
-                //     subproject.afterEvaluate(substitutionAction)
-                // }
+                    substitutionAction.execute(subproject)
+                    // TODO(radoslawrolka): keeping in case of issues with afterEvaluate
+                    // if (subproject.state.executed) {
+                    //     substitutionAction.execute(subproject)
+                    // } else {
+                    //     subproject.afterEvaluate(substitutionAction)
+                    // }
+                }
             }
         }
     }
@@ -197,6 +197,14 @@ class PrebuildsPlugin : Plugin<Project> {
         val isEnabled = isBuildingCommand && isEnvEnabled && newArchEnabled
         logger.info("RNRepo plugin is ${ if (isEnabled) "ENABLED" else "DISABLED" }")
         return isEnabled
+    }
+
+    private fun getBuildType(project: Project): String {
+        val isRelease =
+            project.gradle.startParameter.taskNames
+                .any { it.contains("Release") }
+        logger.info("Determined build type: ${if (isRelease) "release" else "debug"}")
+        return if (isRelease) "release" else "debug"
     }
 
     /**
@@ -567,6 +575,58 @@ class PrebuildsPlugin : Plugin<Project> {
         return true
     }
 
+    private fun checkDependencies(
+        packageItem: PackageItem,
+        rootProject: Project,
+        supportedPackages: MutableSet<PackageItem>,
+        unavailablePackages: MutableCollection<PackageItem>,
+    ) {
+        logger.info("${packageItem.name} is supported, checking if all packages depending on it are supported.")
+        rootProject.allprojects.forEach { subproject ->
+            if (subproject == rootProject) return@forEach
+            val dependsOnPackage =
+                subproject.configurations.any { config ->
+                    config.dependencies.any { dependency ->
+                        dependency.name == packageItem.name
+                    }
+                }
+            val isSupported = supportedPackages.any { it.name == subproject.name }
+            logger.info("${subproject.name} depends on ${packageItem.name}: $dependsOnPackage, is it supported: $isSupported")
+            if (dependsOnPackage && !isSupported) {
+                unavailablePackages.add(packageItem)
+                logger.lifecycle(
+                    "${subproject.name} depending on ${packageItem.name} is not supported, building ${packageItem.name} from sources.",
+                )
+                return
+            }
+        }
+        logger.info("All dependent packages are supported, adding ${packageItem.name} to supported packages.")
+        supportedPackages.add(packageItem)
+    }
+
+    private fun checkIfPackageIsSupported(
+        packageItem: PackageItem,
+        repositories: RepositoryHandler,
+        extension: PackagesManager,
+        unavailablePackages: MutableCollection<PackageItem>,
+        elseClosure: () -> Unit,
+    ) {
+        when {
+            !isPackageNotDenied(packageItem.name, extension) -> return
+            !isSpecificCheckPassed(packageItem, extension) -> return
+            !isPackageAvailable(packageItem, extension.reactNativeVersion, repositories) -> unavailablePackages.add(packageItem)
+            else -> elseClosure()
+        }
+    }
+
+    private fun printList(
+        list: Collection<PackageItem>,
+        icon: String = "📦",
+    ): String =
+        list.joinToString(if (list.isEmpty()) " None" else "") { pkg ->
+            "\n  - $icon ${pkg.name}@${pkg.version}${pkg.classifier}"
+        }
+
     /**
      * Determines which packages are available as prebuilt AARs.
      *
@@ -587,31 +647,31 @@ class PrebuildsPlugin : Plugin<Project> {
                 .newKeySet<PackageItem>()
         val unavailablePackages = java.util.concurrent.ConcurrentLinkedQueue<PackageItem>()
 
-        extension.projectPackages.parallelStream().forEach { packageItem ->
-            when {
-                !isPackageNotDenied(packageItem.name, extension) -> return@forEach
-                !isSpecificCheckPassed(packageItem, extension) -> return@forEach
-                !isPackageAvailable(packageItem, extension.reactNativeVersion, project.repositories) -> {
-                    unavailablePackages.add(packageItem)
+        val (workletsList, otherPackages) = extension.projectPackages.partition { it.name == "react-native-worklets" }
+        otherPackages.parallelStream().forEach { packageItem ->
+            checkIfPackageIsSupported(
+                packageItem,
+                project.repositories,
+                extension,
+                unavailablePackages,
+                { supportedPackages.add(packageItem) },
+            )
+        }
+        workletsList.firstOrNull()?.let { workletsPackage ->
+            logger.info("Handling react-native-worklets package after others.")
+            val elseClosurer: () -> Unit = {
+                if (BUILD_TYPE == "release") {
+                    supportedPackages.add(workletsPackage)
+                } else {
+                    logger.info("react-native-worklets can be applied only in release builds when it is consumed.")
+                    checkDependencies(workletsPackage, project.rootProject, supportedPackages, unavailablePackages)
                 }
-                else -> supportedPackages.add(packageItem)
             }
+            checkIfPackageIsSupported(workletsPackage, project.repositories, extension, unavailablePackages, elseClosurer)
         }
 
         extension.supportedPackages = supportedPackages
-
-        val supportedList =
-            extension.supportedPackages.joinToString("") { pkg ->
-                "\n  - 📦 ${pkg.name}@${pkg.version}${pkg.classifier}"
-            }
-        logger.lifecycle("Found the following supported prebuilt packages:$supportedList")
-
-        if (unavailablePackages.isNotEmpty()) {
-            val unavailableList =
-                unavailablePackages.joinToString("") { pkg ->
-                    "\n  - ❓ ${pkg.name}@${pkg.version}${pkg.classifier} (RN ${extension.reactNativeVersion})"
-                }
-            logger.lifecycle("Packages not available – fallback to building from sources:$unavailableList")
-        }
+        logger.lifecycle("Found the following supported prebuilt packages:${printList(extension.supportedPackages, "📦")}")
+        logger.lifecycle("Packages not available – fallback to building from sources:${printList(unavailablePackages, "❓")}")
     }
 }
