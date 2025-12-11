@@ -2,7 +2,9 @@
 // - Finds "scheduled" builds older than 10 hours.
 // - Verifies Android artifacts exist in the Maven repo.
 // - Updates build status to completed/failed when run with --write (dry run otherwise).
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { convertToGradleProjectName } from '@rnrepo/config';
+import { getSupabaseClient } from './index';
 import type { BuildStatus, Platform } from './types';
 
 interface BuildRow {
@@ -15,23 +17,6 @@ interface BuildRow {
   status: BuildStatus;
   created_at: string;
   updated_at: string;
-}
-
-function getSupabaseClient(): SupabaseClient {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error(
-      'SUPABASE_URL and SUPABASE_KEY environment variables are required'
-    );
-  }
-
-  return createClient(supabaseUrl, supabaseKey);
-}
-
-function convertToGradleProjectName(packageName: string): string {
-  return packageName.replace(/^@/, '').replace(/\//g, '_');
 }
 
 function buildAndroidArtifactUrl(

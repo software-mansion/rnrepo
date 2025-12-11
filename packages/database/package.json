@@ -15,6 +15,7 @@
     "supabase": "^2.0.0"
   },
   "dependencies": {
+    "@rnrepo/config": "workspace:*",
     "@supabase/supabase-js": "^2.47.0"
   },
   "peerDependencies": {
