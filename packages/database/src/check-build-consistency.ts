@@ -1,3 +1,7 @@
+// Consistency checker / updater for the status field in the builds table:
+// - Finds "scheduled" builds older than 10 hours.
+// - Verifies Android artifacts exist in the Maven repo.
+// - Updates build status to completed/failed when run with --write (dry run otherwise).
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { BuildStatus, Platform } from './types';
 
@@ -84,11 +88,9 @@ async function main() {
   const supabase = getSupabaseClient();
   const baseRepositoryUrl =
     process.env.MAVEN_REPOSITORY_URL || 'https://packages.rnrepo.org/releases';
-  const cutoffIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const cutoffIso = new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString();
 
-  console.log(
-    `🔎 Scanning builds older than ${cutoffIso} that are not completed...`
-  );
+  console.log(`🔎 Scanning scheduled builds older than ${cutoffIso}...`);
   if (!writeMode) {
     console.log('🧪 Dry run mode (no database updates). Use --write to apply.');
   }
@@ -99,12 +101,15 @@ async function main() {
       'id, package_name, version, rn_version, worklets_version, platform, status, created_at, updated_at'
     )
     .lt('created_at', cutoffIso)
-    .neq('status', 'completed')
+    .eq('status', 'scheduled')
     .order('created_at', { ascending: true });
 
   if (error) {
     throw new Error(`Failed to fetch builds: ${error.message}`);
   }
+
+  const totalFetched = builds?.length ?? 0;
+  console.log(`📦 Fetched ${totalFetched} rows.`);
 
   if (!builds || builds.length === 0) {
     console.log('✅ No stale builds found.');
@@ -147,6 +152,14 @@ async function main() {
         }
       }
     } else {
+      if (build.status === 'failed') {
+        console.log(
+          `ℹ️ Artifact missing and status already failed. Leaving as-is.`
+        );
+        skippedCount++;
+        continue;
+      }
+
       failedCount++;
       console.log(`❌ Artifact missing. Status set to failed.`);
       if (writeMode) {

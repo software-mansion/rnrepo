@@ -26,4 +26,4 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          bun run --cwd packages/database src/check-build-consistency.ts
+          bun run --cwd packages/database src/check-build-consistency.ts --write
