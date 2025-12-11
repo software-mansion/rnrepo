@@ -100,13 +100,21 @@ test('processLibrary - schedules builds for valid combinations', async () => {
     { version: '1.0.0', publishDate: new Date('2024-01-15') },
     { version: '1.1.0', publishDate: new Date('2024-01-20') },
   ];
+  const matchingVersionsRN: NpmVersionInfo[] = [
+    { version: '0.79.7', publishDate: new Date('2025-01-15') },
+    { version: '0.80.2', publishDate: new Date('2025-01-20') },
+    { version: '0.81.5', publishDate: new Date('2025-01-25') },
+    { version: '0.82.1', publishDate: new Date('2025-01-30') },
+  ];
 
   // Mock to return matchingVersions for both Android and iOS (4 platform calls)
   mockFindMatchingVersionsFromNPM
     .mockResolvedValueOnce([]) // First call for Android worklets returns no versions
     .mockResolvedValueOnce(matchingVersions) // First call for Android libraryName
+    .mockResolvedValueOnce(matchingVersionsRN) // First call for android RN versions
     .mockResolvedValueOnce([]) // Second call for iOS worklets returns no versions
-    .mockResolvedValueOnce(matchingVersions); // Second call for iOS libraryName
+    .mockResolvedValueOnce(matchingVersions) // Second call for iOS libraryName
+    .mockResolvedValueOnce(matchingVersionsRN); // Second call for iOS RN versions
 
   // Mock matchesVersionPattern for RN versions
   mockMatchesVersionPattern.mockImplementation((version: string, pattern?: string | string[]) => {
@@ -136,7 +144,7 @@ test('processLibrary - schedules builds for valid combinations', async () => {
   // 2 platforms (android, ios) * 2 package versions * 4 matching RN versions = 16 builds
   expect(mockScheduleLibraryBuild).toHaveBeenCalledTimes(16);
   // findMatchingVersionsFromNPM called 4 times: 2 platforms * (library + worklets)
-  expect(mockFindMatchingVersionsFromNPM).toHaveBeenCalledTimes(4);
+  expect(mockFindMatchingVersionsFromNPM).toHaveBeenCalledTimes(6);
   // Supabase checks: Only checked for RN versions that match pattern
   // 2 platforms * 2 versions * 4 matching RN versions = 16 checks (not 20, because 0.78.3 is filtered out)
   expect(mockIsBuildAlreadyScheduled).toHaveBeenCalledTimes(16);
@@ -260,13 +268,21 @@ test('processLibrary - filters by RN version pattern', async () => {
   const matchingVersions: NpmVersionInfo[] = [
     { version: '1.0.0', publishDate: new Date('2024-01-15') },
   ];
+  const matchingVersionsRN: NpmVersionInfo[] = [
+    { version: '0.79.7', publishDate: new Date('2025-01-15') },
+    { version: '0.80.2', publishDate: new Date('2025-01-20') },
+    { version: '0.81.5', publishDate: new Date('2025-01-25') },
+    { version: '0.82.1', publishDate: new Date('2025-01-30') },
+  ];
 
   // Mock to return matchingVersions for both Android and iOS (4 platform calls)
   mockFindMatchingVersionsFromNPM
     .mockResolvedValueOnce([]) // First call for Android worklets returns no versions
     .mockResolvedValueOnce(matchingVersions) // First call for Android libraryName
+    .mockResolvedValueOnce(matchingVersionsRN) // First call for android RN versions
     .mockResolvedValueOnce([]) // Second call for iOS worklets returns no versions
-    .mockResolvedValueOnce(matchingVersions); // Second call for iOS libraryName
+    .mockResolvedValueOnce(matchingVersions) // Second call for iOS libraryName
+    .mockResolvedValueOnce(matchingVersionsRN); // Second call for iOS RN versions
 
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.81.0');
 
@@ -302,12 +318,20 @@ test('processLibrary - uses platform-specific versionMatcher', async () => {
   const iosVersions: NpmVersionInfo[] = [
     { version: '1.0.0', publishDate: new Date('2024-01-15') },
   ];
+  const matchingVersionsRN: NpmVersionInfo[] = [
+    { version: '0.79.7', publishDate: new Date('2025-01-15') },
+    { version: '0.80.2', publishDate: new Date('2025-01-20') },
+    { version: '0.81.5', publishDate: new Date('2025-01-25') },
+    { version: '0.82.1', publishDate: new Date('2025-01-30') },
+  ];
 
   mockFindMatchingVersionsFromNPM
     .mockResolvedValueOnce([]) // First call for Android worklets returns no versions
     .mockResolvedValueOnce(androidVersions) // First call for Android
+    .mockResolvedValueOnce(matchingVersionsRN) // First call for android RN versions
     .mockResolvedValueOnce([]) // Second call for iOS worklets returns no versions
-    .mockResolvedValueOnce(iosVersions); // Second call for iOS
+    .mockResolvedValueOnce(iosVersions) // Second call for iOS
+    .mockResolvedValueOnce(matchingVersionsRN); // Second call for iOS RN versions
 
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.79.0');
 
@@ -350,12 +374,20 @@ test('processLibrary - uses platform-specific publishedAfterDate', async () => {
   const iosVersions: NpmVersionInfo[] = [
     { version: '1.0.0', publishDate: new Date('2024-01-15') },
   ];
+  const matchingVersionsRN: NpmVersionInfo[] = [
+    { version: '0.79.7', publishDate: new Date('2025-01-15') },
+    { version: '0.80.2', publishDate: new Date('2025-01-20') },
+    { version: '0.81.5', publishDate: new Date('2025-01-25') },
+    { version: '0.82.1', publishDate: new Date('2025-01-30') },
+  ];
 
   mockFindMatchingVersionsFromNPM
     .mockResolvedValueOnce([]) // First call for Android worklets returns no versions
     .mockResolvedValueOnce(androidVersions)
+    .mockResolvedValueOnce(matchingVersionsRN) // First call for android RN versions
     .mockResolvedValueOnce([]) // Second call for iOS worklets returns no versions
-    .mockResolvedValueOnce(iosVersions);
+    .mockResolvedValueOnce(iosVersions)
+    .mockResolvedValueOnce(matchingVersionsRN); // Second call for iOS RN versions
 
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.79.0');
 
@@ -387,12 +419,18 @@ test('processLibrary - handles multiple package versions correctly', async () =>
     { version: '1.1.0', publishDate: new Date('2024-01-20') },
     { version: '1.2.0', publishDate: new Date('2024-01-25') },
   ];
+  const matchingVersionsRN: NpmVersionInfo[] = [
+    { version: '0.81.5', publishDate: new Date('2025-01-25') },
+    { version: '0.82.1', publishDate: new Date('2025-01-30') },
+  ];
 
   mockFindMatchingVersionsFromNPM
     .mockResolvedValueOnce([]) // First call for Android worklets returns no versions
     .mockResolvedValueOnce(matchingVersions) // First call for Android libraryName
+    .mockResolvedValueOnce(matchingVersionsRN) // First call for android RN versions
     .mockResolvedValueOnce([]) // Second call for iOS worklets returns no versions
-    .mockResolvedValueOnce(matchingVersions); // Second call for iOS libraryName
+    .mockResolvedValueOnce(matchingVersions) // Second call for iOS libraryName
+    .mockResolvedValueOnce(matchingVersionsRN); // Second call for iOS RN versions
   mockMatchesVersionPattern.mockImplementation((version: string) => version >= '0.81.0');
 
   // Mock that 1.0.0 is already scheduled, but others are not

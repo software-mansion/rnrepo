@@ -7,17 +7,18 @@
   "scripts": {
     "migrate": "supabase db push",
     "migrate:local": "supabase migration up",
-    "migrate:reset": "supabase db reset"
+    "migrate:reset": "supabase db reset",
+    "check:consistency": "bun run src/check-build-consistency.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "supabase": "^2.0.0"
   },
   "dependencies": {
+    "@rnrepo/config": "workspace:*",
     "@supabase/supabase-js": "^2.47.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   }
 }
-

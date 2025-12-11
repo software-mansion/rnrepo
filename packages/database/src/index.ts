@@ -1,9 +1,14 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { Platform, BuildStatus, BuildRecord, LibrariesData } from './types';
+import type {
+  Platform,
+  BuildStatus,
+  BuildRecord,
+  LibrariesData
+} from './types';
 
 // Initialize Supabase client
 // Uses SUPABASE_KEY with RLS policies
-function getSupabaseClient(): SupabaseClient {
+export function getSupabaseClient(): SupabaseClient {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_KEY;
 
