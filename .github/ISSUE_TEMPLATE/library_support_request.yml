@@ -41,52 +41,8 @@ body:
   - type: input
     id: docs-link
     attributes:
-      label: Documentation Link
+      label: Documentation Link (if applicable)
       placeholder: "https://..."
-
-  - type: markdown
-    attributes:
-      value: "## ✅ Requirements"
-
-  - type: checkboxes
-    id: requirements
-    attributes:
-      label: Please verify the library meets these requirements
-      options:
-        - label: Library contains native code (Kotlin/Java for Android)
-          required: true
-        - label: Library supports React Native with New Architecture
-          required: true
-        - label: Library is actively maintained
-          required: true
-        - label: Library is popular in the React Native ecosystem
-          required: true
-
-  - type: markdown
-    attributes:
-      value: "## 📊 Popularity"
-
-  - type: textarea
-    id: popularity
-    attributes:
-      label: Why should this library be supported by RNRepo?
-      description: Provide statistics and use case information
-      placeholder: |
-        - NPM weekly downloads: ~...
-        - GitHub ⭐ count: ...
-        - Use case description: ...
-    validations:
-      required: true
-
-  - type: markdown
-    attributes:
-      value: "## ⏱️ Build Time Impact"
-
-  - type: input
-    id: build-time
-    attributes:
-      label: Estimated build time
-      placeholder: "e.g., 2-3 minutes"
 
   - type: textarea
     id: notes
@@ -98,10 +54,3 @@ body:
         - Dependencies on other libraries
         - Special requirements
         - Etc.
-
-  - type: textarea
-    id: related
-    attributes:
-      label: 🔗 Related Issues
-      description: Link any related issues (if any)
-      placeholder: "#(issue number)"
