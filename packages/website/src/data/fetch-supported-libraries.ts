@@ -1,55 +1,23 @@
-import { readFile } from 'fs/promises';
-import { getAllCompletedBuilds } from '@rnrepo/database';
+import { getAllCompletedBuilds, getCompletedPackagesNames, type LibrariesData } from '@rnrepo/database';
 
-export interface LibraryInfo {
-  name: string;
-  description?: string;
-  supportedPlatforms?: Array<'android' | 'ios'>;
-}
-
-interface LibraryConfigRecord {
-  description?: string;
-  android?: boolean | unknown[];
-  ios?: boolean | unknown[];
-  [key: string]: unknown;
-}
-
-async function loadLibrariesDescriptions(): Promise<Map<string, string>> {
+export async function getSupportedLibraryNames(): Promise<string[]> {
   try {
-    // Load libraries.json from the workspace root
-    const librariesJson = await readFile(new URL('../../../../libraries.json', import.meta.url), 'utf-8');
-    const librariesConfig: Record<string, LibraryConfigRecord> = JSON.parse(librariesJson);
-    console.log(`Loaded libraries configuration from libraries.json`);
-
-    // Transform the configuration into LibraryInfo format
-    const descriptionMap = new Map<string, string>(
-      Object.entries(librariesConfig || {}).map(([name, config]) => [
-        name,
-        config.description || '',
-      ])
-    );
-    return descriptionMap;
+    const libraryNames = await getCompletedPackagesNames();
+    console.log(`Fetched ${libraryNames.length} supported library names from database`);
+    return libraryNames;
   } catch (error) {
-    console.error('Failed to load libraries from config:', error);
-    throw error;
+    console.error('Failed to load supported library names from database:', error);
+    return []; // Return an empty array on failure
   }
 }
 
-export async function getLibraries(): Promise<LibraryInfo[]> {
+export async function getLibraries(): Promise<LibrariesData> {
   try {
-    const [libraries, libsDescriptions] = await Promise.all([
-      getAllCompletedBuilds(),
-      loadLibrariesDescriptions()
-    ]);
-    console.log(`Fetched ${libraries.length} completed builds from database`);
-    const mappedLibraries: LibraryInfo[] = libraries.map(lib => ({
-      name: lib.package_name,
-      description: libsDescriptions.get(lib.package_name) || '',
-      supportedPlatforms: [lib.android && 'android', lib.ios && 'ios'].filter((p): p is 'android' | 'ios' => Boolean(p)),
-    }));
-    return mappedLibraries;
+    const libraries = await getAllCompletedBuilds();
+    console.log(`Fetched ${Object.keys(libraries).length} completed builds from database`);
+    return libraries;
   } catch (error) {
     console.error('Failed to load libraries from database:', error);
-    return []; // Return an empty array on failure
+    return {}; // Return an empty object on failure
   }
 }
