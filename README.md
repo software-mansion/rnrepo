@@ -97,17 +97,9 @@ That's it! Now build your app as usual and Gradle will pull prebuilt artifacts f
 
 ## Configuration
 
-### Disable RNRepo for builds
-
-If you want to disable RNRepo for specific builds (for example, to debug build issues or test local changes), you can run the build with `DISABLE_RNREPO` environment variable set:
-
-```bash
-DISABLE_RNREPO=1 ./gradlew app:assembleDebug
-``` 
-
 ### Disable RNRepo for specific libraries
 
-To opt out of using RNRepo for specific libraries, you can add the `rnrepo.config.json` file to your project's root directory with the following structure:
+To opt out of using RNRepo for specific libraries (for example, if you have local build-time modifications), you can add the `rnrepo.config.json` file to your project's root directory with the following structure:
 
 ```json
 {
@@ -115,13 +107,29 @@ To opt out of using RNRepo for specific libraries, you can add the `rnrepo.confi
 }
 ```
 
+This configuration permanently excludes the listed libraries from RNRepo prebuilds, forcing them to build from source in all builds.
+
 ---
 
 ## Troubleshooting
 
+### Checking RNRepo setup
+
 If you're unsure whether RNRepo has been set up correctly in your project, check the build logs and search for the `RNRepo` tag in the build output. The RNRepo plugin prints a list of libraries it successfully uses as prebuilds, along with a list of libraries it couldn't use and the reason (for example, because a prebuild isn't available for that library version).
 
+### Using Gradle build scans
+
 For troubleshooting Android builds, before reporting an issue, we recommend passing the `--scan` flag to Gradle (e.g., `./gradlew app:assembleDebug --scan`). This flag generates a report of all tasks performed during the build along with their execution times, which can be useful for investigating issues such as when certain prebuilt libraries weren't loaded from the repository.
+
+### Temporarily disabling RNRepo for troubleshooting
+
+To temporarily disable RNRepo for a specific build (for example, to debug build issues or test local changes), you can use the `DISABLE_RNREPO` environment variable:
+
+```bash
+DISABLE_RNREPO=1 ./gradlew app:assembleDebug
+```
+
+> **Note:** This is a temporary troubleshooting measure and should not be used for permanent configuration. For permanent exclusions, use the `rnrepo.config.json` file described in the Configuration section.
 
 For more detailed troubleshooting instructions, please refer to the [Troubleshooting Guide](TROUBLESHOOTING.md).
 
