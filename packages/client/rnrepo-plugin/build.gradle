@@ -9,7 +9,7 @@ plugins {
 group = 'org.rnrepo.tools'
 
 // Fixed version in code - automatically appends -SNAPSHOT for local publishes
-def baseVersion = '0.1.0'
+def baseVersion = '0.2.0'
 def isLocalPublish = project.gradle.startParameter.taskNames.any {
     it.contains("MavenLocal")
 }
