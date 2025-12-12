@@ -18,6 +18,24 @@ const MOCK_LIBRARIES: LibrariesData = {
       name: '@react-native-firebase/app',
       android_versions: ['21.6.0'],
     },
+    'react-native-super-long-versions': {
+      name: 'react-native-super-long-versions',
+      android_versions: [
+        '1.0.0',
+        '1.1.0',
+        '1.2.0',
+        '1.3.0',
+        '1.4.0',
+        '1.5.0',
+        '1.6.0',
+        '1.7.0',
+        '1.8.0',
+        '1.9.0',
+        '1.10.0',
+        '1.11.0',
+        '1.12.0',
+      ],
+    },
   },
   '0.73.0': {
     'react-native-reanimated': {
@@ -31,6 +49,24 @@ const MOCK_LIBRARIES: LibrariesData = {
     '@react-native-firebase/app': {
       name: '@react-native-firebase/app',
       android_versions: ['21.5.0', '21.6.0'],
+    },
+    'react-native-super-long-versions': {
+      name: 'react-native-super-long-versions',
+      android_versions: [
+        '0.90.0',
+        '0.91.0',
+        '0.92.0',
+        '0.93.0',
+        '0.94.0',
+        '0.95.0',
+        '0.96.0',
+        '0.97.0',
+        '0.98.0',
+        '0.99.0',
+        '0.100.0',
+        '0.101.0',
+        '0.102.0',
+      ],
     },
   },
 };

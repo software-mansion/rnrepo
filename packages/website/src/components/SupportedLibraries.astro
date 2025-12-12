@@ -221,21 +221,23 @@ const supportedLibraryNames = await getSupportedLibraryNames();
                       <>
                         {libInfo.android_versions &&
                         libInfo.android_versions.length > 0 ? (
-                          <div class="android-versions-wrapper flex flex-wrap gap-2">
-                            {libInfo.android_versions.map((ver) => (
-                              <span class="version-tag android-version inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100">
-                                {ver}
-                              </span>
-                            ))}
-                            {libInfo.android_versions &&
-                              libInfo.android_versions.length > 3 && (
-                                <button
-                                  class="expand-android-btn inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer"
-                                  aria-expanded="false"
-                                >
-                                  {/* text is set client-side based on viewport */}
-                                </button>
-                              )}
+                          <div class="android-versions-wrapper flex items-center gap-2 w-full min-w-0">
+                            <div class="android-versions-list flex flex-nowrap gap-2 overflow-hidden">
+                              {libInfo.android_versions.map((ver) => (
+                                <span class="version-tag android-version inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 flex-shrink-0">
+                                  {ver}
+                                </span>
+                              ))}
+                              {libInfo.android_versions &&
+                                libInfo.android_versions.length > 3 && (
+                                  <button
+                                    class="expand-android-btn inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                                    aria-expanded="false"
+                                  >
+                                    {/* text is set client-side based on viewport */}
+                                  </button>
+                                )}
+                            </div>
                           </div>
                         ) : (
                           <span class="android-empty text-xs text-rnrGrey-40 italic">
@@ -411,28 +413,37 @@ const supportedLibraryNames = await getSupportedLibraryNames();
     });
   }
 
-  function getMaxVisibleAndroidVersions(): number {
-    // Give the name column more room on mid-width screens.
-    // - <lg: show up to 3 tags
-    // - lg+: show up to 4 tags
-    return window.matchMedia('(min-width: 1024px)').matches ? 4 : 3;
+  function getFlexGapPx(el: HTMLElement): number {
+    const styles = window.getComputedStyle(el);
+    // Prefer columnGap when present; fall back to gap.
+    const raw =
+      styles.columnGap && styles.columnGap !== 'normal'
+        ? styles.columnGap
+        : styles.gap;
+    const parsed = Number.parseFloat(raw);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   function applyAndroidVersionsCollapse(wrapper: Element): void {
+    const list = wrapper.querySelector(
+      '.android-versions-list'
+    ) as HTMLElement | null;
     const versions = Array.from(
       wrapper.querySelectorAll<HTMLElement>('.android-version')
     );
     const expandBtn = wrapper.querySelector<HTMLButtonElement>(
       '.expand-android-btn'
     );
-    if (versions.length === 0) return;
+    if (!list || versions.length === 0) return;
 
-    const maxVisible = getMaxVisibleAndroidVersions();
     const isExpanded =
       wrapper.getAttribute('data-expanded') === 'true' ||
       expandBtn?.getAttribute('aria-expanded') === 'true';
 
     if (isExpanded) {
+      // Expanded: show everything; allow wrapping (it can take multiple lines).
+      list.classList.remove('flex-nowrap', 'overflow-hidden');
+      list.classList.add('flex-wrap');
       versions.forEach((v) => {
         v.hidden = false;
         v.classList.remove('android-hidden');
@@ -446,12 +457,83 @@ const supportedLibraryNames = await getSupportedLibraryNames();
       return;
     }
 
-    let hiddenCount = 0;
+    // Collapsed: keep a single line and show only as many pills as fit in the
+    // available width next to the "+N more" button (so we never crop).
+    list.classList.remove('flex-wrap');
+    list.classList.add('flex-nowrap', 'overflow-hidden');
+
+    // Make everything visible for measurement without flashing.
+    const previousVisibility = list.style.visibility;
+    list.style.visibility = 'hidden';
+    versions.forEach((v) => {
+      v.hidden = false;
+      v.classList.remove('android-hidden');
+    });
+
+    const listWidth = list.clientWidth;
+    const gap = getFlexGapPx(list);
+
+    // If everything fits without the button, hide it and show all pills.
+    let allFitWithoutButton = true;
+    let usedAll = 0;
+    for (let i = 0; i < versions.length; i++) {
+      const pillW = versions[i].offsetWidth;
+      usedAll = i === 0 ? pillW : usedAll + gap + pillW;
+      if (usedAll > listWidth - 1) {
+        allFitWithoutButton = false;
+        break;
+      }
+    }
+    if (expandBtn && allFitWithoutButton) {
+      expandBtn.hidden = true;
+      expandBtn.textContent = '';
+    }
+
+    let visibleCount = versions.length;
+
+    if (expandBtn && !allFitWithoutButton) {
+      expandBtn.hidden = false;
+
+      // Iterate a few times because the button label width depends on the hiddenCount.
+      // This converges quickly and maximizes visible pills.
+      let lastVisibleCount = -1;
+      let buttonW = 0;
+
+      for (let iter = 0; iter < 4; iter++) {
+        const hiddenGuess =
+          iter === 0
+            ? versions.length
+            : Math.max(0, versions.length - visibleCount);
+        expandBtn.textContent = `+${hiddenGuess} more`;
+        buttonW = expandBtn.offsetWidth;
+
+        let used = 0;
+        visibleCount = 0;
+
+        for (let i = 0; i < versions.length; i++) {
+          const pillW = versions[i].offsetWidth;
+          const nextUsed = visibleCount === 0 ? pillW : used + gap + pillW;
+          const totalWithButton = nextUsed + gap + buttonW;
+
+          if (totalWithButton <= listWidth - 1) {
+            used = nextUsed;
+            visibleCount++;
+            continue;
+          }
+          break;
+        }
+
+        if (visibleCount === lastVisibleCount) break;
+        lastVisibleCount = visibleCount;
+      }
+    }
+
+    const hiddenCount = Math.max(0, versions.length - visibleCount);
+
     versions.forEach((v, idx) => {
-      const shouldHide = idx >= maxVisible;
+      const shouldHide = idx >= visibleCount;
       v.hidden = shouldHide;
       v.classList.toggle('android-hidden', shouldHide);
-      if (shouldHide) hiddenCount++;
     });
 
     if (expandBtn) {
@@ -463,7 +545,9 @@ const supportedLibraryNames = await getSupportedLibraryNames();
         expandBtn.hidden = true;
       }
     }
+
     wrapper.setAttribute('data-expanded', 'false');
+    list.style.visibility = previousVisibility;
   }
 
   function setupAndroidVersionsCollapse(): void {
