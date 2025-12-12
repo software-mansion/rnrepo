@@ -1,6 +1,6 @@
 ---
 import Logo from './Logo.astro';
-import { Menu, X } from 'lucide-astro';
+import { Github, Menu, X } from 'lucide-astro';
 ---
 
 <nav
@@ -20,21 +20,18 @@ import { Menu, X } from 'lucide-astro';
       </div>
 
       <div
-        class="hidden md:flex items-center space-x-8 text-sm font-medium text-rnrGrey-40"
+        class="hidden md:flex items-center gap-4 lg:gap-6 text-sm font-medium text-rnrGrey-40 whitespace-nowrap"
       >
-        <a href="/#setup" class="hover:text-rnrGrey-0 transition-colors">
+        <a href="/#setup" class="hover:text-rnrGrey-0 transition-colors whitespace-nowrap">
           Setup
         </a>
-        <a href="/#benefits" class="hover:text-rnrGrey-0 transition-colors">
-          Benefits
-        </a>
-        <a href="/#how-it-works" class="hover:text-rnrGrey-0 transition-colors">
+        <a href="/#how-it-works" class="hover:text-rnrGrey-0 transition-colors whitespace-nowrap">
           How It Works
         </a>
-        <a href="/#faq" class="hover:text-rnrGrey-0 transition-colors"> FAQ </a>
+        <a href="/#faq" class="hover:text-rnrGrey-0 transition-colors whitespace-nowrap"> FAQ </a>
         <a
           href="/supported-libraries"
-          class="hover:text-rnrGrey-0 transition-colors"
+          class="hover:text-rnrGrey-0 transition-colors whitespace-nowrap"
         >
           Supported Libraries
         </a>
@@ -43,10 +40,16 @@ import { Menu, X } from 'lucide-astro';
           href="https://github.com/software-mansion/rnrepo"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex items-center gap-2 bg-surfaceHighlight hover:bg-rnrGrey-60 text-rnrGrey-0 px-4 py-2 rounded-sm border border-rnrGrey-60 transition-all text-xs uppercase tracking-wide"
+          aria-label="View RNRepo on GitHub"
+          title="View RNRepo on GitHub"
+          class="flex items-center gap-2 bg-surfaceHighlight hover:bg-rnrGrey-60 text-rnrGrey-0 px-3 py-2 rounded-sm border border-rnrGrey-60 transition-all text-xs uppercase tracking-wide whitespace-nowrap"
         >
-          View on GitHub
-          <span class="text-rnrGrey-40">→</span>
+          {/* Mid-width: icon-only */}
+          <Github class="w-4 h-4 lg:hidden" />
+          {/* Wide: original label + arrow */}
+          <span class="hidden lg:inline">View on GitHub</span>
+          <span class="hidden lg:inline text-rnrGrey-40">→</span>
+          <span class="sr-only">View on GitHub</span>
         </a>
       </div>
 
@@ -74,13 +77,6 @@ import { Menu, X } from 'lucide-astro';
           data-mobile-menu-link
         >
           Setup
-        </a>
-        <a
-          href="/#benefits"
-          class="block text-sm font-medium text-rnrGrey-40 hover:text-rnrGrey-0 transition-colors py-2"
-          data-mobile-menu-link
-        >
-          Benefits
         </a>
         <a
           href="/#how-it-works"
