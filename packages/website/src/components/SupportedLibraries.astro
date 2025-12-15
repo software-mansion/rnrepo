@@ -59,7 +59,9 @@ const supportedLibraryNames = await getSupportedLibraryNames();
     </div>
 
     {/* React Native Versions Card */}
-    <div class="rounded-lg border border-rnrGrey-80 bg-surface/40 p-6 mb-8">
+    <div
+      class="rounded-lg border border-rnrGrey-80 bg-surface/40 px-4 py-6 mb-8"
+    >
       <div class="flex flex-col gap-4">
         <div>
           <h2 class="text-lg font-semibold text-rnrGrey-0">
@@ -94,11 +96,7 @@ const supportedLibraryNames = await getSupportedLibraryNames();
               </button>
             )
           }
-          <div
-            id="rn-versions-list"
-            class="rn-versions-hidden flex flex-wrap gap-2 w-full items-center"
-            hidden
-          >
+          <div id="rn-versions-list" class="rn-versions-hidden contents" hidden>
             {
               allRNVersions.slice(5).map((version) => (
                 <button
@@ -113,7 +111,7 @@ const supportedLibraryNames = await getSupportedLibraryNames();
             }
             <button
               id="collapse-rn-versions"
-              class="collapse-rn-btn px-3 py-1 inline-flex items-center justify-center rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer whitespace-nowrap ml-auto"
+              class="collapse-rn-btn px-3 py-1 inline-flex items-center justify-center rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer whitespace-nowrap"
             >
               show less
             </button>
@@ -591,6 +589,12 @@ const supportedLibraryNames = await getSupportedLibraryNames();
     } else {
       noResults?.classList.add('hidden');
     }
+
+    // Recalculate version wrapping for visible libraries
+    const visibleWrappers = document.querySelectorAll(
+      '.library-row:not([style*="display: none"]) .android-versions-wrapper'
+    );
+    visibleWrappers.forEach((w) => applyAndroidVersionsCollapse(w));
   }
 
   // Handle version button clicks
