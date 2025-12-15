@@ -219,8 +219,7 @@
   "react-native-fs": {
     "android": [
       {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
+        "versionMatcher": "2.20.0"
       }
     ]
   },
@@ -419,6 +418,138 @@
     ]
   },
   "@react-native-community/slider": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "@react-native-community/datetimepicker": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "@react-native-community/image-editor": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-bootsplash": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-contacts": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-email-link": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-iap": {
+    "preInstallScriptPath": "preInstallScripts/react-native-iap/react-native-iap.ts",
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-nitro-modules": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-linear-gradient": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-maps": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-mmkv": {
+    "preInstallScriptPath": "preInstallScripts/react-native-mmkv/react-native-mmkv.ts",
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-nitro-sound": {
+    "preInstallScriptPath": "preInstallScripts/react-native-nitro-sound/react-native-nitro-sound.ts",
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-unistyles": {
+    "preInstallScriptPath": "preInstallScripts/react-native-unistyles/react-native-unistyles.ts",
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-edge-to-edge": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-vector-icons": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-video": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-vision-camera": {
     "android": [
       {
         "versionMatcher": "*",
