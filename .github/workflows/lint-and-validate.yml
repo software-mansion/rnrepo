@@ -46,7 +46,6 @@ jobs:
               - '.github/workflows/lint-and-validate.yml'
 
       - name: 🏗 Setup Bun
-        if : ${{ steps.filter.outputs.typescript == 'true'|| steps.filter.outputs.json == 'true' }}
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
