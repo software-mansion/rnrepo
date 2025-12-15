@@ -1,6 +1,5 @@
 {
   "react-native-gesture-handler": {
-    "description": "Gesture handling library",
     "postInstallScriptPath": "postInstallScripts/react-native-gesture-handler/react-native-gesture-handler.ts",
     "android": [
       {
@@ -10,7 +9,6 @@
     ]
   },
   "react-native-reanimated": {
-    "description": "React Native animation library",
     "android": [
       {
         "versionMatcher": "<4.2",
@@ -24,7 +22,6 @@
     ]
   },
   "@react-native-async-storage/async-storage": {
-    "description": "Local data storage",
     "android": [
       {
         "versionMatcher": "*",
@@ -33,7 +30,6 @@
     ]
   },
   "@react-native-community/netinfo": {
-    "description": "Network information",
     "android": [
       {
         "versionMatcher": "*",
@@ -42,7 +38,6 @@
     ]
   },
   "@react-native-masked-view/masked-view": {
-    "description": "Masked view component",
     "android": [
       {
         "versionMatcher": "*",
@@ -51,7 +46,6 @@
     ]
   },
   "@shopify/react-native-skia": {
-    "description": "GPU-accelerated graphics",
     "android": [
       {
         "versionMatcher": "*",
@@ -60,7 +54,6 @@
     ]
   },
   "@zoontek/react-native-navigation-bar": {
-    "description": "Navigation bar customization",
     "android": [
       {
         "versionMatcher": "*",
@@ -69,7 +62,6 @@
     ]
   },
   "react-native-safe-area-context": {
-    "description": "Safe area context provider",
     "android": [
       {
         "versionMatcher": "*",
@@ -78,7 +70,6 @@
     ]
   },
   "react-native-screens": {
-    "description": "Native screens for navigation",
     "android": [
       {
         "versionMatcher": "*",
@@ -87,7 +78,6 @@
     ]
   },
   "react-native-worklets": {
-    "description": "Run JS in separate threads",
     "android": [
       {
         "versionMatcher": "*",
@@ -96,7 +86,6 @@
     ]
   },
   "lottie-react-native": {
-    "description": "Lottie animations",
     "android": [
       {
         "versionMatcher": "*",
@@ -105,7 +94,6 @@
     ]
   },
   "@pusher/pusher-websocket-react-native": {
-    "description": "WebSocket client",
     "android": [
       {
         "versionMatcher": "*",
@@ -114,7 +102,6 @@
     ]
   },
   "react-native-advanced-input-mask": {
-    "description": "Advanced input masking",
     "android": [
       {
         "versionMatcher": "*",
@@ -123,7 +110,6 @@
     ]
   },
   "react-native-android-location-enabler": {
-    "description": "Enable Android location services",
     "android": [
       {
         "versionMatcher": "*",
@@ -132,7 +118,6 @@
     ]
   },
   "react-native-app-logs": {
-    "description": "Application logging",
     "android": [
       {
         "versionMatcher": "*",
@@ -141,7 +126,6 @@
     ]
   },
   "react-native-blob-util": {
-    "description": "Blob/File handling",
     "android": [
       {
         "versionMatcher": "*",
@@ -150,7 +134,6 @@
     ]
   },
   "@react-native-camera-roll/camera-roll": {
-    "description": "Access to camera roll",
     "android": [
       {
         "versionMatcher": "*",
@@ -159,7 +142,6 @@
     ]
   },
   "@react-native-clipboard/clipboard": {
-    "description": "Clipboard access",
     "android": [
       {
         "versionMatcher": "*",
@@ -168,7 +150,6 @@
     ]
   },
   "@react-native-community/geolocation": {
-    "description": "Geolocation services",
     "android": [
       {
         "versionMatcher": "*",
@@ -177,7 +158,6 @@
     ]
   },
   "react-native-config": {
-    "description": "Environment configuration",
     "android": [
       {
         "versionMatcher": "*",
@@ -186,7 +166,6 @@
     ]
   },
   "react-native-device-info": {
-    "description": "Device information",
     "android": [
       {
         "versionMatcher": "*",
@@ -195,7 +174,6 @@
     ]
   },
   "@react-native-documents/picker": {
-    "description": "Document picker",
     "android": [
       {
         "versionMatcher": "*",
@@ -204,7 +182,6 @@
     ]
   },
   "@react-native-firebase/analytics": {
-    "description": "Firebase Analytics",
     "postInstallScriptPath": "postInstallScripts/@react-native-firebase/analytics/react-native-firebase_analytics.ts",
     "android": [
       {
@@ -214,7 +191,6 @@
     ]
   },
   "@react-native-firebase/app": {
-    "description": "Firebase core",
     "android": [
       {
         "versionMatcher": "*",
@@ -223,7 +199,6 @@
     ]
   },
   "@react-native-firebase/crashlytics": {
-    "description": "Firebase Crashlytics",
     "postInstallScriptPath": "postInstallScripts/@react-native-firebase/crashlytics/react-native-firebase_crashlytics.ts",
     "android": [
       {
@@ -233,7 +208,6 @@
     ]
   },
   "@react-native-firebase/perf": {
-    "description": "Firebase Performance Monitoring",
     "postInstallScriptPath": "postInstallScripts/@react-native-firebase/perf/react-native-firebase_perf.ts",
     "android": [
       {
@@ -243,7 +217,6 @@
     ]
   },
   "react-native-fs": {
-    "description": "File system access",
     "android": [
       {
         "versionMatcher": "*",
@@ -252,7 +225,6 @@
     ]
   },
   "react-native-get-random-values": {
-    "description": "Cryptographic random values",
     "android": [
       {
         "versionMatcher": "*",
@@ -261,7 +233,6 @@
     ]
   },
   "@react-native-google-signin/google-signin": {
-    "description": "Google Sign-In",
     "android": [
       {
         "versionMatcher": "*",
@@ -270,7 +241,6 @@
     ]
   },
   "react-native-haptic-feedback": {
-    "description": "Haptic feedback",
     "android": [
       {
         "versionMatcher": "*",
@@ -279,7 +249,6 @@
     ]
   },
   "react-native-image-picker": {
-    "description": "Image picker",
     "android": [
       {
         "versionMatcher": "*",
@@ -288,7 +257,6 @@
     ]
   },
   "react-native-key-command": {
-    "description": "Hardware keyboard commands",
     "preInstallScriptPath": "preInstallScripts/react-native-key-command/react-native-key-command.ts",
     "android": [
       {
@@ -298,7 +266,6 @@
     ]
   },
   "react-native-keyboard-controller": {
-    "description": "Keyboard event handling",
     "android": [
       {
         "versionMatcher": "*",
@@ -307,7 +274,6 @@
     ]
   },
   "react-native-launch-arguments": {
-    "description": "Launch arguments for testing",
     "android": [
       {
         "versionMatcher": "*",
@@ -316,7 +282,6 @@
     ]
   },
   "react-native-localize": {
-    "description": "Localization utilities",
     "android": [
       {
         "versionMatcher": "*",
@@ -325,7 +290,6 @@
     ]
   },
   "react-native-pager-view": {
-    "description": "Pager view component",
     "android": [
       {
         "versionMatcher": "*",
@@ -334,7 +298,6 @@
     ]
   },
   "react-native-pdf": {
-    "description": "PDF rendering",
     "android": [
       {
         "versionMatcher": "*",
@@ -343,7 +306,6 @@
     ]
   },
   "react-native-performance": {
-    "description": "Performance monitoring",
     "android": [
       {
         "versionMatcher": "*",
@@ -352,7 +314,6 @@
     ]
   },
   "react-native-permissions": {
-    "description": "Permissions handling",
     "android": [
       {
         "versionMatcher": "*",
@@ -361,7 +322,6 @@
     ]
   },
   "@react-native-picker/picker": {
-    "description": "Picker component",
     "android": [
       {
         "versionMatcher": "*",
@@ -370,7 +330,6 @@
     ]
   },
   "react-native-plaid-link-sdk": {
-    "description": "Plaid Link SDK",
     "android": [
       {
         "versionMatcher": "*",
@@ -379,7 +338,6 @@
     ]
   },
   "react-native-release-profiler": {
-    "description": "Release build profiler",
     "android": [
       {
         "versionMatcher": "*",
@@ -388,7 +346,6 @@
     ]
   },
   "react-native-share": {
-    "description": "Content sharing",
     "android": [
       {
         "versionMatcher": "*",
@@ -397,7 +354,6 @@
     ]
   },
   "react-native-sound": {
-    "description": "Audio playback",
     "android": [
       {
         "versionMatcher": "*",
@@ -406,7 +362,6 @@
     ]
   },
   "react-native-svg": {
-    "description": "SVG rendering",
     "android": [
       {
         "versionMatcher": "*",
@@ -415,7 +370,6 @@
     ]
   },
   "react-native-view-shot": {
-    "description": "View screenshot capturing",
     "android": [
       {
         "versionMatcher": "*",
@@ -424,7 +378,6 @@
     ]
   },
   "react-native-webview": {
-    "description": "WebView component",
     "android": [
       {
         "versionMatcher": "*",
@@ -433,7 +386,6 @@
     ]
   },
   "@rnmapbox/maps": {
-    "description": "Mapbox maps integration",
     "postInstallScriptPath": "postInstallScripts/@rnmapbox/maps/rnmapbox_maps.gradle",
     "android": [
       {
@@ -443,7 +395,6 @@
     ]
   },
   "@sentry/react-native": {
-    "description": "Error tracking and monitoring",
     "android": [
       {
         "versionMatcher": "*",
@@ -452,7 +403,6 @@
     ]
   },
   "@ua/react-native-airship": {
-    "description": "Airship push notifications",
     "android": [
       {
         "versionMatcher": "*",
