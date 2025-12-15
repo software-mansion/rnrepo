@@ -140,12 +140,6 @@ class PrebuildsPlugin : Plugin<Project> {
                             }
                         }
                     substitutionAction.execute(subproject)
-                    // TODO(radoslawrolka): keeping in case of issues with afterEvaluate
-                    // if (subproject.state.executed) {
-                    //     substitutionAction.execute(subproject)
-                    // } else {
-                    //     subproject.afterEvaluate(substitutionAction)
-                    // }
                 }
             }
         }
@@ -585,13 +579,13 @@ class PrebuildsPlugin : Plugin<Project> {
 
     private fun checkDependencies(
         packageItem: PackageItem,
-        rootProject: Project,
+        project: Project,
         supportedPackages: MutableSet<PackageItem>,
         unavailablePackages: MutableCollection<PackageItem>,
     ) {
         logger.info("${packageItem.name} is supported, checking if all packages depending on it are supported.")
-        rootProject.allprojects.forEach { subproject ->
-            if (subproject == rootProject) return@forEach
+        project.rootProject.allprojects.forEach { subproject ->
+            if (subproject == project.rootProject || subproject == project || subproject.name == packageItem.name) return@forEach
             val dependsOnPackage =
                 subproject.configurations.any { config ->
                     config.dependencies.any { dependency ->
@@ -603,7 +597,7 @@ class PrebuildsPlugin : Plugin<Project> {
             if (dependsOnPackage && !isSupported) {
                 unavailablePackages.add(packageItem)
                 logger.lifecycle(
-                    "${subproject.name} depending on ${packageItem.name} is not supported, building ${packageItem.name} from sources.",
+                    "${subproject.name} depending on ${packageItem.name} is not available as a prebuild, building ${packageItem.name} from sources.",
                 )
                 return
             }
@@ -655,7 +649,11 @@ class PrebuildsPlugin : Plugin<Project> {
                 .newKeySet<PackageItem>()
         val unavailablePackages = java.util.concurrent.ConcurrentLinkedQueue<PackageItem>()
 
-        val (workletsList, otherPackages) = extension.projectPackages.partition { it.name == "react-native-worklets" }
+        val (dependentList, otherPackages) =
+            extension.projectPackages.partition {
+                it.name == "react-native-worklets" ||
+                    it.name == "react-native-firebase_app"
+            }
         otherPackages.parallelStream().forEach { packageItem ->
             checkIfPackageIsSupported(
                 packageItem,
@@ -665,19 +663,19 @@ class PrebuildsPlugin : Plugin<Project> {
                 { supportedPackages.add(packageItem) },
             )
         }
-        workletsList.firstOrNull()?.let { workletsPackage ->
-            logger.info("Handling react-native-worklets package after others.")
+        dependentList.parallelStream().forEach { packageItem ->
+            logger.info("Handling ${packageItem.name} package after others.")
             val elseClosure: () -> Unit = {
                 if (getBuildType(project) == "release") {
-                    supportedPackages.add(workletsPackage)
+                    supportedPackages.add(packageItem)
                 } else {
                     logger.info(
-                        "In debug builds, react-native-worklets requires all consumer packages to be supported; otherwise, it will not be applied.",
+                        "In debug builds, ${packageItem.name} requires all consumer packages to be supported; otherwise, it will not be applied.",
                     )
-                    checkDependencies(workletsPackage, project.rootProject, supportedPackages, unavailablePackages)
+                    checkDependencies(packageItem, project, supportedPackages, unavailablePackages)
                 }
             }
-            checkIfPackageIsSupported(workletsPackage, project.repositories, extension, unavailablePackages, elseClosure)
+            checkIfPackageIsSupported(packageItem, project.repositories, extension, unavailablePackages, elseClosure)
         }
 
         extension.supportedPackages = supportedPackages
