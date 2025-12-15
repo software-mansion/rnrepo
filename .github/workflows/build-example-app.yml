@@ -77,5 +77,5 @@ jobs:
         run: bun run .github/workflows/scripts/applyRNRepoAndroid.ts ${{ env.EXAMPLE_APP }}/android ${{ github.event.inputs.rnrepo_prebuilds_plugin_version }} ${{ github.event.inputs.maven_repository_type }}
 
       - name: 🏗 Build Example App with RNRepo
-        run: ./gradlew :app:assembleDebug --info
+        run: ./gradlew :app:assembleDebug --info --no-daemon
         working-directory: ${{ env.EXAMPLE_APP }}/android
