@@ -2,3 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Ensure the HTML `hidden` attribute always hides elements, even when display utility
+   classes (e.g. `flex`, `inline-flex`) are present. */
+[hidden] {
+  display: none !important;
+}
+

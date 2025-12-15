@@ -51,6 +51,7 @@ jobs:
           bun-version: latest
 
       - name: 📦 Install dependencies
+        if : ${{ steps.filter.outputs.typescript == 'true'|| steps.filter.outputs.json == 'true' }}
         run: bun install
 
       - name: 🔍 Lint kotlin

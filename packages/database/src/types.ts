@@ -17,8 +17,14 @@ export interface BuildRecord {
   updated_at?: string;
 }
 
-export interface BuildRecordCompleted {
-  package_name: string;
-  android: boolean;
-  ios: boolean;
+export interface LibraryInfo {
+  name: string;
+  android_versions?: string[];
+  ios_versions?: string[];
+}
+
+export interface LibrariesData {
+  [reactNativeVersion: string]: {
+    [libraryName: string]: LibraryInfo;
+  };
 }

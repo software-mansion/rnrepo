@@ -14,71 +14,10 @@ body:
     attributes:
       label: 📝 Feature Description
       description: Explain what new feature should be added to RNRepo
-      placeholder: Describe the feature here...
-    validations:
-      required: true
-
-  - type: textarea
-    id: problem
-    attributes:
-      label: 🎯 Problem It Solves
-      description: Describe the problem or use case this request addresses
-      placeholder: What problem does this solve?
-    validations:
-      required: true
-
-  - type: textarea
-    id: solution
-    attributes:
-      label: 💡 Proposed Solution
-      description: Describe how this feature should work
-      placeholder: How should this feature work?
-    validations:
-      required: true
-
-  - type: textarea
-    id: alternatives
-    attributes:
-      label: 🔄 Alternative Solutions
-      description: Describe other possible approaches or features that could solve this problem
-      placeholder: What are the alternatives?
-
-  - type: textarea
-    id: context
-    attributes:
-      label: 📚 Additional Context
-      description: Add any other information, screenshots, or links that might be helpful
-      placeholder: Any other context?
-
-  - type: textarea
-    id: related
-    attributes:
-      label: 🔗 Related Issues
-      description: Link any related issues or pull requests
       placeholder: |
-        - Closes #(issue number)
-        - Related to #(issue number)
-
-  - type: markdown
-    attributes:
-      value: "## 📊 Impact"
-
-  - type: input
-    id: affected-users
-    attributes:
-      label: Affected users
-      placeholder: "e.g., all users, only New Architecture users, etc."
-    validations:
-      required: true
-
-  - type: dropdown
-    id: priority
-    attributes:
-      label: Priority
-      options:
-        - Low
-        - Medium
-        - High
-        - Critical
+        - Describe the feature here...
+        - What problem does it solve?
+        - Are there any workarounds currently?
+        - How could it works?
     validations:
       required: true
