@@ -602,7 +602,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 return
             }
         }
-        logger.info("All dependent packages are supported, adding ${packageItem.name} to supported packages.")
+        logger.info("All dependent packages are supported, adding ${packageItem.name} to supported packages. If this is incorrect, please add to deny list. More info at https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md#c-libraries-debugrelease-compatibility-issues")
         supportedPackages.add(packageItem)
     }
 
