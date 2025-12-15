@@ -48,16 +48,6 @@ body:
     validations:
       required: true
 
-  - type: textarea
-    id: logs
-    attributes:
-      label: 📸 Screenshots / Logs
-      description: If applicable, add screenshots or log output (e.g., from `./gradlew build --info`)
-      placeholder: |
-        ```
-        Paste logs here...
-        ```
-
   - type: markdown
     attributes:
       value: "## 🛠️ Environment Information"
@@ -65,7 +55,7 @@ body:
   - type: input
     id: rnrepo-version
     attributes:
-      label: RNRepo version
+      label: RNRepo version (and/or @rnrepo/expo-config-plugin version)
       placeholder: "e.g., 0.1.0"
     validations:
       required: true
@@ -93,15 +83,6 @@ body:
       placeholder: "e.g., macOS 14.0, Ubuntu 22.04"
     validations:
       required: true
-
-  - type: textarea
-    id: libraries
-    attributes:
-      label: 📦 Related Libraries (if applicable)
-      description: List any libraries related to this issue
-      placeholder: |
-        - library-name
-        - another-library
 
   - type: textarea
     id: additional
