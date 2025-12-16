@@ -548,13 +548,5 @@
         "publishedAfterDate": "2025-01-01"
       }
     ]
-  },
-  "react-native-vision-camera": {
-    "android": [
-      {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
-      }
-    ]
   }
 }
