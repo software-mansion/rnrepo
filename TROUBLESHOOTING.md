@@ -53,7 +53,7 @@ gradlew :app:assembleDebug --scan
 ```
 
 ### C++ Libraries Debug/Release Compatibility Issues
-Some native libraries containing C++ code may not have stable interfaces between debug and release builds. This can cause compilation issues when building your app with prebuilded libs of different build types for its dependencies.
+Some native libraries containing C++ code may not have stable interfaces between debug and release builds. This can cause compilation issues when building your app with prebuilt libs of different build types for its dependencies.
 
 #### Problem Description
 When building your app in debug mode (e.g., `./gradlew :app:assembleDebug`), you might encounter situations where:
