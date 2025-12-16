@@ -17,7 +17,7 @@ on:
         description: 'RNRepo prebuilds-plugin version'
         required: false
         type: string
-        default: '0.1.0'
+        default: '0.2.0'
       libraries:
         description: 'libraries with versions to install, format: libraryName1@version1,libraryName2@version2'
         required: true
