@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🔨 Build RNRepo Gradle Plugin for Android
-        run: ./gradlew build
+        run: ./gradlew build --no-daemon
         working-directory: ./packages/client/rnrepo-plugin
 
       - name: 📦 Publish RNRepo Gradle Plugin for Android
