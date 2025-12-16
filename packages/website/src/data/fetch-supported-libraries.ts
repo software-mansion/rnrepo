@@ -5,6 +5,119 @@ import {
 } from '@rnrepo/database';
 
 const MOCK_LIBRARIES: LibrariesData = {
+  '0.76.0': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.16.0', '3.16.1'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.20.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.10.0'],
+    },
+  },
+  '0.75.8': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.15.0', '3.15.1', '3.15.2'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.19.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.9.0'],
+    },
+  },
+  '0.75.5': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.15.0'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.18.1', '2.19.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.8.0'],
+    },
+  },
+  '0.75.2': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.14.0'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.18.0', '2.18.1'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.7.0', '21.8.0'],
+    },
+  },
+  '0.75.0': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.13.0', '3.14.0'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.17.0', '2.18.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.7.0'],
+    },
+  },
+  '0.74.5': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.12.0', '3.12.1'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.16.2', '2.17.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.6.0'],
+    },
+    'react-native-super-long-versions': {
+      name: 'react-native-super-long-versions',
+      android_versions: [
+        '1.5.0',
+        '1.5.1',
+        '1.5.2',
+        '1.5.3',
+        '1.5.4',
+        '1.5.5',
+        '1.5.6',
+        '1.5.7',
+        '1.5.8',
+        '1.5.9',
+      ],
+    },
+  },
+  '0.74.3': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.11.0', '3.12.0'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.16.0', '2.16.1', '2.16.2'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.6.0'],
+    },
+  },
   '0.74.0': {
     'react-native-reanimated': {
       name: 'react-native-reanimated',
@@ -37,6 +150,62 @@ const MOCK_LIBRARIES: LibrariesData = {
       ],
     },
   },
+  '0.73.9': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.10.0', '3.10.1'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.15.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.5.0', '21.6.0'],
+    },
+  },
+  '0.73.6': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.9.0', '3.10.0'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.14.1', '2.15.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.5.0'],
+    },
+  },
+  '0.73.4': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.8.0', '3.9.0'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.14.0', '2.14.1'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.4.0', '21.5.0'],
+    },
+  },
+  '0.73.2': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.7.0', '3.8.0'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.13.4', '2.14.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.3.0', '21.4.0'],
+    },
+  },
   '0.73.0': {
     'react-native-reanimated': {
       name: 'react-native-reanimated',
@@ -67,6 +236,48 @@ const MOCK_LIBRARIES: LibrariesData = {
         '0.101.0',
         '0.102.0',
       ],
+    },
+  },
+  '0.72.10': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.5.0', '3.5.4'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.12.0', '2.13.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.2.0'],
+    },
+  },
+  '0.72.7': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.4.0', '3.5.0'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.11.0', '2.12.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.1.0', '21.2.0'],
+    },
+  },
+  '0.72.5': {
+    'react-native-reanimated': {
+      name: 'react-native-reanimated',
+      android_versions: ['3.3.0', '3.4.0'],
+    },
+    'react-native-gesture-handler': {
+      name: 'react-native-gesture-handler',
+      android_versions: ['2.10.0', '2.11.0'],
+    },
+    '@react-native-firebase/app': {
+      name: '@react-native-firebase/app',
+      android_versions: ['21.0.0', '21.1.0'],
     },
   },
 };
