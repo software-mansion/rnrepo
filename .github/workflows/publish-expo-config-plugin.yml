@@ -4,6 +4,15 @@ run-name: Publish @rnrepo/expo-config-plugin to npm
 
 on:
   workflow_dispatch:
+    inputs:
+      beta_or_latest:
+        description: 'Publish as beta or latest'
+        required: true
+        default: 'beta'
+        type: choice
+        options:
+          - 'beta'
+          - 'latest'
 
 jobs:
   publish-expo-config-plugin:
@@ -47,4 +56,4 @@ jobs:
         run: bun run prepare
 
       - name: 🚀 Publish to npm
-        run: npm publish
+        run: npm publish --tag ${{ github.event.inputs.beta_or_latest }}
