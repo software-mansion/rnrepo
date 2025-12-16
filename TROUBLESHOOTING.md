@@ -50,3 +50,36 @@ gradlew :app:assembleDebug --info
 For even more detailed logs, you can use:
 ```bash
 gradlew :app:assembleDebug --scan
+```
+
+### C++ Libraries Debug/Release Compatibility Issues
+Some native libraries containing C++ code may not have stable interfaces between debug and release builds. This can cause compilation issues when building your app with prebuilt libs of different build types for its dependencies.
+
+#### Problem Description
+When building your app in debug mode (e.g., `./gradlew :app:assembleDebug`), you might encounter situations where:
+- One dependency is consumed as a prebuilt AAR (release variant)
+- Another dependency that depends on it is built from sources (debug variant)
+
+This mismatch between debug and release builds can cause linker errors and compilation failures, especially with libraries that contain C++ code such as `react-native-worklets` and `react-native-reanimated`.
+
+#### Identifying the Issue
+You can identify this problem by examining the Gradle logs with the `--info` flag:
+```bash
+./gradlew :app:assembleDebug --info
+```
+
+Look for messages similar to:
+```
+[📦 RNRepo] In debug builds, react-native-worklets requires all consumer packages to be supported; otherwise, it will not be applied.
+[📦 RNRepo] react-native-worklets is supported, checking if all packages depending on it are supported.
+[📦 RNRepo] react-native-reanimated depending on react-native-worklets is not available as a prebuild, building react-native-worklets from sources.
+```
+
+These messages indicate that the RNRepo plugin has detected an inconsistency and is switching to building from sources to maintain compatibility.
+
+#### Solutions
+1. **Use consistent build types**: Ensure all your dependencies are either built in debug or release mode. You can configure this in your `gradle.properties` file.
+
+2. **Add to deny list**: If you encounter persistent issues with specific C++ libraries, you can add them to the deny list in your `rnrepo.config.json` to force them to be built from sources.
+
+3. **Review build variant configuration**: Ensure your build configuration doesn't mix debug and release builds for interdependent packages.
