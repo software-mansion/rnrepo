@@ -281,8 +281,8 @@ class PrebuildsPluginHelperMethodsTest {
     fun `isSpecificCheckPassed should handle react-native-reanimated with worklets`() {
         // Given
         val extension = PackagesManager()
-        val reanimatedPackage = PackageItem("react-native-reanimated", "4.5.0")
-        val workletsPackage = PackageItem("react-native-worklets", "1.0.0")
+        val reanimatedPackage = PackageItem("react-native-reanimated", "4.5.0", "react-native-reanimated")
+        val workletsPackage = PackageItem("react-native-worklets", "1.0.0", "react-native-worklets")
         extension.projectPackages = setOf(reanimatedPackage, workletsPackage)
 
         // When
@@ -304,7 +304,7 @@ class PrebuildsPluginHelperMethodsTest {
     fun `isSpecificCheckPassed should handle react-native-reanimated without worklets`() {
         // Given
         val extension = PackagesManager()
-        val reanimatedPackage = PackageItem("react-native-reanimated", "4.5.0")
+        val reanimatedPackage = PackageItem("react-native-reanimated", "4.5.0", "react-native-reanimated")
         extension.projectPackages = setOf(reanimatedPackage)
 
         // When
@@ -325,7 +325,7 @@ class PrebuildsPluginHelperMethodsTest {
     fun `isSpecificCheckPassed should handle react-native-reanimated3 without worklets`() {
         // Given
         val extension = PackagesManager()
-        val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0")
+        val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0", "react-native-reanimated")
         extension.projectPackages = setOf(reanimatedPackage)
 
         // When
@@ -346,9 +346,9 @@ class PrebuildsPluginHelperMethodsTest {
     fun `isSpecificCheckPassed should handle react-native-gesture-handler dependencies`() {
         // Given
         val extension = PackagesManager()
-        val gestureHandlerPackage = PackageItem("react-native-gesture-handler", "2.8.0")
-        val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0")
-        val svgPackage = PackageItem("react-native-svg", "13.0.0")
+        val gestureHandlerPackage = PackageItem("react-native-gesture-handler", "2.8.0", "react-native-gesture-handler")
+        val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0", "react-native-reanimated")
+        val svgPackage = PackageItem("react-native-svg", "13.0.0", "react-native-svg")
         extension.projectPackages = setOf(gestureHandlerPackage, reanimatedPackage, svgPackage)
 
         // When
