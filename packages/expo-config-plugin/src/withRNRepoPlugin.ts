@@ -2,7 +2,7 @@ import { withProjectBuildGradle, withAppBuildGradle } from '@expo/config-plugins
 import type { ExpoConfig } from '@expo/config-types';
 
 const classpathRegex = /(classpath.*)/;
-const rnrepoClasspath = 'classpath("org.rnrepo.tools:prebuilds-plugin:0.1.0")';
+const rnrepoClasspath = 'classpath("org.rnrepo.tools:prebuilds-plugin:0.2.0")';
 const mavenCentralRepository = `mavenCentral()`;
 const mavenRepositoryBlock = `
     maven { url "https://packages.rnrepo.org/releases" }`;
