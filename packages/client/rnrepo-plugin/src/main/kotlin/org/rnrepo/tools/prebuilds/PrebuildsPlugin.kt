@@ -28,13 +28,19 @@ data class PackageItem(
 private class PrefixedLogger(
     private val delegate: Logger,
 ) {
+    companion object {
+        private const val YELLOW = "\u001B[33m"
+        private const val RED = "\u001B[31m"
+        private const val RESET = "\u001B[0m"
+    }
+
     fun info(message: String) = delegate.info("[📦 RNRepo] $message")
 
     fun lifecycle(message: String) = delegate.lifecycle("[📦 RNRepo] $message")
 
-    fun warn(message: String) = delegate.warn("[📦 RNRepo] $message")
+    fun warn(message: String) = delegate.warn("$YELLOW[📦 RNRepo] ⚠️ $message$RESET")
 
-    fun error(message: String) = delegate.error("[📦 RNRepo] $message")
+    fun error(message: String) = delegate.error("$RED[📦 RNRepo] 🛑 $message$RESET")
 
     fun debug(message: String) = delegate.debug("[📦 RNRepo] $message")
 }
@@ -53,6 +59,19 @@ class PrebuildsPlugin : Plugin<Project> {
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
 
+    // known packages with unstable cpp code
+    // use grade package name format
+    // .* as wildcard for any suffix
+    private val PACKAGES_WITH_CPP: Map<String, List<String>> =
+        mapOf(
+            "react-native-worklets" to
+                listOf(
+                    "react-native-reanimated",
+                    "expensify_react-native-live-markdown",
+                ),
+            "react-native-firebase_app" to listOf("react-native-firebase_.*"),
+        )
+
     override fun apply(project: Project) {
         val extension = project.extensions.create("rnrepo", PackagesManager::class.java)
         REACT_NATIVE_ROOT_DIR = getReactNativeRoot(project)
@@ -62,10 +81,23 @@ class PrebuildsPlugin : Plugin<Project> {
         }
         if (shouldPluginExecute(project, extension)) {
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
+
+            // Check what packages are in project and which are we supporting
             getProjectPackages(project.rootProject.allprojects, extension)
+            loadDenyList(extension)
+            determineSupportedPackages(project, extension)
+
+            // Setup
+            extension.supportedPackages.forEach { packageItem ->
+                addDependency(
+                    project,
+                    "implementation",
+                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
+                )
+            }
 
             // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
-            extension.projectPackages.find { it.name == "react-native-reanimated" }?.let {
+            extension.supportedPackages.find { it.name == "react-native-reanimated" }?.let {
                 val androidExtension = project.extensions.getByName("android") as? BaseExtension
                 androidExtension?.let { android ->
                     android.packagingOptions.apply {
@@ -79,24 +111,11 @@ class PrebuildsPlugin : Plugin<Project> {
                 }
             }
 
-            project.gradle.projectsEvaluated {
-                // Check what packages are in project and which are we supporting
-                loadDenyList(extension)
-                determineSupportedPackages(project, extension)
-
-                // Setup
-                extension.supportedPackages.forEach { packageItem ->
-                    addDependency(
-                        project,
-                        "implementation",
-                        "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
-                    )
-                }
-
-                // Add dependency on generating codegen schema for each library so that task is not dropped
-                extension.supportedPackages.forEach { packageItem ->
-                    val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                    project.evaluationDependsOn(":${packageItem.name}")
+            // Add dependency on generating codegen schema for each library so that task is not dropped
+            extension.supportedPackages.forEach { packageItem ->
+                val codegenTaskName = "generateCodegenArtifactsFromSchema"
+                project.evaluationDependsOn(":${packageItem.name}")
+                project.afterEvaluate {
                     try {
                         val libraryProject = project.project(":${packageItem.name}")
                         val libraryCodegenTaskProvider = libraryProject.tasks.named(codegenTaskName)
@@ -109,37 +128,57 @@ class PrebuildsPlugin : Plugin<Project> {
                         logger.lifecycle("⚠️ Failed to find or link task :${packageItem.name}:$codegenTaskName. Error: ${e.message}")
                     }
                 }
+            }
 
-                // Add substitution for supported packages for all projects and all configurations
-                project.rootProject.allprojects.forEach { subproject ->
-                    if (subproject == project.rootProject) return@forEach
-                    val substitutionAction =
-                        Action<Project> { evaluatedProject ->
-                            extension.supportedPackages.forEach { packageItem ->
-                                val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
-                                evaluatedProject.configurations.all { config ->
-                                    config.resolutionStrategy.dependencySubstitution { substitutions ->
-                                        substitutions.all { dependencySubstitution ->
-                                            if (dependencySubstitution.requested.displayName.contains("${packageItem.name}")) {
-                                                dependencySubstitution.useTarget(substitutions.module(module))
-                                                dependencySubstitution.artifactSelection {
-                                                    it.selectArtifact(
-                                                        "aar",
-                                                        "aar",
-                                                        "rn${extension.reactNativeVersion}${packageItem.classifier}",
-                                                    )
-                                                }
-                                                logger.info(
-                                                    "Adding substitution for ${packageItem.name} using $module " +
-                                                        "in config ${config.name} of project ${evaluatedProject.name}",
+            // Add substitution for supported packages for all projects and all configurations
+            project.rootProject.allprojects.forEach { subproject ->
+                if (subproject == project.rootProject) return@forEach
+                val substitutionAction =
+                    Action<Project> { evaluatedProject ->
+                        extension.supportedPackages.forEach { packageItem ->
+                            val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
+                            evaluatedProject.configurations.all { config ->
+                                config.resolutionStrategy.dependencySubstitution { substitutions ->
+                                    substitutions.all { dependencySubstitution ->
+                                        if (dependencySubstitution.requested.displayName.contains("${packageItem.name}")) {
+                                            dependencySubstitution.useTarget(substitutions.module(module))
+                                            dependencySubstitution.artifactSelection {
+                                                it.selectArtifact(
+                                                    "aar",
+                                                    "aar",
+                                                    "rn${extension.reactNativeVersion}${packageItem.classifier}",
                                                 )
                                             }
+                                            logger.info(
+                                                "Adding substitution for ${packageItem.name} using $module " +
+                                                    "in config ${config.name} of project ${evaluatedProject.name}",
+                                            )
                                         }
                                     }
                                 }
                             }
                         }
-                    substitutionAction.execute(subproject)
+                    }
+                substitutionAction.execute(subproject)
+            }
+
+            project.gradle.projectsEvaluated {
+                logger.info("Checking if all dependencies with c++ code have their consumers supported...")
+                PACKAGES_WITH_CPP.keys.parallelStream().forEach { packageName ->
+                    val packageItem = extension.projectPackages.find { it.name == packageName }
+                    if (packageItem == null) {
+                        logger.info("Package $packageName not found in project packages, skipping dependency check.")
+                        return@forEach
+                    }
+                    if (!extension.supportedPackages.contains(packageItem)) {
+                        logger.info("Package $packageName is not supported, skipping dependency check.")
+                        return@forEach
+                    }
+                    checkDependencies(
+                        packageItem,
+                        project,
+                        extension.supportedPackages,
+                    )
                 }
             }
         }
@@ -341,7 +380,7 @@ class PrebuildsPlugin : Plugin<Project> {
             val denyList = json["denyList"] as? List<String>
             if (denyList != null) {
                 logger.lifecycle("Loaded deny list from config: $denyList")
-                extension.denyList = denyList.toSet()
+                extension.denyList = denyList.map { toGradleName(it) }.toSet()
             } else {
                 logger.info("No denyList found in config file. Using empty deny list.")
             }
@@ -349,6 +388,8 @@ class PrebuildsPlugin : Plugin<Project> {
             logger.error("Error parsing $CONFIG_FILE_NAME: ${e.message}. Using empty deny list.")
         }
     }
+
+    private fun toGradleName(packageName: String): String = packageName.replace("@", "").replace("/", "_")
 
     /**
      * Checks if a specific package is not in the deny list or excluded by other rules.
@@ -476,7 +517,7 @@ class PrebuildsPlugin : Plugin<Project> {
             val packageName = json["name"] as? String
             val packageVersion = json["version"] as? String
             if (packageName != null && packageVersion != null) {
-                val gradlePackageName = packageName.replace("@", "").replace("/", "_")
+                val gradlePackageName = toGradleName(packageName)
                 logger.info("Found package: $packageName version $packageVersion")
                 return PackageItem(gradlePackageName, packageVersion)
             }
@@ -577,15 +618,55 @@ class PrebuildsPlugin : Plugin<Project> {
         return true
     }
 
-    private fun checkDependencies(
+    private fun checkDependenciesLocal(
         packageItem: PackageItem,
         project: Project,
         supportedPackages: MutableSet<PackageItem>,
         unavailablePackages: MutableCollection<PackageItem>,
     ) {
         logger.info("${packageItem.name} is supported, checking if all packages depending on it are supported.")
+        PACKAGES_WITH_CPP.get(packageItem.name)?.forEach { dependentPackagePattern ->
+            val dependentPackagePatternRegex = dependentPackagePattern.toRegex()
+            val isPackagePresentInProject =
+                project.rootProject.allprojects.any { subproject ->
+                    dependentPackagePatternRegex.matches(subproject.name)
+                }
+            if (!isPackagePresentInProject) {
+                logger.info(
+                    "No package depending on ${packageItem.name} matching pattern '$dependentPackagePattern' found in project, skipping check.",
+                )
+                return@forEach
+            }
+            val isDependentPackageSupported =
+                supportedPackages.any { supportedPackage ->
+                    dependentPackagePatternRegex.matches(supportedPackage.name)
+                }
+            if (!isDependentPackageSupported) {
+                unavailablePackages.add(packageItem)
+                logger.lifecycle(
+                    "A package depending on ${packageItem.name} matching pattern '$dependentPackagePattern' is not available as a prebuild, building ${packageItem.name} from sources.",
+                )
+                return
+            }
+        }
+        logger.info(
+            "All known dependent packages are supported, adding ${packageItem.name} to supported packages. If this is incorrect, please add to deny list. More info at https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md#c-libraries-debugrelease-compatibility-issues",
+        )
+        supportedPackages.add(packageItem)
+    }
+
+    private fun checkDependencies(
+        packageItem: PackageItem,
+        project: Project,
+        supportedPackages: Set<PackageItem>,
+    ) {
+        logger.info("${packageItem.name} is supported, checking if all packages depending on it are supported.")
         project.rootProject.allprojects.forEach { subproject ->
             if (subproject == project.rootProject || subproject == project || subproject.name == packageItem.name) return@forEach
+            if (PACKAGES_WITH_CPP[packageItem.name]?.any { it.toRegex().matches(subproject.name) } == true) {
+                logger.info("Skipping checking for ${packageItem.name} in dependencies of ${subproject.name} as it was already checked.")
+                return@forEach
+            }
             val dependsOnPackage =
                 subproject.configurations.any { config ->
                     config.dependencies.any { dependency ->
@@ -595,15 +676,15 @@ class PrebuildsPlugin : Plugin<Project> {
             val isSupported = supportedPackages.any { it.name == subproject.name }
             logger.info("${subproject.name} depends on ${packageItem.name}: $dependsOnPackage, is it supported: $isSupported")
             if (dependsOnPackage && !isSupported) {
-                unavailablePackages.add(packageItem)
-                logger.lifecycle(
-                    "${subproject.name} depending on ${packageItem.name} is not available as a prebuild, building ${packageItem.name} from sources.",
+                logger.warn(
+                    "${subproject.name} depending on prebuilt ${packageItem.name} is not available as a prebuild, which may cause build issues in debug builds. In case of issues, please add ${packageItem.name} to deny list. More info at https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md#c-libraries-debugrelease-compatibility-issues",
                 )
                 return
             }
         }
-        logger.info("All dependent packages are supported, adding ${packageItem.name} to supported packages. If this is incorrect, please add to deny list. More info at https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md#c-libraries-debugrelease-compatibility-issues")
-        supportedPackages.add(packageItem)
+        logger.info(
+            "All dependent packages are supported, adding ${packageItem.name} to supported packages. If this is incorrect, please add to deny list. More info at https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md#c-libraries-debugrelease-compatibility-issues",
+        )
     }
 
     private fun checkIfPackageIsSupported(
@@ -624,10 +705,14 @@ class PrebuildsPlugin : Plugin<Project> {
     private fun printList(
         list: Collection<PackageItem>,
         icon: String = "📦",
-    ): String =
-        list.joinToString(if (list.isEmpty()) " None" else "") { pkg ->
+    ): String {
+        if (list.isEmpty()) {
+            return " None"
+        }
+        return list.joinToString("") { pkg ->
             "\n  - $icon ${pkg.name}@${pkg.version}${pkg.classifier}"
         }
+    }
 
     /**
      * Determines which packages are available as prebuilt AARs.
@@ -649,11 +734,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 .newKeySet<PackageItem>()
         val unavailablePackages = java.util.concurrent.ConcurrentLinkedQueue<PackageItem>()
 
-        val (dependentList, otherPackages) =
-            extension.projectPackages.partition {
-                it.name == "react-native-worklets" ||
-                    it.name == "react-native-firebase_app"
-            }
+        val (dependentList, otherPackages) = extension.projectPackages.partition { PACKAGES_WITH_CPP.containsKey(it.name) }
         otherPackages.parallelStream().forEach { packageItem ->
             checkIfPackageIsSupported(
                 packageItem,
@@ -672,7 +753,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.info(
                         "In debug builds, ${packageItem.name} requires all consumer packages to be supported; otherwise, it will not be applied.",
                     )
-                    checkDependencies(packageItem, project, supportedPackages, unavailablePackages)
+                    checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages)
                 }
             }
             checkIfPackageIsSupported(packageItem, project.repositories, extension, unavailablePackages, elseClosure)
