@@ -465,15 +465,6 @@
       }
     ]
   },
-  "react-native-iap": {
-    "preInstallScriptPath": "preInstallScripts/react-native-iap/react-native-iap.ts",
-    "android": [
-      {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
-      }
-    ]
-  },
   "react-native-nitro-modules": {
     "android": [
       {
@@ -491,33 +482,6 @@
     ]
   },
   "react-native-maps": {
-    "android": [
-      {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
-      }
-    ]
-  },
-  "react-native-mmkv": {
-    "preInstallScriptPath": "preInstallScripts/react-native-mmkv/react-native-mmkv.ts",
-    "android": [
-      {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
-      }
-    ]
-  },
-  "react-native-nitro-sound": {
-    "preInstallScriptPath": "preInstallScripts/react-native-nitro-sound/react-native-nitro-sound.ts",
-    "android": [
-      {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
-      }
-    ]
-  },
-  "react-native-unistyles": {
-    "preInstallScriptPath": "preInstallScripts/react-native-unistyles/react-native-unistyles.ts",
     "android": [
       {
         "versionMatcher": "*",
