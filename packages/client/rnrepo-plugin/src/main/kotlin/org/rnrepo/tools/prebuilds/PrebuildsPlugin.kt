@@ -205,8 +205,9 @@ class PrebuildsPlugin : Plugin<Project> {
      * By default plugin is considered as enabled.
      *
      * This function evaluates two main conditions:
-     * 1. **Task command check**: Checks if the current task command includes "assemble", "build", or "install".
-     *    This looks at the task names passed to Gradle at runtime to see if any involve building or assembling the project.
+     * 1. **Task command check**: Checks if the current task command is NOT a non-building task like "test", "clean", "lint", etc.
+     *    The plugin will execute for build, assemble, install, bundle, compile, and similar tasks, but will skip for
+     *    test, clean, lint, and other non-building operations.
      *
      * 2. **Environment Variable check**: Inspects the "DISABLE_RNREPO" environment variable.
      *    The plugin execution will be enabled unless the environment variable "DISABLE_RNREPO" is set (regardless of value).
@@ -220,16 +221,29 @@ class PrebuildsPlugin : Plugin<Project> {
         project: Project,
         extension: PackagesManager,
     ): Boolean {
+        val knownNonBuildingCommands =
+            listOf(
+                "test",
+                "signing",
+                "clean",
+                "init",
+                "dependencies",
+                "tasks",
+                "projects",
+                "connected",
+                "device",
+                "lint",
+                "check",
+                "properties",
+                "help",
+                "clear",
+            )
         val isBuildingCommand =
             project.gradle.startParameter.taskNames.any { taskName ->
                 val lowerCaseTaskName = taskName.lowercase()
-                lowerCaseTaskName.contains("assemble") ||
-                    lowerCaseTaskName.contains("build") ||
-                    lowerCaseTaskName.contains("install") ||
-                    lowerCaseTaskName.contains("bundle") ||
-                    lowerCaseTaskName.contains("compile") ||
-                    lowerCaseTaskName.contains("extract") ||
-                    lowerCaseTaskName.contains("releasesourcesjar")
+                knownNonBuildingCommands.none { nonBuildingCommand ->
+                    lowerCaseTaskName.contains(nonBuildingCommand)
+                }
             }
         val isEnvEnabled = System.getenv("DISABLE_RNREPO") == null
         val newArchEnabled = isNewArchitectureEnabled(project, extension)
