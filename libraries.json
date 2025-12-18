@@ -489,6 +489,14 @@
       }
     ]
   },
+  "react-native-mmkv": {
+    "android": [
+      {
+        "versionMatcher": "<4.0.0",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
   "react-native-edge-to-edge": {
     "android": [
       {
