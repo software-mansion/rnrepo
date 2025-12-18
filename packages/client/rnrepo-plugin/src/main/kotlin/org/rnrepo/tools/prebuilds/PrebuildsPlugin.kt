@@ -221,8 +221,15 @@ class PrebuildsPlugin : Plugin<Project> {
         extension: PackagesManager,
     ): Boolean {
         val isBuildingCommand =
-            project.gradle.startParameter.taskNames.any {
-                it.contains("assemble") || it.contains("build") || it.contains("install")
+            project.gradle.startParameter.taskNames.any { taskName ->
+                val lowerCaseTaskName = taskName.lowercase()
+                lowerCaseTaskName.contains("assemble") ||
+                    lowerCaseTaskName.contains("build") ||
+                    lowerCaseTaskName.contains("install") ||
+                    lowerCaseTaskName.contains("bundle") ||
+                    lowerCaseTaskName.contains("compile") ||
+                    lowerCaseTaskName.contains("extract") ||
+                    lowerCaseTaskName.contains("releasesourcesjar")
             }
         val isEnvEnabled = System.getenv("DISABLE_RNREPO") == null
         val newArchEnabled = isNewArchitectureEnabled(project, extension)
