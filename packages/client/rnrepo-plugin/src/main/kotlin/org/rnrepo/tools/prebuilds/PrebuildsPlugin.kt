@@ -647,17 +647,17 @@ class PrebuildsPlugin : Plugin<Project> {
                 logger.lifecycle(
                     "A package depending on ${packageItem.npmName} matching pattern '$dependentPackagePattern' is not available as a prebuild, building ${packageItem.npmName} from sources.",
                 )
-                val packagesToCheck = PACKAGES_WITH_CPP.get(packageItem.name) ?: listOf()
+                val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
                 val packagesToRemove =
                     supportedPackages.filter { supportedPackage ->
-                        packagesToCheck.any { pattern ->
-                            pattern.toRegex().matches(supportedPackage.name)
+                        packagesToCheckRegex.any { regex ->
+                            regex.matches(supportedPackage.name)
                         }
                     }
                 supportedPackages.removeAll(packagesToRemove)
                 unavailablePackages.addAll(packagesToRemove)
                 logger.lifecycle(
-                    "Removing consumers of ${packageItem.npmName} (fallback to sources) from supported packages:${printList(
+                    "Removing packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages:${printList(
                         packagesToRemove,
                     )}",
                 )
