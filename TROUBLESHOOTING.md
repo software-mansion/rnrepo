@@ -73,7 +73,7 @@ DISABLE_RNREPO=true ./gradlew test
 This environment variable takes precedence and will completely skip the RNRepo plugin setup regardless of the Gradle task being executed. The variable works with any value - it just needs to be set.
 
 Currently known non-building commands that the RNRepo plugin recognizes include:
-- test, signing, clean, init, dependencies, tasks, projects, connected, device, lint, check, properties, help
+- test, signing, clean, clear, init, dependencies, tasks, projects, connected, device, lint, check, properties, help
 
 ### C++ Libraries Debug/Release Compatibility Issues
 Some native libraries containing C++ code may not have stable interfaces between debug and release builds. This can cause compilation issues when building your app with prebuilt libs of different build types for its dependencies.
