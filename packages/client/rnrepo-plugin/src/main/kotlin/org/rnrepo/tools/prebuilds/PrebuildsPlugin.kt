@@ -623,7 +623,7 @@ class PrebuildsPlugin : Plugin<Project> {
         packageItem: PackageItem,
         project: Project,
         supportedPackages: MutableSet<PackageItem>,
-        unavailablePackages: MutableCollection<PackageItem>,
+        unavailablePackages: MutableSet<PackageItem>,
     ) {
         logger.info("${packageItem.npmName} is supported, checking if all packages depending on it are supported.")
         PACKAGES_WITH_CPP.get(packageItem.name)?.forEach { dependentPackagePattern ->
@@ -646,6 +646,20 @@ class PrebuildsPlugin : Plugin<Project> {
                 unavailablePackages.add(packageItem)
                 logger.lifecycle(
                     "A package depending on ${packageItem.npmName} matching pattern '$dependentPackagePattern' is not available as a prebuild, building ${packageItem.npmName} from sources.",
+                )
+                val packagesToCheck = PACKAGES_WITH_CPP.get(packageItem.name) ?: listOf()
+                val packagesToRemove =
+                    supportedPackages.filter { supportedPackage ->
+                        packagesToCheck.any { pattern ->
+                            pattern.toRegex().matches(supportedPackage.name)
+                        }
+                    }
+                supportedPackages.removeAll(packagesToRemove)
+                unavailablePackages.addAll(packagesToRemove)
+                logger.lifecycle(
+                    "Removing consumers of ${packageItem.npmName} (fallback to sources) from supported packages:${printList(
+                        packagesToRemove,
+                    )}",
                 )
                 return
             }
@@ -692,7 +706,7 @@ class PrebuildsPlugin : Plugin<Project> {
         packageItem: PackageItem,
         repositories: RepositoryHandler,
         extension: PackagesManager,
-        unavailablePackages: MutableCollection<PackageItem>,
+        unavailablePackages: MutableSet<PackageItem>,
         elseClosure: () -> Unit,
     ) {
         when {
@@ -733,8 +747,9 @@ class PrebuildsPlugin : Plugin<Project> {
         val supportedPackages =
             java.util.concurrent.ConcurrentHashMap
                 .newKeySet<PackageItem>()
-        val unavailablePackages = java.util.concurrent.ConcurrentLinkedQueue<PackageItem>()
-
+        val unavailablePackages =
+            java.util.concurrent.ConcurrentHashMap
+                .newKeySet<PackageItem>()
         val (dependentList, otherPackages) = extension.projectPackages.partition { PACKAGES_WITH_CPP.containsKey(it.name) }
         otherPackages.parallelStream().forEach { packageItem ->
             checkIfPackageIsSupported(
