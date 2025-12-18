@@ -52,6 +52,29 @@ For even more detailed logs, you can use:
 gradlew :app:assembleDebug --scan
 ```
 
+### Plugin Executing at Wrong Time
+The RNRepo plugin is designed to execute only during actual build operations. If you're running commands like `test`, `clean`, `lint`, or other non-building tasks, the plugin should automatically skip execution. However, if the plugin is executing when it shouldn't, you can force it to disable.
+
+#### Problem Description
+If you notice the RNRepo plugin is executing during tasks that shouldn't trigger a build (such as running tests or cleaning the build directory), this could cause unnecessary overhead or conflicts with other tasks.
+
+#### Solution
+You can disable the RNRepo plugin for a specific command by setting the `DISABLE_RNREPO` environment variable to any value:
+
+```bash
+DISABLE_RNREPO=true ./gradlew clean
+```
+
+Or for test execution:
+```bash
+DISABLE_RNREPO=true ./gradlew test
+```
+
+This environment variable takes precedence and will completely skip the RNRepo plugin setup regardless of the Gradle task being executed. The variable works with any value - it just needs to be set.
+
+Currently known non-building commands that the RNRepo plugin recognizes include:
+- test, signing, clean, clear, init, dependencies, tasks, projects, connected, device, lint, check, properties, help
+
 ### C++ Libraries Debug/Release Compatibility Issues
 Some native libraries containing C++ code may not have stable interfaces between debug and release builds. This can cause compilation issues when building your app with prebuilt libs of different build types for its dependencies.
 
