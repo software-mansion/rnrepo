@@ -2,7 +2,7 @@ import { $ } from 'bun';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
-import { convertToGradleProjectName } from '@rnrepo/config';
+import { convertToGradleProjectName, ALLOWED_LICENSES, AllowedLicense, extractAndVerifyLicense } from '@rnrepo/config';
 
 /**
  * Build Library Android Script
@@ -26,15 +26,6 @@ if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   );
   process.exit(1);
 }
-
-type AllowedLicense = 'MIT' | 'Apache-2.0' | 'BSD-3-Clause' | 'BSD-2-Clause';
-
-const ALLOWED_LICENSES: AllowedLicense[] = [
-  'MIT',
-  'Apache-2.0',
-  'BSD-3-Clause',
-  'BSD-2-Clause',
-];
 
 const GITHUB_SERVER_URL = process.env.GITHUB_SERVER_URL;
 const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY;
@@ -170,25 +161,6 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
   }
 }
 
-function extractAndVerifyLicense(appDir: string): AllowedLicense {
-  const packageJsonPath = join(
-    appDir,
-    'node_modules',
-    libraryName,
-    'package.json'
-  );
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-  const licenseName = packageJson.license;
-  if (!ALLOWED_LICENSES.includes(licenseName as AllowedLicense)) {
-    throw new Error(
-      `License ${licenseName} is not allowed. Allowed licenses are: ${ALLOWED_LICENSES.join(
-        ', '
-      )}`
-    );
-  }
-  return licenseName as AllowedLicense;
-}
-
 function checkRnVersion(appDir: string, expectedVersion: string) {
   const rnPackageJsonPath = join(
     appDir,
@@ -239,7 +211,7 @@ async function buildLibrary() {
     await $`npm install ${libraryName}@${libraryVersion} --save-exact`.quiet();
 
     // Extract license name from the library's package.json
-    const license = extractAndVerifyLicense(appDir);
+    const license = extractAndVerifyLicense(appDir, libraryName);
 
     // Perform any library-specific setup after installing
     await installSetup(appDir, "postInstall");

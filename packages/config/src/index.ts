@@ -11,3 +11,6 @@ export type { LibraryConfig, PlatformConfig, PlatformConfigOptions } from './typ
 
 // Export utility functions
 export { convertToGradleProjectName } from './utils';
+
+// Export allowed licenses
+export { type AllowedLicense , ALLOWED_LICENSES, extractAndVerifyLicense } from './licenses';
