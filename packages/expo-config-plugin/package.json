@@ -1,7 +1,7 @@
 {
   "name": "@rnrepo/expo-config-plugin",
   "title": "RNRepo expo config plugin",
-  "version": "0.2.1-beta.0",
+  "version": "0.2.2-beta.0",
   "description": "Plugin for configuring RNRepo prebuilt packages in Expo projects",
   "sideEffects": false,
   "main": "build/withRNRepoPlugin.js",
