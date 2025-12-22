@@ -13,7 +13,7 @@ export type { LibraryConfig, PlatformConfig, PlatformConfigOptions } from './typ
 export { convertToGradleProjectName } from './utils';
 
 // Export allowed licenses
-export { type AllowedLicense , ALLOWED_LICENSES, extractAndVerifyLicense } from './licenses';
+export { type AllowedLicense, ALLOWED_LICENSES, extractAndVerifyLicense } from './licenses';
 
 // Export argument setup function
 export { type BuildArgs, parseArgs, printArgs, getGithubBuildUrl } from './builder-setup';

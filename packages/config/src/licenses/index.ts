@@ -15,7 +15,7 @@ export type AllowedLicense = (typeof ALLOWED_LICENSES)[number];
 export function extractAndVerifyLicense(
   appDir: string,
   libraryName: string
-): Promise<AllowedLicense> {
+): AllowedLicense {
   const packageJsonPath = join(appDir, 'node_modules', libraryName, 'package.json');
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   const licenseName = packageJson.license;

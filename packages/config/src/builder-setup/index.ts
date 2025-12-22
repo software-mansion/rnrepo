@@ -43,14 +43,13 @@ export function printArgs(args: BuildArgs, platform: 'android' | 'ios'): void {
         console.log(`   Worklets Version: ${args.workletsVersion}`);
     }
 }
-    
+
 /**
  * Constructs the GitHub build URL from environment variables.
  * @param serverUrl - The GitHub server URL
  * @param repository - The GitHub repository name
  * @param runId - The GitHub Actions run ID
- * @returns The constructed GitHub build URL
- * @throws Error if any of the required environment variables are missing
+ * @returns The constructed GitHub build URL, or "EMPTY_GITHUB_BUILD_URL" if any required value is missing.
  */
 export function getGithubBuildUrl(serverUrl: string | undefined, repository: string | undefined, runId: string | undefined): string {
     if (!serverUrl || !repository || !runId) {
