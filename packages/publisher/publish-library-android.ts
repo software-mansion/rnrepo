@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { $ } from 'bun';
 import { updateBuildStatus, type Platform } from '@rnrepo/database';
-import { convertToGradleProjectName } from '@rnrepo/config';
+import { sanitizePackageName } from '@rnrepo/config';
 
 /**
  * Publish Library Android Script
@@ -106,7 +106,7 @@ async function main() {
     );
     console.log(`   Snapshot Run: ${isSnapshotRun ? 'Yes' : 'No'}`);
 
-    const mavenLibraryName = convertToGradleProjectName(libraryName);
+    const mavenLibraryName = sanitizePackageName(libraryName);
 
     // Find the downloaded artifact directory (starts with maven-artifacts-)
     const artifactDir = join(process.cwd(), 'maven-artifacts');
@@ -143,7 +143,8 @@ async function main() {
           -DrepositoryId=RNRepo \
           -Durl=${MAVEN_REPOSITORY_URL}`;
       console.log('✓ POM deployed successfully');
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       // 409 Conflict is acceptable - POM may already exist (shared across versions)
       if (
         error?.stdout?.includes(

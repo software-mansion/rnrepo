@@ -8,6 +8,7 @@ import {
   readdirSync,
 } from 'fs';
 import { join, basename } from 'path';
+import { sanitizePackageName } from '@rnrepo/config';
 import {
   type AllowedLicense,
   getGithubBuildUrl,
@@ -45,7 +46,7 @@ if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   process.exit(1);
 }
 
-const CONFIGURATION = 'Release';
+const CONFIGURATION = 'Debug';
 const GITHUB_BUILD_URL = getGithubBuildUrl();
 
 // Note: Bitcode was deprecated in Xcode 14 and removed entirely by Apple.
@@ -317,7 +318,8 @@ async function buildFramework(appDir: string, license: AllowedLicense) {
 
     // Create zip archive
     console.log('📦 Creating zip archive...');
-    const zipName = `${libraryName}-${libraryVersion}-rn${reactNativeVersion}.xcframework.zip`;
+    const sanitizedLibraryName = sanitizePackageName(libraryName);
+    const zipName = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}.xcframework.zip`;
     await $`zip -r ${zipName} ${podName}.xcframework`.cwd(outputPath).quiet();
     console.log(`✓ Created zip archive: ${zipName}`);
 

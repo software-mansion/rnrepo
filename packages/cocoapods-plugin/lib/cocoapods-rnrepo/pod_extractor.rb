@@ -121,12 +121,16 @@ module CocoapodsRnrepo
     def self.build_ios_xcframework_url(package_name, version, rn_version)
       base_url = 'https://packages.rnrepo.org/snapshots/org/rnrepo'
 
-      # Use the npm package name directly (no conversion needed for iOS)
-      # e.g., react-native-svg, @react-native-community/slider
+      # Use the npm package name directly for artifact path
       artifact_path = package_name
 
-      # Build filename: react-native-svg-15.15.1-rn0.82.1.xcframework.zip
-      filename = "#{package_name}-#{version}-rn#{rn_version}.xcframework.zip"
+      # Sanitize package name for filename (remove @ and replace / with _)
+      # Matches sanitizePackageName() in @rnrepo/config
+      # e.g., @react-native-picker/picker -> react-native-picker_picker
+      sanitized_name = package_name.gsub(/^@/, '').gsub('/', '_')
+
+      # Build filename: react-native-picker-picker-2.11.4-rn0.82.1.xcframework.zip
+      filename = "#{sanitized_name}-#{version}-rn#{rn_version}.xcframework.zip"
 
       "#{base_url}/#{artifact_path}/#{version}/#{filename}"
     end
@@ -137,7 +141,7 @@ module CocoapodsRnrepo
       base_url = 'https://packages.rnrepo.org/snapshots/org/rnrepo'
 
       # Convert package name to Maven artifact format following React Native's pattern
-      # Same logic as convertToGradleProjectName in packages/config/src/utils.ts
+      # Same logic as sanitizePackageName in packages/config/src/utils.ts
       # @react-native-community/slider -> react-native-community_slider
       artifact_name = package_name.gsub(/^@/, '').gsub('/', '_')
 

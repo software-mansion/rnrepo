@@ -38,7 +38,10 @@ module CocoapodsRnrepo
       # Filename format: npm-package-name-version-rnX.Y.Z.xcframework.zip
       npm_package_name = pod_info[:npm_package_name] || pod_name
       rn_version = pod_info[:rn_version]
-      zip_filename = "#{npm_package_name}-#{version}-rn#{rn_version}.xcframework.zip"
+      # Sanitize package name for filename (remove @ and replace / with _)
+      # Matches sanitizePackageName() in @rnrepo/config
+      sanitized_name = npm_package_name.gsub(/^@/, '').gsub('/', '_')
+      zip_filename = "#{sanitized_name}-#{version}-rn#{rn_version}.xcframework.zip"
       zip_path = File.join(cache_dir, zip_filename)
 
       Logger.log "Maven URL: #{maven_url}"

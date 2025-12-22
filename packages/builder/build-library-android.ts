@@ -1,10 +1,9 @@
 import { $ } from 'bun';
-import { existsSync, mkdirSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { convertToGradleProjectName } from '@rnrepo/config';
+import { sanitizePackageName } from '@rnrepo/config';
 import {
   type AllowedLicense,
-  ALLOWED_LICENSES,
   getGithubBuildUrl,
   getCpuInfo,
   extractAndVerifyLicense,
@@ -69,7 +68,7 @@ async function runInstallSetup(
 }
 
 async function buildAAR(appDir: string, license: AllowedLicense) {
-  const gradleProjectName = convertToGradleProjectName(libraryName);
+  const gradleProjectName = sanitizePackageName(libraryName);
   const classifier = `rn${reactNativeVersion}${
     workletsVersion ? `-worklets${workletsVersion}` : ''
   }`;
