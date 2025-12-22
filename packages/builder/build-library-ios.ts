@@ -261,8 +261,17 @@ async function buildForPlatform(
       -sdk ${sdk} \
       ${ arch.flatMap(a => ['-arch', a]) } \
       -archivePath "${resolve(workDir)}/${getArchiveName(scheme, sdk, arch)}" \
+      -configuration Release \
       BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
-      SKIP_INSTALL=NO`.cwd(iosPath);
+      SKIP_INSTALL=NO
+      STRIP_STYLE=all \
+      COPY_PHASE_STRIP=YES \
+      DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
+      STRIP_INSTALLED_PRODUCT=YES \
+      DEPLOYMENT_POSTPROCESSING=YES \
+      GCC_GENERATE_DEBUGGING_SYMBOLS=NO \
+      ENABLE_BITCODE=NO`.cwd(iosPath);
+      
   } catch (error) {
     throw new Error(`Failed to build for ${sdk}/${arch}: ${error}`);
   }
