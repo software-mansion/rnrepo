@@ -7,21 +7,18 @@ module CocoapodsRnrepo
   class Downloader
     # Download file from URL
     def self.download_file(url, destination)
-      # TEMPORARY: Override for testing react-native-svg with local file
-      if url.include?('react-native-svg') || url.include?('rnsvg')
-        local_test_file = '/tmp/RNSVG.xcframework.zip'
-        if File.exist?(local_test_file)
-          Logger.log "🧪 TEST MODE: Using local file instead of downloading"
-          Logger.log "Copying from #{local_test_file}..."
-          FileUtils.cp(local_test_file, destination)
-          Logger.log "Copied successfully"
-          return true
-        else
-          Logger.log "⚠️  Local test file not found: #{local_test_file}"
-          Logger.log "Falling back to regular download..."
-        end
+      # Check if file exists in local test directory first
+      filename = File.basename(url)
+      local_test_dir = '/tmp/rnrepo'
+      local_test_file = File.join(local_test_dir, filename)
+
+      if File.exist?(local_test_file)
+        Logger.log "🧪 LOCAL TEST MODE: Using local file instead of downloading"
+        Logger.log "Copying from #{local_test_file}..."
+        FileUtils.cp(local_test_file, destination)
+        Logger.log "Copied successfully"
+        return true
       end
-      # END TEMPORARY
 
       Logger.log "Downloading from #{url}..."
 

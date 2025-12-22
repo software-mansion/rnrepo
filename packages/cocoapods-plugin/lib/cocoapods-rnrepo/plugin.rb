@@ -8,10 +8,12 @@ require 'cocoapods-rnrepo/framework_cache'
 Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_context|
   CocoapodsRnrepo::Logger.log "🚀 Scanning for React Native dependencies to replace with pre-builds..."
 
+  # Get the ios directory (where Podfile is located)
   workspace_root = installer_context.sandbox.root.dirname.to_s
   podfile = installer_context.podfile
 
   # Extract all React Native pods from the Podfile (with resolved package roots)
+  # React Native version will be auto-detected by walking up from library locations
   rn_pods = CocoapodsRnrepo::PodExtractor.extract_rn_pods_from_podfile(
     podfile,
     installer_context.lockfile,
@@ -151,16 +153,32 @@ module Pod
 
         CocoapodsRnrepo::Logger.log "  Configuring #{pod_name} (#{pod_specs.count} spec(s)) at #{node_modules_path}"
 
-        # Verify the xcframework is static (we only support static frameworks)
+        # Verify the xcframework exists and is properly structured
         xcframework_slices = Dir.glob(File.join(xcframework_path, "*")).select { |f| File.directory?(f) }
         if xcframework_slices.any?
+          # For static XCFrameworks, the binary is inside the .framework bundle
+          # Structure: RNSVG.xcframework/ios-arm64_x86_64-simulator/RNSVG.framework/RNSVG
           first_slice = xcframework_slices.first
-          has_static_lib = Dir.glob(File.join(first_slice, "*.a")).any?
-          unless has_static_lib
-            CocoapodsRnrepo::Logger.log "  ⚠️  ERROR: #{pod_name} is not a static xcframework. Only static frameworks are supported."
-            next
+          framework_dir = Dir.glob(File.join(first_slice, "*.framework")).first
+
+          if framework_dir
+            binary_name = File.basename(framework_dir, '.framework')
+            binary_path = File.join(framework_dir, binary_name)
+
+            if File.exist?(binary_path)
+              # Verify it's a static library using 'file' command
+              file_type = `file "#{binary_path}"`.strip
+              if file_type.include?('ar archive') || file_type.include?('current ar archive')
+                CocoapodsRnrepo::Logger.log "    Verified static xcframework"
+              else
+                CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: #{pod_name} may not be a static framework (type: #{file_type})"
+              end
+            else
+              CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: Could not find binary at #{binary_path}"
+            end
+          else
+            CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: Could not find .framework bundle in xcframework"
           end
-          CocoapodsRnrepo::Logger.log "    Verified static xcframework"
         end
 
         # Get all targets for this pod to determine platforms

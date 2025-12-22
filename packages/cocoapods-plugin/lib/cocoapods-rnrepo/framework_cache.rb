@@ -13,6 +13,7 @@ module CocoapodsRnrepo
       # Skip if we don't have a Maven URL
       unless maven_url
         Logger.log "No Maven URL available for #{pod_name}"
+        Logger.log "  Debug: npm_package_name=#{pod_info[:npm_package_name]}, version=#{version}, rn_version=#{pod_info[:rn_version]}"
         return { status: :failed, message: "No Maven URL" }
       end
 
@@ -33,8 +34,12 @@ module CocoapodsRnrepo
         return { status: :cached, message: "Already cached locally" }
       end
 
-      # Download the zip file
-      zip_path = File.join(cache_dir, "#{pod_name}.zip")
+      # Download the xcframework zip file
+      # Filename format: npm-package-name-version-rnX.Y.Z.xcframework.zip
+      npm_package_name = pod_info[:npm_package_name] || pod_name
+      rn_version = pod_info[:rn_version]
+      zip_filename = "#{npm_package_name}-#{version}-rn#{rn_version}.xcframework.zip"
+      zip_path = File.join(cache_dir, zip_filename)
 
       Logger.log "Maven URL: #{maven_url}"
       unless Downloader.download_file(maven_url, zip_path)
@@ -44,17 +49,26 @@ module CocoapodsRnrepo
       end
 
       # Extract the zip file
+      # The zip contains: PodName.xcframework/
+      # We extract to cache_dir, which should create: cache_dir/PodName.xcframework/
       unless Downloader.unzip_file(zip_path, cache_dir)
         Logger.log "Failed to extract pre-built framework for #{pod_name}"
         FileUtils.rm_f(zip_path)
         return { status: :failed, message: "Extraction failed" }
       end
 
+      # Verify the xcframework was extracted
+      unless File.exist?(xcframework_path)
+        Logger.log "XCFramework not found after extraction at #{xcframework_path}"
+        FileUtils.rm_f(zip_path)
+        return { status: :failed, message: "XCFramework not found after extraction" }
+      end
+
       # Clean up zip file
       FileUtils.rm_f(zip_path)
       Logger.log "Cleaned up temporary zip file"
 
-      Logger.log "Successfully replaced #{pod_name} with pre-built framework!"
+      Logger.log "Successfully replaced #{pod_name} with pre-built XCFramework!"
       return { status: :downloaded, message: "Downloaded and extracted successfully" }
     end
   end

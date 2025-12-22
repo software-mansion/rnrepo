@@ -2,9 +2,14 @@ module CocoapodsRnrepo
   class PodExtractor
     # Extract third-party React Native pods from Podfile dependencies
     # Returns an array of hashes with :name, :version, :source, :package_root, :npm_package_name, :maven_url keys
+    # @param workspace_root [String] The directory where Podfile is located (ios directory)
     def self.extract_rn_pods_from_podfile(podfile, lockfile = nil, workspace_root = nil)
       require 'json'
       rn_pods = []
+
+      # We'll detect RN version once we find the first library's location
+      rn_version = nil
+      rn_version_detected = false
 
       podfile.target_definition_list.each do |target_definition|
         target_definition.dependencies.each do |dependency|
@@ -32,26 +37,33 @@ module CocoapodsRnrepo
             next
           end
 
-          # Parse package.json to get npm package name (which may differ from pod name)
+          # Detect React Native version from this library's location (only once)
+          if !rn_version_detected && package_root
+            rn_version = detect_react_native_version(package_root)
+            rn_version_detected = true
+            if rn_version
+              Logger.log "Detected React Native version: #{rn_version}"
+            end
+          end
+
+          # Parse package.json to get npm package name and version
           npm_package_name = nil
+          version = nil
           if package_json_path
             begin
               package_json = JSON.parse(File.read(package_json_path))
               npm_package_name = package_json['name']
+              version = package_json['version']
             rescue JSON::ParserError, Errno::ENOENT
               # Fall back to pod name if we can't read package.json
               npm_package_name = pod_name
             end
           end
 
-          # Get version from lockfile if available
-          version = lockfile.version(pod_name) if lockfile
-          version = version.to_s if version
-
-          # Construct Maven URL using npm package name
+          # Construct Maven URL using npm package name and RN version
           maven_url = nil
-          if npm_package_name && version
-            maven_url = build_maven_url(npm_package_name, version)
+          if npm_package_name && version && rn_version
+            maven_url = build_ios_xcframework_url(npm_package_name, version, rn_version)
           end
 
           # Avoid duplicates
@@ -62,7 +74,8 @@ module CocoapodsRnrepo
               source: source_path,
               package_root: package_root,
               npm_package_name: npm_package_name,
-              maven_url: maven_url
+              maven_url: maven_url,
+              rn_version: rn_version
             }
           end
         end
@@ -73,7 +86,53 @@ module CocoapodsRnrepo
 
     private
 
-    # Build Maven URL for downloading pre-built xcframework
+    # Detect React Native version using Node.js (like Android Gradle plugin)
+    # This uses Node's module resolution to find react-native/package.json
+    def self.detect_react_native_version(start_dir)
+      return nil unless start_dir
+
+      Logger.log "Detecting React Native version using Node.js from: #{start_dir}"
+
+      begin
+        # Use Node.js to resolve react-native/package.json
+        # This handles all edge cases: monorepos, nested projects, workspaces, etc.
+        command = "node --print \"require('react-native/package.json').version\""
+
+        # Run from start_dir so Node's require.resolve works correctly
+        result = `cd "#{start_dir}" && #{command} 2>&1`.strip
+
+        # Check if command succeeded
+        if $?.success? && !result.empty? && result.match?(/^\d+\.\d+\.\d+/)
+          Logger.log "  ✓ Found React Native version: #{result}"
+          return result
+        else
+          Logger.log "  ✗ Node.js command failed or returned invalid version: #{result}"
+        end
+      rescue => e
+        Logger.log "  ✗ Error running Node.js: #{e.message}"
+      end
+
+      Logger.log "  ⚠️  Could not detect React Native version"
+      nil
+    end
+
+    # Build iOS XCFramework URL for downloading pre-built framework
+    # Format: npm-package-name-version-rnX.Y.Z.xcframework.zip
+    def self.build_ios_xcframework_url(package_name, version, rn_version)
+      base_url = 'https://packages.rnrepo.org/snapshots/org/rnrepo'
+
+      # Use the npm package name directly (no conversion needed for iOS)
+      # e.g., react-native-svg, @react-native-community/slider
+      artifact_path = package_name
+
+      # Build filename: react-native-svg-15.15.1-rn0.82.1.xcframework.zip
+      filename = "#{package_name}-#{version}-rn#{rn_version}.xcframework.zip"
+
+      "#{base_url}/#{artifact_path}/#{version}/#{filename}"
+    end
+
+    # Legacy: Build Maven URL for Android AAR files
+    # This is kept for reference but not currently used
     def self.build_maven_url(package_name, version)
       base_url = 'https://packages.rnrepo.org/snapshots/org/rnrepo'
 

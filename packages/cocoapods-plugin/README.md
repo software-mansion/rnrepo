@@ -42,6 +42,8 @@ cd packages/cocoapods-plugin
 bun run install
 ```
 
+This will automatically uninstall any previous version, build the gem, and install it.
+
 ### Update Podfile in your React Native project
 
 Add the following line at the start of the Podfile:
