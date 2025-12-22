@@ -6,7 +6,6 @@ import {
   convertToGradleProjectName, 
   AllowedLicense, 
   extractAndVerifyLicense,
-  type BuildArgs,
   parseArgs, 
   printArgs,
   getGithubBuildUrl } from '@rnrepo/config';
