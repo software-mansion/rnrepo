@@ -10,7 +10,6 @@ import {
 import { join, basename } from 'path';
 import {
   type AllowedLicense,
-  ALLOWED_LICENSES,
   getGithubBuildUrl,
   getCpuInfo,
   extractAndVerifyLicense,
@@ -149,11 +148,6 @@ async function xcodebuild(
 }
 
 /**
- * No longer needed! XCFramework keeps device and simulator separate.
- * Legacy function removed - we use createXCFramework instead.
- */
-
-/**
  * Build the iOS XCFramework
  */
 async function buildFramework(appDir: string, license: AllowedLicense) {
@@ -200,128 +194,43 @@ async function buildFramework(appDir: string, license: AllowedLicense) {
       derivedDataPath
     );
 
-    // Find the built framework by searching the build directory
-    console.log('🔍 Searching for built framework...');
+    // Find the built framework using predictable CocoaPods structure
+    console.log('🔍 Locating built framework...');
 
-    // Try exact match first
-    let findResult =
-      await $`find ${buildDir} -name "${podName}.framework" -type d`.quiet();
-    let frameworks = findResult.stdout
-      .toString()
-      .trim()
-      .split('\n')
-      .filter((f) => f);
-
-    // If not found, try with underscores (e.g., react-native-webview -> react_native_webview)
-    if (frameworks.length === 0) {
-      const podNameWithUnderscores = podName.replace(/-/g, '_');
-      console.log(
-        `   Trying alternative name: ${podNameWithUnderscores}.framework...`
-      );
-      findResult =
-        await $`find ${buildDir} -name "${podNameWithUnderscores}.framework" -type d`.quiet();
-      frameworks = findResult.stdout
-        .toString()
-        .trim()
-        .split('\n')
-        .filter((f) => f);
-    }
-
-    // If still not found, search in the pod's specific directory
-    if (frameworks.length === 0) {
-      console.log(`   Searching in pod-specific directory...`);
-      const podBuildDir = join(
-        buildDir,
-        `${CONFIGURATION}-iphonesimulator`,
-        podName
-      );
-      if (existsSync(podBuildDir)) {
-        findResult =
-          await $`find ${podBuildDir} -name "*.framework" -type d -maxdepth 1`.quiet();
-        frameworks = findResult.stdout
-          .toString()
-          .trim()
-          .split('\n')
-          .filter((f) => f);
-      }
-    }
-
-    if (frameworks.length === 0) {
-      // Also search in DerivedData
-      console.log('   No frameworks in build dir, checking DerivedData...');
-      const derivedFind =
-        await $`find ${derivedDataPath} -name "*.framework" -type d`.quiet();
-      const allDerivedFrameworks = derivedFind.stdout
-        .toString()
-        .trim()
-        .split('\n')
-        .filter((f) => f);
-
-      // Filter to frameworks that might match this pod
-      const podNameVariations = [
-        podName,
-        podName.replace(/-/g, '_'),
-        podName.replace(/@/g, '').replace(/\//g, '_'),
-      ];
-
-      frameworks = allDerivedFrameworks.filter((f) =>
-        podNameVariations.some((variation) =>
-          f.includes(`${variation}.framework`)
-        )
-      );
-    }
-
-    if (frameworks.length === 0) {
-      // Debug: show what's actually in the directories
-      console.error('❌ No frameworks found. Listing build contents:');
-      try {
-        const buildContents =
-          await $`find ${buildDir} -type d -name "*.framework" 2>/dev/null | head -20`.quiet();
-        console.error(buildContents.stdout.toString());
-      } catch (e) {
-        console.error('Could not list build directory');
-      }
-      throw new Error(
-        `No frameworks found for ${podName} in build or DerivedData directories`
-      );
-    }
-
-    console.log(`   Found ${frameworks.length} matching framework(s)`);
-
-    // Prefer simulator framework
-    let simulatorFrameworkPath = frameworks.find((f) =>
-      f.includes('iphonesimulator')
+    // CocoaPods always sanitizes pod names to valid C identifiers (dashes → underscores)
+    // Framework location: build/Release-iphonesimulator/{podName}/{frameworkName}.framework
+    const frameworkName = podName.replace(/-/g, '_');
+    const simulatorFrameworkPath = join(
+      buildDir,
+      `${CONFIGURATION}-iphonesimulator`,
+      podName,
+      `${frameworkName}.framework`
     );
 
-    // If no simulator-specific one, try any framework (might be universal)
-    if (!simulatorFrameworkPath && frameworks.length > 0) {
-      console.log(
-        `   No iphonesimulator-specific framework, using: ${frameworks[0]}`
+    if (!existsSync(simulatorFrameworkPath)) {
+      throw new Error(
+        `Framework not found at expected location: ${simulatorFrameworkPath}\n` +
+          `Pod name: ${podName}\n` +
+          `Expected framework name: ${frameworkName}.framework`
       );
-      simulatorFrameworkPath = frameworks[0];
-    }
-
-    if (!simulatorFrameworkPath) {
-      console.log('Available frameworks:', frameworks);
-      throw new Error(`No simulator framework found for ${podName}`);
     }
 
     console.log(`✓ Found framework at: ${simulatorFrameworkPath}`);
 
-    // Extract the actual framework name from the path (might differ from pod name)
-    // e.g., react_native_webview.framework -> react_native_webview
-    const actualFrameworkName = basename(simulatorFrameworkPath, '.framework');
+    // Rename framework to match pod name if they differ
+    // This happens when pod names contain dashes (e.g., react-native-webview)
+    // CocoaPods builds as react_native_webview but we need react-native-webview for linking
     let frameworkPathToUse = simulatorFrameworkPath;
 
-    if (actualFrameworkName !== podName) {
+    if (frameworkName !== podName) {
       console.log(
-        `   Framework name: ${actualFrameworkName} (differs from pod name: ${podName})`
+        `   Framework name (${frameworkName}) differs from pod name (${podName})`
       );
       console.log(
         '   Renaming framework to match pod name for CocoaPods compatibility...'
       );
 
-      // Copy the framework to a new location with the correct name
+      // Copy the framework to a new location with the pod name
       // e.g., react_native_webview.framework -> react-native-webview.framework
       const renamedFrameworkPath = join(
         buildDir,
@@ -332,18 +241,17 @@ async function buildFramework(appDir: string, license: AllowedLicense) {
       // Copy instead of move to preserve the original
       await $`cp -R ${simulatorFrameworkPath} ${renamedFrameworkPath}`;
 
-      // Rename the binary inside the framework
-      const oldBinaryPath = join(renamedFrameworkPath, actualFrameworkName);
+      // Rename the binary inside the framework to match pod name
+      const oldBinaryPath = join(renamedFrameworkPath, frameworkName);
       const newBinaryPath = join(renamedFrameworkPath, podName);
       if (existsSync(oldBinaryPath)) {
         await $`mv ${oldBinaryPath} ${newBinaryPath}`;
-        console.log(`   Renamed binary: ${actualFrameworkName} -> ${podName}`);
+        console.log(`   Renamed binary: ${frameworkName} -> ${podName}`);
       }
 
-      // Update Info.plist if it exists
+      // Update Info.plist CFBundleExecutable to match the new binary name
       const infoPlistPath = join(renamedFrameworkPath, 'Info.plist');
       if (existsSync(infoPlistPath)) {
-        // Update CFBundleExecutable to match the new binary name
         await $`/usr/libexec/PlistBuddy -c "Set :CFBundleExecutable ${podName}" ${infoPlistPath}`.quiet();
         console.log(`   Updated Info.plist`);
       }
@@ -354,13 +262,13 @@ async function buildFramework(appDir: string, license: AllowedLicense) {
       if (existsSync(originalDsym)) {
         await $`cp -R ${originalDsym} ${renamedDsym}`;
 
-        // Rename the binary inside dSYM as well
+        // Rename the binary inside dSYM to match pod name
         const oldDsymBinary = join(
           renamedDsym,
           'Contents',
           'Resources',
           'DWARF',
-          actualFrameworkName
+          frameworkName
         );
         const newDsymBinary = join(
           renamedDsym,
@@ -410,7 +318,6 @@ async function buildFramework(appDir: string, license: AllowedLicense) {
     // Create zip archive
     console.log('📦 Creating zip archive...');
     const zipName = `${libraryName}-${libraryVersion}-rn${reactNativeVersion}.xcframework.zip`;
-    const zipPath = join(outputPath, zipName);
     await $`zip -r ${zipName} ${podName}.xcframework`.cwd(outputPath).quiet();
     console.log(`✓ Created zip archive: ${zipName}`);
 
