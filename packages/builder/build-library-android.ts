@@ -107,11 +107,13 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
 
   const addPublishingGradleScriptPath = join(
     __dirname,
+    'gradle_init_scripts',
     'add-publishing.gradle'
   );
 
   const addPrefabReduceGradleScriptPath = join(
     __dirname,
+    'gradle_init_scripts',
     'prefab-reduce.gradle'
   );
 
