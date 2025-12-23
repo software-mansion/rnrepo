@@ -1,5 +1,5 @@
 import { $, Glob } from 'bun';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join, basename } from 'path';
 import { sanitizePackageName } from '@rnrepo/config';
 import {
@@ -363,24 +363,15 @@ async function buildLibrary() {
       workletsVersion
     );
 
-    // Modify Podfile to build frameworks
-    console.log('📝 Modifying Podfile to build frameworks...');
+    // Run pod install with USE_FRAMEWORKS=static environment variable
+    // The RN template Podfile checks ENV['USE_FRAMEWORKS'] and calls use_frameworks! if set
+    console.log('📦 Running pod install with static frameworks...');
     const iosPath = join(appDir, 'ios');
-    const podfilePath = join(iosPath, 'Podfile');
-    const podfileContent = readFileSync(podfilePath, 'utf-8');
-
-    // Add use_frameworks! :linkage => :static after the platform line
-    const modifiedPodfile = podfileContent.replace(
-      /(platform :ios.*)/,
-      `$1\n\n# Force frameworks to be built (added by buildle)\nuse_frameworks! :linkage => :static`
-    );
-    writeFileSync(podfilePath, modifiedPodfile);
-    console.log('✓ Podfile modified to build static frameworks');
-
-    // Run pod install
-    console.log('📦 Running pod install...');
-    await $`pod install`.cwd(iosPath);
-    console.log('✓ Pod install completed');
+    await $`pod install`.cwd(iosPath).env({
+      ...process.env,
+      USE_FRAMEWORKS: 'static',
+    });
+    console.log('✓ Pod install completed with static frameworks');
 
     // Build static XCFramework
     console.log('🔨 Building iOS static XCFramework...');
