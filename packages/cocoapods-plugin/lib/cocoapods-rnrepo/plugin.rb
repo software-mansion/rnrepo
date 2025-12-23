@@ -145,11 +145,22 @@ module Pod
           next
         end
 
-        xcframework_path = File.join(node_modules_path, '.rnrepo-cache', "#{pod_name}.xcframework")
-        unless File.exist?(xcframework_path)
-          CocoapodsRnrepo::Logger.log "  ⚠️  xcframework not found at #{xcframework_path}"
+        # Find the xcframework (name may differ from pod name due to sanitization)
+        cache_dir = File.join(node_modules_path, '.rnrepo-cache')
+        xcframeworks = Dir.glob(File.join(cache_dir, "*.xcframework"))
+
+        if xcframeworks.empty?
+          CocoapodsRnrepo::Logger.log "  ⚠️  xcframework not found in #{cache_dir}"
           next
         end
+
+        if xcframeworks.length > 1
+          CocoapodsRnrepo::Logger.log "  ⚠️  Multiple xcframeworks found in #{cache_dir}"
+          next
+        end
+
+        xcframework_path = xcframeworks.first
+        xcframework_name = File.basename(xcframework_path)
 
         CocoapodsRnrepo::Logger.log "  Configuring #{pod_name} (#{pod_specs.count} spec(s)) at #{node_modules_path}"
 
@@ -193,8 +204,8 @@ module Pod
             # Initialize platform hash if needed
             spec.attributes_hash[platform] ||= {}
 
-            # Use relative path from pod directory
-            xcframework_relative_path = ".rnrepo-cache/#{pod_name}.xcframework"
+            # Use relative path from pod directory (use actual xcframework name)
+            xcframework_relative_path = ".rnrepo-cache/#{xcframework_name}"
 
             # Add static xcframework as vendored_frameworks
             # CocoaPods handles static xcframeworks automatically

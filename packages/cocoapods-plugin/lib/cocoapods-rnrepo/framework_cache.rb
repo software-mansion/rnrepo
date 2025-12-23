@@ -27,10 +27,10 @@ module CocoapodsRnrepo
       FileUtils.mkdir_p(cache_dir)
       Logger.log "Cache directory: #{cache_dir}"
 
-      # Check if already downloaded
-      xcframework_path = File.join(cache_dir, "#{pod_name}.xcframework")
-      if File.exist?(xcframework_path)
-        Logger.log "Pre-built framework already exists, skipping download"
+      # Check if already downloaded (framework name may differ from pod name)
+      existing_xcframeworks = Dir.glob(File.join(cache_dir, "*.xcframework"))
+      if existing_xcframeworks.any?
+        Logger.log "Pre-built framework already exists: #{File.basename(existing_xcframeworks.first)}"
         return { status: :cached, message: "Already cached locally" }
       end
 
@@ -53,20 +53,30 @@ module CocoapodsRnrepo
       end
 
       # Extract the zip file
-      # The zip contains: PodName.xcframework/
-      # We extract to cache_dir, which should create: cache_dir/PodName.xcframework/
+      # The zip contains: FrameworkName.xcframework/ (may differ from pod name due to sanitization)
+      # We extract to cache_dir, which should create: cache_dir/FrameworkName.xcframework/
       unless Downloader.unzip_file(zip_path, cache_dir)
         Logger.log "Failed to extract pre-built framework for #{pod_name}"
         FileUtils.rm_f(zip_path)
         return { status: :failed, message: "Extraction failed" }
       end
 
-      # Verify the xcframework was extracted
-      unless File.exist?(xcframework_path)
-        Logger.log "XCFramework not found after extraction at #{xcframework_path}"
+      # Find the extracted xcframework (name may differ from pod name)
+      xcframeworks = Dir.glob(File.join(cache_dir, "*.xcframework"))
+      if xcframeworks.empty?
+        Logger.log "XCFramework not found after extraction in #{cache_dir}"
         FileUtils.rm_f(zip_path)
         return { status: :failed, message: "XCFramework not found after extraction" }
       end
+
+      if xcframeworks.length > 1
+        Logger.log "Multiple XCFrameworks found in #{cache_dir}: #{xcframeworks}"
+        FileUtils.rm_f(zip_path)
+        return { status: :failed, message: "Multiple XCFrameworks found" }
+      end
+
+      actual_xcframework_path = xcframeworks.first
+      Logger.log "Found XCFramework: #{File.basename(actual_xcframework_path)}"
 
       # Clean up zip file
       FileUtils.rm_f(zip_path)
