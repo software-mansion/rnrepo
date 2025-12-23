@@ -1,12 +1,5 @@
-import { $ } from 'bun';
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  rmSync,
-  readdirSync,
-} from 'fs';
+import { $, Glob } from 'bun';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'fs';
 import { join, basename } from 'path';
 import { sanitizePackageName } from '@rnrepo/config';
 import {
@@ -92,19 +85,17 @@ try {
 function getPodName(appDir: string): string {
   const packagePath = join(appDir, 'node_modules', libraryName);
 
-  // Try to find podspec file
-  const files = readdirSync(packagePath);
-  const podspecFile = files.find(
-    (f) => f.endsWith('.podspec') || f.endsWith('.podspec.json')
-  );
+  // Try to find podspec file using bun glob
+  const glob = new Glob('*.podspec');
+  const podspecFiles = Array.from(glob.scanSync(packagePath));
 
-  if (podspecFile) {
-    const podspecName = podspecFile.replace(/\.podspec(\.json)?$/, '');
-    return podspecName;
+  if (podspecFiles.length > 0) {
+    return basename(podspecFiles[0], '.podspec');
   }
 
-  // Fallback: use library name
-  return libraryName;
+  throw new Error(
+    `Could not find podspec file for ${libraryName} in ${packagePath}`
+  );
 }
 
 /**
