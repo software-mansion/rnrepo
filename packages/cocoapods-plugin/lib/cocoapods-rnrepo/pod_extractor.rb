@@ -61,9 +61,11 @@ module CocoapodsRnrepo
           end
 
           # Construct Maven URL using npm package name and RN version
+          # TODO: Make config configurable (currently defaults to release)
+          config = 'release'
           maven_url = nil
           if npm_package_name && version && rn_version
-            maven_url = build_ios_xcframework_url(npm_package_name, version, rn_version)
+            maven_url = build_ios_xcframework_url(npm_package_name, version, rn_version, config)
           end
 
           # Avoid duplicates
@@ -75,7 +77,8 @@ module CocoapodsRnrepo
               package_root: package_root,
               npm_package_name: npm_package_name,
               maven_url: maven_url,
-              rn_version: rn_version
+              rn_version: rn_version,
+              config: config
             }
           end
         end
@@ -117,8 +120,8 @@ module CocoapodsRnrepo
     end
 
     # Build iOS XCFramework URL for downloading pre-built framework
-    # Format: npm-package-name-version-rnX.Y.Z.xcframework.zip
-    def self.build_ios_xcframework_url(package_name, version, rn_version)
+    # Format: npm-package-name-version-rnX.Y.Z-config.xcframework.zip
+    def self.build_ios_xcframework_url(package_name, version, rn_version, config = 'release')
       base_url = 'https://packages.rnrepo.org/snapshots/org/rnrepo'
 
       # Use the npm package name directly for artifact path
@@ -129,8 +132,8 @@ module CocoapodsRnrepo
       # e.g., @react-native-picker/picker -> react-native-picker_picker
       sanitized_name = package_name.gsub(/^@/, '').gsub('/', '_')
 
-      # Build filename: react-native-picker-picker-2.11.4-rn0.82.1.xcframework.zip
-      filename = "#{sanitized_name}-#{version}-rn#{rn_version}.xcframework.zip"
+      # Build filename: react-native-picker_picker-2.11.4-rn0.82.1-release.xcframework.zip
+      filename = "#{sanitized_name}-#{version}-rn#{rn_version}-#{config}.xcframework.zip"
 
       "#{base_url}/#{artifact_path}/#{version}/#{filename}"
     end

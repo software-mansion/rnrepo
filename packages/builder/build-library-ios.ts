@@ -1,7 +1,6 @@
 import { $ } from 'bun';
 import {
   existsSync,
-  mkdirSync,
   readFileSync,
   writeFileSync,
   rmSync,
@@ -16,6 +15,7 @@ import {
   extractAndVerifyLicense,
   checkRnVersion,
   installSetup,
+  setupReactNativeProject,
 } from './common';
 
 /**
@@ -29,6 +29,7 @@ import {
  * @param reactNativeVersion - React Native version to use for building
  * @param workDir - Working directory where "app" (RN project) and "outputs" (XCFrameworks) will be created
  * @param workletsVersion - (Optional) react-native-worklets version to install
+ * @param buildConfig - (Optional) Build configuration: "release" or "debug" (default: "release")
  */
 
 const [
@@ -37,16 +38,27 @@ const [
   reactNativeVersion,
   workDir,
   workletsVersion,
+  buildConfig = 'release',
 ] = process.argv.slice(2);
 
 if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   console.error(
-    'Usage: bun run build-library-ios.ts <library-name> <library-version> <react-native-version> <work-dir> [<worklets-version>]'
+    'Usage: bun run build-library-ios.ts <library-name> <library-version> <react-native-version> <work-dir> [<worklets-version>] [<build-config>]'
   );
   process.exit(1);
 }
 
-const CONFIGURATION = 'Debug';
+// Validate build configuration (must be lowercase)
+if (buildConfig !== 'release' && buildConfig !== 'debug') {
+  console.error(
+    `Invalid build configuration: ${buildConfig}. Must be "release" or "debug" (lowercase)`
+  );
+  process.exit(1);
+}
+
+// Convert to Xcode configuration format (Release/Debug)
+const CONFIGURATION =
+  buildConfig.charAt(0).toUpperCase() + buildConfig.slice(1);
 const GITHUB_BUILD_URL = getGithubBuildUrl();
 
 // Note: Bitcode was deprecated in Xcode 14 and removed entirely by Apple.
@@ -56,6 +68,7 @@ const GITHUB_BUILD_URL = getGithubBuildUrl();
 console.log('📦 Building iOS library:');
 console.log(`   Library: ${libraryName}@${libraryVersion}`);
 console.log(`   React Native: ${reactNativeVersion}`);
+console.log(`   Configuration: ${CONFIGURATION}`);
 console.log(
   `${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`
 );
@@ -319,7 +332,7 @@ async function buildFramework(appDir: string, license: AllowedLicense) {
     // Create zip archive
     console.log('📦 Creating zip archive...');
     const sanitizedLibraryName = sanitizePackageName(libraryName);
-    const zipName = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}.xcframework.zip`;
+    const zipName = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}-${buildConfig}.xcframework.zip`;
     await $`zip -r ${zipName} ${podName}.xcframework`.cwd(outputPath).quiet();
     console.log(`✓ Created zip archive: ${zipName}`);
 
@@ -331,6 +344,7 @@ async function buildFramework(appDir: string, license: AllowedLicense) {
       reactNativeVersion,
       podName,
       frameworkType: 'static',
+      configuration: CONFIGURATION,
       workletsVersion: workletsVersion || null,
       license,
       cpuInfo: getCpuInfo(),
@@ -347,55 +361,21 @@ async function buildFramework(appDir: string, license: AllowedLicense) {
 }
 
 async function buildLibrary() {
-  const appDir = join(workDir, 'rnrepo_build_app');
-
-  // Create work directory if it doesn't exist
-  mkdirSync(workDir, { recursive: true });
-
-  // Check that app directory doesn't exist yet
-  if (existsSync(appDir)) {
-    throw new Error(`App directory ${appDir} already exists.`);
-  }
-
   console.log(
     `🔨 Building static XCFramework for ${libraryName}@${libraryVersion} with RN ${reactNativeVersion}...`
   );
 
   try {
-    // Create RN project in the work directory
-    console.log(
-      `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
+    // Setup React Native project and install library
+    const { appDir, license } = await setupReactNativeProject(
+      workDir,
+      libraryName,
+      libraryVersion,
+      reactNativeVersion,
+      workletsVersion,
+      'ios',
+      runInstallSetup
     );
-
-    $.cwd(workDir);
-    await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`.quiet();
-    $.cwd(appDir);
-
-    // Perform any library-specific setup before installing
-    await runInstallSetup(appDir, 'preInstall');
-
-    // Install the library
-    console.log(`📦 Installing ${libraryName}@${libraryVersion}...`);
-    await $`npm install ${libraryName}@${libraryVersion} --save-exact`.quiet();
-
-    // Extract license name from the library's package.json
-    const license = extractAndVerifyLicense(appDir, libraryName);
-
-    // Perform any library-specific setup after installing
-    await runInstallSetup(appDir, 'postInstall');
-
-    // Install react-native-worklets if specified
-    if (workletsVersion) {
-      console.log(`📦 Installing react-native-worklets@${workletsVersion}...`);
-      await $`npm install react-native-worklets@${workletsVersion} --save-exact`.quiet();
-    }
-
-    // Install all dependencies
-    console.log('📦 Installing all dependencies...');
-    await $`npm install`.quiet();
-
-    // Check if the react-native version is correctly set
-    checkRnVersion(appDir, reactNativeVersion);
 
     // Modify Podfile to build frameworks
     console.log('📝 Modifying Podfile to build frameworks...');

@@ -1,5 +1,5 @@
 import { $ } from 'bun';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { sanitizePackageName } from '@rnrepo/config';
 import {
@@ -9,6 +9,7 @@ import {
   extractAndVerifyLicense,
   checkRnVersion,
   installSetup,
+  setupReactNativeProject,
 } from './common';
 
 /**
@@ -159,55 +160,21 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
 }
 
 async function buildLibrary() {
-  const appDir = join(workDir, 'rnrepo_build_app');
-
-  // Create work directory if it doesn't exist
-  mkdirSync(workDir, { recursive: true });
-
-  // Check that app and outputs directories don't exist yet
-  if (existsSync(appDir)) {
-    throw new Error(`App directory ${appDir} already exists.`);
-  }
-
   console.log(
     `🔨 Building AAR for ${libraryName}@${libraryVersion} with RN ${reactNativeVersion}...`
   );
 
   try {
-    // Create RN project in the work directory
-    console.log(
-      `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
+    // Setup React Native project and install library
+    const { appDir, license } = await setupReactNativeProject(
+      workDir,
+      libraryName,
+      libraryVersion,
+      reactNativeVersion,
+      workletsVersion,
+      'android',
+      runInstallSetup
     );
-
-    $.cwd(workDir);
-    await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`.quiet();
-    $.cwd(appDir);
-
-    // Perform any library-specific setup before installing
-    await runInstallSetup(appDir, 'preInstall');
-
-    // Install the library
-    console.log(`📦 Installing ${libraryName}@${libraryVersion}...`);
-    await $`npm install ${libraryName}@${libraryVersion} --save-exact`.quiet();
-
-    // Extract license name from the library's package.json
-    const license = extractAndVerifyLicense(appDir, libraryName);
-
-    // Perform any library-specific setup after installing
-    await runInstallSetup(appDir, 'postInstall');
-
-    // Install react-native-worklets if specified
-    if (workletsVersion) {
-      console.log(`📦 Installing react-native-worklets@${workletsVersion}...`);
-      await $`npm install react-native-worklets@${workletsVersion} --save-exact`.quiet();
-    }
-
-    // Install all dependencies
-    console.log('📦 Installing all dependencies...');
-    await $`npm install`.quiet();
-
-    // Check if the react-native version is correctly set
-    checkRnVersion(appDir, reactNativeVersion);
 
     // Build AAR
     console.log('🔨 Building AAR...');
