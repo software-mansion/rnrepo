@@ -6,11 +6,8 @@ import {
   type AllowedLicense,
   getGithubBuildUrl,
   getCpuInfo,
-  extractAndVerifyLicense,
-  checkRnVersion,
-  installSetup,
   setupReactNativeProject,
-} from './common';
+} from './build-utils';
 
 /**
  * Build Library Android Script
@@ -56,16 +53,6 @@ try {
 } catch (error) {
   console.error('❌ Build failed:', error);
   process.exit(1);
-}
-
-async function runInstallSetup(
-  appDir: string,
-  phase: 'preInstall' | 'postInstall'
-) {
-  const result = await installSetup(appDir, libraryName, phase, 'android');
-  if (result.postinstallGradleScriptPath) {
-    postinstallGradleScriptPath = result.postinstallGradleScriptPath;
-  }
 }
 
 async function buildAAR(appDir: string, license: AllowedLicense) {
@@ -166,15 +153,23 @@ async function buildLibrary() {
 
   try {
     // Setup React Native project and install library
-    const { appDir, license } = await setupReactNativeProject(
+    const {
+      appDir,
+      license,
+      postinstallGradleScriptPath: gradleScriptPath,
+    } = await setupReactNativeProject(
       workDir,
       libraryName,
       libraryVersion,
       reactNativeVersion,
       workletsVersion,
-      'android',
-      runInstallSetup
+      'android'
     );
+
+    // Set postinstallGradleScriptPath if returned
+    if (gradleScriptPath) {
+      postinstallGradleScriptPath = gradleScriptPath;
+    }
 
     // Build AAR
     console.log('🔨 Building AAR...');

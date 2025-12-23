@@ -1,6 +1,7 @@
 import { $ } from 'bun';
 import {
   existsSync,
+  mkdirSync,
   readFileSync,
   writeFileSync,
   rmSync,
@@ -12,11 +13,8 @@ import {
   type AllowedLicense,
   getGithubBuildUrl,
   getCpuInfo,
-  extractAndVerifyLicense,
-  checkRnVersion,
-  installSetup,
   setupReactNativeProject,
-} from './common';
+} from './build-utils';
 
 /**
  * Build Library iOS Script
@@ -27,23 +25,29 @@ import {
  * @param libraryName - Name of the library from NPM
  * @param libraryVersion - Version of the library from NPM
  * @param reactNativeVersion - React Native version to use for building
+ * @param buildConfig - Build configuration: "release" or "debug"
  * @param workDir - Working directory where "app" (RN project) and "outputs" (XCFrameworks) will be created
  * @param workletsVersion - (Optional) react-native-worklets version to install
- * @param buildConfig - (Optional) Build configuration: "release" or "debug" (default: "release")
  */
 
 const [
   libraryName,
   libraryVersion,
   reactNativeVersion,
+  buildConfig,
   workDir,
   workletsVersion,
-  buildConfig = 'release',
 ] = process.argv.slice(2);
 
-if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
+if (
+  !libraryName ||
+  !libraryVersion ||
+  !reactNativeVersion ||
+  !buildConfig ||
+  !workDir
+) {
   console.error(
-    'Usage: bun run build-library-ios.ts <library-name> <library-version> <react-native-version> <work-dir> [<worklets-version>] [<build-config>]'
+    'Usage: bun run build-library-ios.ts <library-name> <library-version> <react-native-version> <build-config> <work-dir> [<worklets-version>]'
   );
   process.exit(1);
 }
@@ -79,13 +83,6 @@ try {
 } catch (error) {
   console.error('❌ Build failed:', error);
   process.exit(1);
-}
-
-async function runInstallSetup(
-  appDir: string,
-  phase: 'preInstall' | 'postInstall'
-) {
-  await installSetup(appDir, libraryName, phase, 'ios');
 }
 
 /**
@@ -373,8 +370,7 @@ async function buildLibrary() {
       libraryVersion,
       reactNativeVersion,
       workletsVersion,
-      'ios',
-      runInstallSetup
+      'ios'
     );
 
     // Modify Podfile to build frameworks
