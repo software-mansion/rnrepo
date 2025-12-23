@@ -3,7 +3,7 @@
 // - Verifies Android artifacts exist in the Maven repo.
 // - Updates build status to completed/failed when run with --write (dry run otherwise).
 import { SupabaseClient } from '@supabase/supabase-js';
-import { convertToGradleProjectName } from '@rnrepo/config';
+import { sanitizePackageName } from '@rnrepo/config';
 import { getSupabaseClient } from './index';
 import type { BuildStatus, Platform } from './types';
 
@@ -24,7 +24,7 @@ function buildAndroidArtifactUrl(
   baseRepositoryUrl: string
 ): string {
   const repositoryUrl = baseRepositoryUrl.replace(/\/+$/, '');
-  const artifactId = convertToGradleProjectName(build.package_name);
+  const artifactId = sanitizePackageName(build.package_name);
   const classifier = `rn${build.rn_version}${
     build.worklets_version ? `-worklets${build.worklets_version}` : ''
   }`;

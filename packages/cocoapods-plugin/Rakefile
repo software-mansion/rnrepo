@@ -1,0 +1,20 @@
+require 'bundler/gem_tasks'
+
+task :default => :spec
+
+desc 'Run tests'
+task :spec do
+  puts 'No tests yet - add RSpec tests in spec/ directory'
+end
+
+desc 'Install the gem locally'
+task :install do
+  sh 'gem build cocoapods-rnrepo.gemspec'
+  sh 'gem install cocoapods-rnrepo-*.gem'
+end
+
+desc 'Uninstall the gem'
+task :uninstall do
+  sh 'gem uninstall cocoapods-rnrepo'
+end
+
