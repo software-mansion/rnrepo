@@ -162,11 +162,10 @@ async function buildLibrary() {
       libraryName,
       libraryVersion,
       reactNativeVersion,
-      workletsVersion,
-      'android'
+      workletsVersion
     );
 
-    // Set postinstallGradleScriptPath if returned
+    // Set gradle script path if returned
     if (gradleScriptPath) {
       postinstallGradleScriptPath = gradleScriptPath;
     }

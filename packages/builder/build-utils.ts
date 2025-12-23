@@ -1,5 +1,5 @@
 import { $ } from 'bun';
-import { existsSync, readFileSync, mkdirSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
 
@@ -84,29 +84,21 @@ export function checkRnVersion(appDir: string, expectedVersion: string): void {
 
 /**
  * Run pre/post install scripts for a library
- * @param platform - 'android' or 'ios'
+ * Supports .gradle (postInstall only), .ts, and .js scripts
+ * Returns the Gradle script path if found (for Android builds)
  */
 export async function installSetup(
   appDir: string,
   libraryName: string,
-  phase: 'preInstall' | 'postInstall',
-  platform: 'android' | 'ios'
-): Promise<{ postinstallGradleScriptPath?: string }> {
+  phase: 'preInstall' | 'postInstall'
+): Promise<string | undefined> {
   const libraryJsonPath = join(__dirname, '..', '..', 'libraries.json');
   const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
   const scriptPath = libraryJson[libraryName]?.[phase + 'ScriptPath'] as
     | string
     | undefined;
-
-  if (!scriptPath || !existsSync(join(__dirname, '..', '..', scriptPath))) {
-    console.log(`ℹ️ No ${phase} script found for ${libraryName}`);
-    return {};
-  }
-
-  const fullScriptPath = join(__dirname, '..', '..', scriptPath);
-
-  // Platform-specific handling
-  if (platform === 'android') {
+  if (scriptPath && existsSync(join(__dirname, '..', '..', scriptPath))) {
+    const fullScriptPath = join(__dirname, '..', '..', scriptPath);
     if (scriptPath.endsWith('.gradle')) {
       if (phase === 'preInstall') {
         throw new Error(
@@ -114,37 +106,27 @@ export async function installSetup(
         );
       }
       console.log(`✓ Using postInstall Gradle script for ${libraryName}`);
-      return { postinstallGradleScriptPath: fullScriptPath };
+      return fullScriptPath;
     } else if (scriptPath.endsWith('.ts') || scriptPath.endsWith('.js')) {
       await $`bun run ${fullScriptPath}`.cwd(appDir);
       console.log(`✓ Executed ${phase} script for ${libraryName}`);
     }
-  } else if (platform === 'ios') {
-    if (scriptPath.endsWith('.rb')) {
-      console.log(
-        `✓ Found ${phase} Ruby script for ${libraryName}, will apply during pod install`
-      );
-      // Ruby scripts are handled during pod install
-    } else if (scriptPath.endsWith('.ts') || scriptPath.endsWith('.js')) {
-      await $`bun run ${fullScriptPath}`.cwd(appDir);
-      console.log(`✓ Executed ${phase} script for ${libraryName}`);
-    }
+  } else {
+    console.log(`ℹ️ No ${phase} script found for ${libraryName}`);
   }
-
-  return {};
+  return undefined;
 }
 
 /**
  * Setup React Native project and install library with dependencies
- * This handles the common flow for both Android and iOS builds
+ * Returns appDir, license, and optional gradle script path for Android
  */
 export async function setupReactNativeProject(
   workDir: string,
   libraryName: string,
   libraryVersion: string,
   reactNativeVersion: string,
-  workletsVersion: string | undefined,
-  platform: 'android' | 'ios'
+  workletsVersion: string | undefined
 ): Promise<{
   appDir: string;
   license: AllowedLicense;
@@ -153,6 +135,7 @@ export async function setupReactNativeProject(
   const appDir = join(workDir, 'rnrepo_build_app');
 
   // Create work directory if it doesn't exist
+  const { mkdirSync } = await import('fs');
   mkdirSync(workDir, { recursive: true });
 
   // Check that app directory doesn't exist yet
@@ -170,12 +153,7 @@ export async function setupReactNativeProject(
     .quiet();
 
   // Perform any library-specific setup before installing
-  const preInstallResult = await installSetup(
-    appDir,
-    libraryName,
-    'preInstall',
-    platform
-  );
+  await installSetup(appDir, libraryName, 'preInstall');
 
   // Install the library
   console.log(`📦 Installing ${libraryName}@${libraryVersion}...`);
@@ -187,11 +165,10 @@ export async function setupReactNativeProject(
   const license = extractAndVerifyLicense(appDir, libraryName);
 
   // Perform any library-specific setup after installing
-  const postInstallResult = await installSetup(
+  const postinstallGradleScriptPath = await installSetup(
     appDir,
     libraryName,
-    'postInstall',
-    platform
+    'postInstall'
   );
 
   // Install react-native-worklets if specified
@@ -212,6 +189,6 @@ export async function setupReactNativeProject(
   return {
     appDir,
     license,
-    postinstallGradleScriptPath: postInstallResult.postinstallGradleScriptPath,
+    postinstallGradleScriptPath,
   };
 }

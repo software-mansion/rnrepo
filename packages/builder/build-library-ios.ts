@@ -369,8 +369,7 @@ async function buildLibrary() {
       libraryName,
       libraryVersion,
       reactNativeVersion,
-      workletsVersion,
-      'ios'
+      workletsVersion
     );
 
     // Modify Podfile to build frameworks
