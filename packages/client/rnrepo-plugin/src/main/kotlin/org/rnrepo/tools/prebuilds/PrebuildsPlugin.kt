@@ -163,23 +163,25 @@ class PrebuildsPlugin : Plugin<Project> {
                 substitutionAction.execute(subproject)
             }
 
-            project.gradle.projectsEvaluated {
-                logger.info("Checking if all dependencies with c++ code have their consumers supported...")
-                PACKAGES_WITH_CPP.keys.parallelStream().forEach { packageName ->
-                    val packageItem = extension.projectPackages.find { it.name == packageName }
-                    if (packageItem == null) {
-                        logger.info("Package $packageName not found in project packages, skipping dependency check.")
-                        return@forEach
+            if (getBuildType(project) == "debug") {
+                project.gradle.projectsEvaluated {
+                    logger.info("Checking if all dependencies with c++ code have their consumers supported...")
+                    PACKAGES_WITH_CPP.keys.parallelStream().forEach { packageName ->
+                        val packageItem = extension.projectPackages.find { it.name == packageName }
+                        if (packageItem == null) {
+                            logger.info("Package $packageName not found in project packages, skipping dependency check.")
+                            return@forEach
+                        }
+                        if (!extension.supportedPackages.contains(packageItem)) {
+                            logger.info("Package $packageName is not supported, skipping dependency check.")
+                            return@forEach
+                        }
+                        checkDependencies(
+                            packageItem,
+                            project,
+                            extension.supportedPackages,
+                        )
                     }
-                    if (!extension.supportedPackages.contains(packageItem)) {
-                        logger.info("Package $packageName is not supported, skipping dependency check.")
-                        return@forEach
-                    }
-                    checkDependencies(
-                        packageItem,
-                        project,
-                        extension.supportedPackages,
-                    )
                 }
             }
         }
