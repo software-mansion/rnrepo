@@ -135,6 +135,11 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
   }
 
   try {
+
+    // first build the app so we can get codegen artifacts generated
+    console.log('🔨 Building Android app to generate codegen artifacts...');
+    await $`./gradlew assembleRelease --no-daemon`.cwd(androidPath);
+
     await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
       --no-daemon \
       --init-script ${addPublishingGradleScriptPath} \
@@ -231,6 +236,8 @@ async function buildLibrary() {
 
     $.cwd(workDir);
     await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`.quiet();
+    console.log(`✓ Copying patches...`);
+    await $`cp -r ${workDir}/patches ${appDir}`;
     $.cwd(appDir);
 
     // Perform any library-specific setup before installing
@@ -255,6 +262,9 @@ async function buildLibrary() {
     // Install all dependencies
     console.log('📦 Installing all dependencies...');
     await $`npm install`.quiet();
+
+    console.log('📦 Applying patches...');
+    await $`npx patch-package`.cwd(appDir);
 
     // Check if the react-native version is correctly set
     checkRnVersion(appDir, reactNativeVersion);

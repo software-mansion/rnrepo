@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 allprojects { project ->
     if (!project.plugins.hasPlugin("maven-publish")) {
         project.plugins.apply("maven-publish")
@@ -28,8 +30,71 @@ gradle.projectsEvaluated {
 
         // Target only Android library modules
         if (project.plugins.hasPlugin("com.android.library")) {
-            // Configure maven-publish publications
-            // components.release should now be available after singleVariant is configured
+            
+            def getCodegenName = {
+                def pkgJson = file("${project.projectDir}/../package.json")
+                if (pkgJson.exists()) {
+                    try {
+                        def json = new JsonSlurper().parseText(pkgJson.text)
+                        return json.codegenConfig?.name
+                    } catch (Exception e) { return null }
+                }
+                return null
+            }
+
+            def codegenName = getCodegenName()
+
+            // Task to extract static libs from .cxx to jniLibs
+            def extractTask = project.tasks.register("extractCodegenBinaries") {
+                onlyIf { codegenName != null }
+                doLast {
+                    def appCxxDir = file("${rootProject.projectDir}/app/.cxx")
+                    def archs = ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
+                    def moduleFolder = "${codegenName}_autolinked_build"
+                    archs.each { arch ->
+                        def staticLib = fileTree(dir: appCxxDir, include: "**/$moduleFolder/**/libreact_codegen_${codegenName}.a")
+                            .find { it.path.contains(arch) }
+                        if (staticLib) {
+                            def destDir = file("${project.projectDir}/src/main/assets/$arch")
+                            destDir.mkdirs()
+                            copy { from staticLib; into destDir }
+                        }
+                    }
+                    // Metadata for the consumer
+                    def metaDir = file("${project.projectDir}/src/main/assets")
+                    metaDir.mkdirs()
+                    file("${metaDir}/codegen_name.txt").text = codegenName
+                }
+            }
+
+            // Task to package headers
+            def packageHeadersTask = project.tasks.register("packageCppHeaders", Zip) {
+                dependsOn 'generateCodegenArtifactsFromSchema'
+                archiveClassifier = 'headers'
+                from("${project.buildDir}/generated/source/codegen/jni") { include "**/*.h" }
+                from("${project.projectDir}/src/main/jni") { include "**/*.h" }
+                destinationDirectory = file("${project.buildDir}/outputs/cpp")
+                archiveFileName = "cpp-headers.zip"
+            }
+
+            if (project.tasks.findByName('bundleReleaseAar')) {
+                project.tasks.bundleReleaseAar.dependsOn(extractTask)
+            }
+
+            try {
+                if (project.hasProperty('android')) {
+                    def android = project.android
+                    
+                    android.sourceSets.main {
+                        assets.srcDirs += ["src/main/assets"]
+                    }
+                    // -------------------------------------------------------------
+
+                }
+            } catch (Exception e) {
+                println "Warning: Could not configure Android settings for ${project.name}: ${e.message}"
+            }
+
             try {
                 publishing {
                     publications {
@@ -49,6 +114,11 @@ gradle.projectsEvaluated {
                                     classifier = project.findProperty('rnrepoClassifier')
                                     extension = 'aar'
                                 }
+                            }
+
+                            artifact(packageHeadersTask) {
+                                classifier = 'headers'
+                                extension = 'zip'
                             }
 
                             pom {
@@ -73,6 +143,11 @@ gradle.projectsEvaluated {
                                     def buildUrl = project.findProperty('rnrepoBuildUrl')
                                     if (buildUrl != null) {
                                         propertiesNode.appendNode('rnrepo.buildUrl', buildUrl)
+                                    }
+                                    
+                                    // Add codegen info to POM for easier discovery
+                                    if (codegenName) { 
+                                        propertiesNode.appendNode('rnrepo.codegenName', codegenName) 
                                     }
                                 }
                                 licenses {
@@ -112,6 +187,8 @@ gradle.projectsEvaluated {
                 def generatePomFileTask = project.tasks.findByName('generatePomFileForReleasePublication')
                 if (generatePomFileTask && bundleReleaseAarTask) {
                     generatePomFileTask.dependsOn(bundleReleaseAarTask)
+                    // Ensure headers are ready before POM is generated
+                    generatePomFileTask.dependsOn(packageHeadersTask)
                 }
             } catch (Exception e) {
                 println "Warning: Could not configure publishing for ${project.name}: ${e.message}"
