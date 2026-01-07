@@ -1,6 +1,6 @@
 name: Build iOS Library
 
-run-name: Build for iOS ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}${{ inputs.worklets_version && format(' with worklets@{0}', inputs.worklets_version) || '' }}${{ inputs.test_run_snapshot && ' - snapshot' || '' }}
+run-name: Build for iOS ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}${{ inputs.worklets_version && format(' with worklets@{0}', inputs.worklets_version) || '' }}${{ inputs.configuration && format(' [{0}]', inputs.configuration) || '' }}${{ inputs.test_run_snapshot && ' - snapshot' || '' }}
 
 on:
   workflow_dispatch:
@@ -17,6 +17,13 @@ on:
         description: 'React Native version'
         required: true
         type: string
+      configuration:
+        description: 'Build configuration'
+        required: true
+        type: choice
+        options:
+          - debug
+          - release
       worklets_version:
         description: 'Worklets version'
         required: false
@@ -29,7 +36,8 @@ on:
 
 jobs:
   build-library-ios:
-    runs-on: rnrepo-builder-macos-14
+    runs-on: macos-latest
+    # runs-on: rnrepo-builder-macos-14
     timeout-minutes: 60
 
     steps:
@@ -39,7 +47,7 @@ jobs:
       - name: Use latest stable Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.1'
+          xcode-version: '26.1'
       
       - name: Install Ruby gems
         run: gem install cocoapods -v 1.15.2
@@ -53,19 +61,11 @@ jobs:
         run: bun install
 
       - name: 🔨 Build library for iOS
-        run: bun run packages/builder/build-library-ios.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}" "${{ inputs.worklets_version }}"
+        run: bun run packages/builder/build-library-ios.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ inputs.configuration }}" "${{ runner.temp }}" "${{ inputs.worklets_version }}"
 
-      # - name: 📋 List artifacts with checksums
-      #   run: |
-      #     find TODO:FRAMEWORK_PATH.xcframework -type f -exec md5sum {} \;
-
-      # - name: 📦 Zip artifacts
-      #   run: zip -r ${{ inputs.library_name }}-${{ inputs.library_version }}-rn${{ inputs.react_native_version }}.zip TODO:FRAMEWORK_PATH
-
-      # - name: 📦 Upload Maven artifacts
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: maven-artifacts
-      #     path: |
-      #       TODO:FRAMEWORK_PATH/${{ inputs.library_name }}-${{ inputs.library_version }}-rn${{ inputs.react_native_version }}.zip
-      #     retention-days: 1
+      - name: 📦 Upload framework artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: framework-artifacts
+          path: ${{ runner.temp }}/outputs/
+          retention-days: 1
