@@ -143,8 +143,7 @@ async function main() {
           -DrepositoryId=RNRepo \
           -Durl=${MAVEN_REPOSITORY_URL}`;
       console.log('✓ POM deployed successfully');
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       // 409 Conflict is acceptable - POM may already exist (shared across versions)
       if (
         error?.stdout?.includes(

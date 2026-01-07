@@ -5,7 +5,6 @@ import { sanitizePackageName } from '@rnrepo/config';
 import {
   type AllowedLicense,
   getGithubBuildUrl,
-  getCpuInfo,
   setupReactNativeProject,
 } from './build-utils';
 
@@ -152,7 +151,7 @@ async function xcodebuild(
 /**
  * Build the iOS XCFramework
  */
-async function buildFramework(appDir: string, license: AllowedLicense) {
+async function buildFramework(appDir: string, _license: AllowedLicense) {
   const iosPath = join(appDir, 'ios');
   const projectPath = join(iosPath, basename(appDir) + '.xcworkspace');
 
