@@ -1,7 +1,7 @@
 {
   "name": "@rnrepo/cocoapods-plugin",
   "version": "0.1.0",
-  "description": "CocoaPods plugin for React Native pre-built xcframeworks",
+  "description": "RNRepo plugin for iOS CocoaPods-based setups",
   "scripts": {
     "build": "gem build cocoapods-rnrepo.gemspec",
     "install": "gem uninstall cocoapods-rnrepo -x -I || true && gem build cocoapods-rnrepo.gemspec && gem install cocoapods-rnrepo-*.gem",
