@@ -163,23 +163,25 @@ class PrebuildsPlugin : Plugin<Project> {
                 substitutionAction.execute(subproject)
             }
 
-            project.gradle.projectsEvaluated {
-                logger.info("Checking if all dependencies with c++ code have their consumers supported...")
-                PACKAGES_WITH_CPP.keys.parallelStream().forEach { packageName ->
-                    val packageItem = extension.projectPackages.find { it.name == packageName }
-                    if (packageItem == null) {
-                        logger.info("Package $packageName not found in project packages, skipping dependency check.")
-                        return@forEach
+            if (getBuildType(project) == "debug") {
+                project.gradle.projectsEvaluated {
+                    logger.info("Checking if all dependencies with c++ code have their consumers supported...")
+                    PACKAGES_WITH_CPP.keys.parallelStream().forEach { packageName ->
+                        val packageItem = extension.projectPackages.find { it.name == packageName }
+                        if (packageItem == null) {
+                            logger.info("Package $packageName not found in project packages, skipping dependency check.")
+                            return@forEach
+                        }
+                        if (!extension.supportedPackages.contains(packageItem)) {
+                            logger.info("Package $packageName is not supported, skipping dependency check.")
+                            return@forEach
+                        }
+                        checkDependencies(
+                            packageItem,
+                            project,
+                            extension.supportedPackages,
+                        )
                     }
-                    if (!extension.supportedPackages.contains(packageItem)) {
-                        logger.info("Package $packageName is not supported, skipping dependency check.")
-                        return@forEach
-                    }
-                    checkDependencies(
-                        packageItem,
-                        project,
-                        extension.supportedPackages,
-                    )
                 }
             }
         }
@@ -644,7 +646,7 @@ class PrebuildsPlugin : Plugin<Project> {
         packageItem: PackageItem,
         project: Project,
         supportedPackages: MutableSet<PackageItem>,
-        unavailablePackages: MutableCollection<PackageItem>,
+        unavailablePackages: MutableSet<PackageItem>,
     ) {
         logger.info("${packageItem.npmName} is supported, checking if all packages depending on it are supported.")
         PACKAGES_WITH_CPP.get(packageItem.name)?.forEach { dependentPackagePattern ->
@@ -667,6 +669,20 @@ class PrebuildsPlugin : Plugin<Project> {
                 unavailablePackages.add(packageItem)
                 logger.lifecycle(
                     "A package depending on ${packageItem.npmName} matching pattern '$dependentPackagePattern' is not available as a prebuild, building ${packageItem.npmName} from sources.",
+                )
+                val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
+                val packagesToRemove =
+                    supportedPackages.filter { supportedPackage ->
+                        packagesToCheckRegex.any { regex ->
+                            regex.matches(supportedPackage.name)
+                        }
+                    }
+                supportedPackages.removeAll(packagesToRemove)
+                unavailablePackages.addAll(packagesToRemove)
+                logger.lifecycle(
+                    "Removing packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages:${printList(
+                        packagesToRemove,
+                    )}",
                 )
                 return
             }
@@ -713,7 +729,7 @@ class PrebuildsPlugin : Plugin<Project> {
         packageItem: PackageItem,
         repositories: RepositoryHandler,
         extension: PackagesManager,
-        unavailablePackages: MutableCollection<PackageItem>,
+        unavailablePackages: MutableSet<PackageItem>,
         elseClosure: () -> Unit,
     ) {
         when {
@@ -754,8 +770,9 @@ class PrebuildsPlugin : Plugin<Project> {
         val supportedPackages =
             java.util.concurrent.ConcurrentHashMap
                 .newKeySet<PackageItem>()
-        val unavailablePackages = java.util.concurrent.ConcurrentLinkedQueue<PackageItem>()
-
+        val unavailablePackages =
+            java.util.concurrent.ConcurrentHashMap
+                .newKeySet<PackageItem>()
         val (dependentList, otherPackages) = extension.projectPackages.partition { PACKAGES_WITH_CPP.containsKey(it.name) }
         otherPackages.parallelStream().forEach { packageItem ->
             checkIfPackageIsSupported(
