@@ -8,6 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = CocoapodsRnrepo::VERSION
   spec.authors       = ['Software Mansion']
   spec.email         = ['rnrepo@swmansion.com']
+  spec.summary       = 'A CocoaPods plugin for rnrepo.org pre-built xcframeworks'
   spec.description   = %q{A CocoaPods plugin that replaces React Native local pods with pre-built xcframeworks from rnrepo.org Maven repository}
   spec.homepage      = 'https://rnrepo.org'
   spec.license       = 'MIT'
