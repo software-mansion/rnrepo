@@ -60,11 +60,18 @@ module CocoapodsRnrepo
             end
           end
 
-          # Construct Maven URL using npm package name and RN version
-          # TODO: Make config configurable (currently defaults to release)
-          config = 'release'
+          # Detect build configuration from Xcode environment (Release/Debug)
+          # If not set or invalid, we'll skip pre-built frameworks and build from source
+          xcode_config = ENV['CONFIGURATION']
+          config = nil
+
+          if xcode_config && (xcode_config == 'Debug' || xcode_config == 'Release')
+            # Convert to lowercase ('release' or 'debug') to match build artifact naming
+            config = xcode_config.downcase
+          end
+
           maven_url = nil
-          if npm_package_name && version && rn_version
+          if npm_package_name && version && rn_version && config
             maven_url = build_ios_xcframework_url(npm_package_name, version, rn_version, config)
           end
 

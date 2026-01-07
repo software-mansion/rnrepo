@@ -13,8 +13,9 @@ module CocoapodsRnrepo
       # Skip if we don't have a Maven URL
       unless maven_url
         Logger.log "No Maven URL available for #{pod_name}"
-        Logger.log "  Debug: npm_package_name=#{pod_info[:npm_package_name]}, version=#{version}, rn_version=#{pod_info[:rn_version]}"
-        return { status: :failed, message: "No Maven URL" }
+        Logger.log "  Debug: npm_package_name=#{pod_info[:npm_package_name]}, version=#{version}, rn_version=#{pod_info[:rn_version]}, config=#{pod_info[:config]}"
+        Logger.log "Will build from source instead"
+        return { status: :unavailable, message: "No Maven URL" }
       end
 
       # Resolve the source path to get absolute package directory
@@ -38,7 +39,13 @@ module CocoapodsRnrepo
       # Filename format: npm-package-name-version-rnX.Y.Z-config.xcframework.zip
       npm_package_name = pod_info[:npm_package_name] || pod_name
       rn_version = pod_info[:rn_version]
-      config = pod_info[:config] || 'release' # Default to release
+      config = pod_info[:config] # 'release' or 'debug'
+
+      unless config
+        Logger.log "Build configuration not detected (expected Debug or Release)"
+        Logger.log "Will build from source instead"
+        return { status: :unavailable, message: "Configuration not detected" }
+      end
       # Sanitize package name for filename (remove @ and replace / with _)
       # Matches sanitizePackageName() in @rnrepo/config
       sanitized_name = npm_package_name.gsub(/^@/, '').gsub('/', '_')
