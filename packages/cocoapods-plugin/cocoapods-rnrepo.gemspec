@@ -6,14 +6,13 @@ require 'cocoapods-rnrepo/gem_version'
 Gem::Specification.new do |spec|
   spec.name          = 'cocoapods-rnrepo'
   spec.version       = CocoapodsRnrepo::VERSION
-  spec.authors       = ['Your Name']
-  spec.email         = ['your.email@example.com']
-  spec.description   = %q{A CocoaPods plugin that replaces React Native local pods with pre-built xcframeworks from rnrepo Maven repository}
-  spec.summary       = %q{Replace RN local pods with pre-built xcframeworks}
-  spec.homepage      = 'https://github.com/yourusername/cocoapods-rnrepo'
+  spec.authors       = ['Software Mansion']
+  spec.email         = ['rnrepo@swmansion.com']
+  spec.description   = %q{A CocoaPods plugin that replaces React Native local pods with pre-built xcframeworks from rnrepo.org Maven repository}
+  spec.homepage      = 'https://rnrepo.org'
   spec.license       = 'MIT'
 
-  spec.files         = Dir['lib/**/*'] + %w{README.md}
+  spec.files         = Dir['lib/**/*']
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ['lib']
