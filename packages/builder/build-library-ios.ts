@@ -87,7 +87,7 @@ function getPodName(appDir: string): string {
 
   // Try to find podspec file using bun glob
   const glob = new Glob('*.podspec');
-  const podspecFiles = Array.from(glob.scanSync(packagePath));
+  const podspecFiles = Array.from(glob.scanSync({ cwd: packagePath }));
 
   if (podspecFiles.length > 0) {
     return basename(podspecFiles[0], '.podspec');
@@ -208,7 +208,9 @@ async function buildFramework(appDir: string, license: AllowedLicense) {
     );
 
     const glob = new Glob('*.framework');
-    const frameworks = Array.from(glob.scanSync(podBuildDir));
+    const frameworks = Array.from(
+      glob.scanSync({ cwd: podBuildDir, onlyFiles: false })
+    );
 
     if (frameworks.length === 0) {
       throw new Error(
