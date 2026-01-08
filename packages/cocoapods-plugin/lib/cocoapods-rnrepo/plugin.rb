@@ -145,50 +145,69 @@ module Pod
           next
         end
 
-        # Find the xcframework (name may differ from pod name due to sanitization)
+        # Find the xcframework from Debug cache (we'll use this for name detection)
         cache_dir = File.join(node_modules_path, '.rnrepo-cache')
-        xcframeworks = Dir.glob(File.join(cache_dir, "*.xcframework"))
+        debug_cache_dir = File.join(cache_dir, 'Debug')
+
+        xcframeworks = Dir.glob(File.join(debug_cache_dir, "*.xcframework"))
 
         if xcframeworks.empty?
-          CocoapodsRnrepo::Logger.log "  ⚠️  xcframework not found in #{cache_dir}"
+          CocoapodsRnrepo::Logger.log "  ⚠️  xcframework not found in #{debug_cache_dir}"
           next
         end
 
         if xcframeworks.length > 1
-          CocoapodsRnrepo::Logger.log "  ⚠️  Multiple xcframeworks found in #{cache_dir}"
+          CocoapodsRnrepo::Logger.log "  ⚠️  Multiple xcframeworks found in #{debug_cache_dir}"
           next
         end
 
         xcframework_path = xcframeworks.first
         xcframework_name = File.basename(xcframework_path)
 
+        # Verify Release cache also exists
+        release_cache_dir = File.join(cache_dir, 'Release')
+        release_xcframeworks = Dir.glob(File.join(release_cache_dir, "*.xcframework"))
+
+        if release_xcframeworks.empty?
+          CocoapodsRnrepo::Logger.log "  ⚠️  Release xcframework not found in #{release_cache_dir}"
+          next
+        end
+
         CocoapodsRnrepo::Logger.log "  Configuring #{pod_name} (#{pod_specs.count} spec(s)) at #{node_modules_path}"
 
-        # Verify the xcframework exists and is properly structured
-        xcframework_slices = Dir.glob(File.join(xcframework_path, "*")).select { |f| File.directory?(f) }
-        if xcframework_slices.any?
-          # For static XCFrameworks, the binary is inside the .framework bundle
-          # Structure: RNSVG.xcframework/ios-arm64_x86_64-simulator/RNSVG.framework/RNSVG
-          first_slice = xcframework_slices.first
-          framework_dir = Dir.glob(File.join(first_slice, "*.framework")).first
+        # Verify both Debug and Release xcframeworks are properly structured
+        [debug_cache_dir, release_cache_dir].each do |config_dir|
+          config_name = File.basename(config_dir)
+          config_xcframeworks = Dir.glob(File.join(config_dir, "*.xcframework"))
+          next if config_xcframeworks.empty?
 
-          if framework_dir
-            binary_name = File.basename(framework_dir, '.framework')
-            binary_path = File.join(framework_dir, binary_name)
+          xcframework_to_verify = config_xcframeworks.first
+          xcframework_slices = Dir.glob(File.join(xcframework_to_verify, "*")).select { |f| File.directory?(f) }
 
-            if File.exist?(binary_path)
-              # Verify it's a static library using 'file' command
-              file_type = `file "#{binary_path}"`.strip
-              if file_type.include?('ar archive') || file_type.include?('current ar archive')
-                CocoapodsRnrepo::Logger.log "    Verified static xcframework"
+          if xcframework_slices.any?
+            # For static XCFrameworks, the binary is inside the .framework bundle
+            # Structure: RNSVG.xcframework/ios-arm64_x86_64-simulator/RNSVG.framework/RNSVG
+            first_slice = xcframework_slices.first
+            framework_dir = Dir.glob(File.join(first_slice, "*.framework")).first
+
+            if framework_dir
+              binary_name = File.basename(framework_dir, '.framework')
+              binary_path = File.join(framework_dir, binary_name)
+
+              if File.exist?(binary_path)
+                # Verify it's a static library using 'file' command
+                file_type = `file "#{binary_path}"`.strip
+                if file_type.include?('ar archive') || file_type.include?('current ar archive')
+                  CocoapodsRnrepo::Logger.log "    Verified static xcframework (#{config_name})"
+                else
+                  CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: #{pod_name} #{config_name} may not be a static framework (type: #{file_type})"
+                end
               else
-                CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: #{pod_name} may not be a static framework (type: #{file_type})"
+                CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: Could not find binary at #{binary_path}"
               end
             else
-              CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: Could not find binary at #{binary_path}"
+              CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: Could not find .framework bundle in xcframework"
             end
-          else
-            CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: Could not find .framework bundle in xcframework"
           end
         end
 
@@ -204,8 +223,9 @@ module Pod
             # Initialize platform hash if needed
             spec.attributes_hash[platform] ||= {}
 
-            # Use relative path from pod directory (use actual xcframework name)
-            xcframework_relative_path = ".rnrepo-cache/#{xcframework_name}"
+            # Use relative path pointing to "Current" directory which will be set by build script
+            # The build script will create a symlink: .rnrepo-cache/Current -> Debug or Release
+            xcframework_relative_path = ".rnrepo-cache/Current/#{xcframework_name}"
 
             # Add static xcframework as vendored_frameworks
             # CocoaPods handles static xcframeworks automatically
@@ -249,5 +269,87 @@ module Pod
       CocoapodsRnrepo::Logger.log ""
     end
   end
+end
+
+# Hook into CocoaPods post-install phase to add build scripts
+Pod::HooksManager.register('cocoapods-rnrepo', :post_install) do |installer_context|
+  # Get the list of prebuilt pod info
+  prebuilt_pods = Pod::Installer.prebuilt_rnrepo_pods || []
+  next if prebuilt_pods.empty?
+
+  CocoapodsRnrepo::Logger.log ""
+  CocoapodsRnrepo::Logger.log "🔧 Adding build phase scripts for configuration selection..."
+
+  # Add build phase script to each target that uses prebuilt frameworks
+  installer_context.pods_project.targets.each do |pod_target|
+    # Check if this target uses any prebuilt frameworks
+    uses_prebuilt = prebuilt_pods.any? { |pod_info| pod_target.name.start_with?(pod_info[:name]) }
+    # Check if this target uses any prebuilt frameworks
+    # Target names in Xcode are like "react-native-svg" or "React-native-svg"
+    pod_name = prebuilt_pods.find { |pod_info| pod_target.name.start_with?(pod_info[:name]) }
+    next unless pod_name
+
+    pod_info = prebuilt_pods.find { |p| p[:name] == pod_name[:name] }
+    next unless pod_info
+
+    # Check if script phase already exists
+    script_name = "[RNREPO] Select Framework Configuration"
+    existing_phase = pod_target.shell_script_build_phases.find { |phase| phase.name == script_name }
+
+    if existing_phase
+      CocoapodsRnrepo::Logger.log "  Build phase already exists for #{pod_info[:name]}"
+      next
+    end
+
+    package_root = pod_info[:package_root]
+    cache_dir = File.join(package_root, '.rnrepo-cache')
+
+    # Skip aggregate targets that don't have source build phases
+    next unless pod_target.respond_to?(:source_build_phase)
+
+    # Add a build phase script that runs before compilation
+    # This script creates a symlink from Current -> Debug or Release based on CONFIGURATION
+    script_phase = pod_target.new_shell_script_build_phase(script_name)
+    script_phase.shell_script = <<~SCRIPT
+      set -e
+
+      # Path to the cache directory (relative to the pod's source directory)
+      CACHE_DIR="${PODS_TARGET_SRCROOT}/.rnrepo-cache"
+      CURRENT_LINK="${CACHE_DIR}/Current"
+
+      # Select the appropriate configuration
+      if [ "$CONFIGURATION" == "Debug" ]; then
+        TARGET_DIR="Debug"
+      elif [ "$CONFIGURATION" == "Release" ]; then
+        TARGET_DIR="Release"
+      else
+        echo "warning: Unknown configuration '$CONFIGURATION', defaulting to Release"
+        TARGET_DIR="Release"
+      fi
+
+      # Remove existing Current link/directory if it exists
+      if [ -L "${CURRENT_LINK}" ] || [ -e "${CURRENT_LINK}" ]; then
+        rm -rf "${CURRENT_LINK}"
+      fi
+
+      # Create symlink to the appropriate configuration
+      ln -sf "${TARGET_DIR}" "${CURRENT_LINK}"
+
+      echo "RNREPO: Selected ${TARGET_DIR} configuration for ${PODS_TARGET_SRCROOT}"
+    SCRIPT
+
+    # Move the script phase to run before "Compile Sources" phase
+    compile_phase = pod_target.source_build_phase
+    if compile_phase
+      pod_target.build_phases.delete(script_phase)
+      compile_phase_index = pod_target.build_phases.index(compile_phase)
+      pod_target.build_phases.insert(compile_phase_index, script_phase)
+    end
+
+    CocoapodsRnrepo::Logger.log "  Added build phase to #{pod_info[:name]}"
+  end
+
+  CocoapodsRnrepo::Logger.log "✓ Build phase scripts configured"
+  CocoapodsRnrepo::Logger.log ""
 end
 

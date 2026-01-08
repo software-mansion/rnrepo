@@ -60,19 +60,13 @@ module CocoapodsRnrepo
             end
           end
 
-          # Detect build configuration from Xcode environment (Release/Debug)
-          # If not set or invalid, we'll skip pre-built frameworks and build from source
-          xcode_config = ENV['CONFIGURATION']
-          config = nil
-
-          if xcode_config && (xcode_config == 'Debug' || xcode_config == 'Release')
-            # Convert to lowercase ('release' or 'debug') to match build artifact naming
-            config = xcode_config.downcase
-          end
-
-          maven_url = nil
-          if npm_package_name && version && rn_version && config
-            maven_url = build_ios_xcframework_url(npm_package_name, version, rn_version, config)
+          # Build Maven URLs for both Debug and Release configurations
+          # We'll download both during pod install, and select the right one at build time
+          maven_url_debug = nil
+          maven_url_release = nil
+          if npm_package_name && version && rn_version
+            maven_url_debug = build_ios_xcframework_url(npm_package_name, version, rn_version, 'debug')
+            maven_url_release = build_ios_xcframework_url(npm_package_name, version, rn_version, 'release')
           end
 
           # Avoid duplicates
@@ -83,9 +77,9 @@ module CocoapodsRnrepo
               source: source_path,
               package_root: package_root,
               npm_package_name: npm_package_name,
-              maven_url: maven_url,
-              rn_version: rn_version,
-              config: config
+              maven_url_debug: maven_url_debug,
+              maven_url_release: maven_url_release,
+              rn_version: rn_version
             }
           end
         end
