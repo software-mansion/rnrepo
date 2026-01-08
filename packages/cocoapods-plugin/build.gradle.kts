@@ -1,7 +1,8 @@
 repositories {
     mavenCentral()
     google()
-    maven { url = uri("https://packages.rnrepo.org/releases/") }
+    //maven { url = uri("https://packages.rnrepo.org/releases/") }
+    maven { url = uri("https://repo.swmtest.xyz/releases/") }
 }
 
 configurations.create("zipDownload") {

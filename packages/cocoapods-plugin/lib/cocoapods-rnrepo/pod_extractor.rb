@@ -1,7 +1,7 @@
 module CocoapodsRnrepo
   class PodExtractor
     # Extract third-party React Native pods from Podfile dependencies
-    # Returns an array of hashes with :name, :version, :source, :package_root, :npm_package_name, :maven_url keys
+    # Returns an array of hashes with :name, :version, :source, :package_root, :npm_package_name keys
     # @param workspace_root [String] The directory where Podfile is located (ios directory)
     def self.extract_rn_pods_from_podfile(podfile, lockfile = nil, workspace_root = nil)
       require 'json'
@@ -70,11 +70,6 @@ module CocoapodsRnrepo
             config = xcode_config.downcase
           end
 
-          maven_url = nil
-          if npm_package_name && version && rn_version && config
-            maven_url = build_ios_xcframework_url(npm_package_name, version, rn_version, config)
-          end
-
           # Avoid duplicates
           unless rn_pods.any? { |p| p[:name] == pod_name }
             rn_pods << {
@@ -83,7 +78,6 @@ module CocoapodsRnrepo
               source: source_path,
               package_root: package_root,
               npm_package_name: npm_package_name,
-              maven_url: maven_url,
               rn_version: rn_version,
               config: config
             }
@@ -124,38 +118,6 @@ module CocoapodsRnrepo
 
       Logger.log "  ⚠️  Could not detect React Native version"
       nil
-    end
-
-    # Build iOS XCFramework URL for downloading pre-built framework
-    # Format: npm-package-name-version-rnX.Y.Z-config.xcframework.zip
-    def self.build_ios_xcframework_url(package_name, version, rn_version, config = 'release')
-      base_url = 'https://packages.rnrepo.org/snapshots/org/rnrepo'
-
-      # Use the npm package name directly for artifact path
-      artifact_path = package_name
-
-      # Sanitize package name for filename (remove @ and replace / with _)
-      # Matches sanitizePackageName() in @rnrepo/config
-      # e.g., @react-native-picker/picker -> react-native-picker_picker
-      sanitized_name = package_name.gsub(/^@/, '').gsub('/', '_')
-
-      # Build filename: react-native-picker_picker-2.11.4-rn0.82.1-release.xcframework.zip
-      filename = "#{sanitized_name}-#{version}-rn#{rn_version}-#{config}.xcframework.zip"
-
-      "#{base_url}/#{artifact_path}/#{version}/#{filename}"
-    end
-
-    # Legacy: Build Maven URL for Android AAR files
-    # This is kept for reference but not currently used
-    def self.build_maven_url(package_name, version)
-      base_url = 'https://packages.rnrepo.org/snapshots/org/rnrepo'
-
-      # Convert package name to Maven artifact format following React Native's pattern
-      # Same logic as sanitizePackageName in packages/config/src/utils.ts
-      # @react-native-community/slider -> react-native-community_slider
-      artifact_name = package_name.gsub(/^@/, '').gsub('/', '_')
-
-      "#{base_url}/#{artifact_name}/#{version}/#{artifact_name}-#{version}.zip"
     end
   end
 end

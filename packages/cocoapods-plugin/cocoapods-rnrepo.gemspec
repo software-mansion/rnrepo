@@ -13,13 +13,14 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://rnrepo.org'
   spec.license       = 'MIT'
 
-  spec.files         = Dir['lib/**/*'] + %w{README.md}
+  spec.files         = Dir['lib/**/*'] + %w{README.md build.gradle.kts}
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ['lib']
 
   spec.add_dependency 'cocoapods', '>= 1.0.0'
   spec.add_dependency 'rubyzip', '~> 2.3'
+  spec.add_dependency 'openssl', '~> 4.0'
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'rake'

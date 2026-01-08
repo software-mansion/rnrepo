@@ -5,18 +5,9 @@ module CocoapodsRnrepo
     def self.fetch_framework(installer, pod_info, workspace_root)
       pod_name = pod_info[:name]
       version = pod_info[:version]
-      maven_url = pod_info[:maven_url]
       source_path = pod_info[:source]
 
       Logger.log "Processing: #{pod_name} v#{version}".bold
-
-      # Skip if we don't have a Maven URL
-      unless maven_url
-        Logger.log "No Maven URL available for #{pod_name}"
-        Logger.log "  Debug: npm_package_name=#{pod_info[:npm_package_name]}, version=#{version}, rn_version=#{pod_info[:rn_version]}, config=#{pod_info[:config]}"
-        Logger.log "Will build from source instead"
-        return { status: :unavailable, message: "No Maven URL" }
-      end
 
       # Resolve the source path to get absolute package directory
       # source_path is relative like "../node_modules/react-native-svg"
@@ -52,8 +43,17 @@ module CocoapodsRnrepo
       zip_filename = "#{sanitized_name}-#{version}-rn#{rn_version}-#{config}.xcframework.zip"
       zip_path = File.join(cache_dir, zip_filename)
 
-      Logger.log "Maven URL: #{maven_url}"
-      unless Downloader.download_file(maven_url, zip_path)
+      downloaded_file = Downloader.download_file(
+        {
+          package: npm_package_name,
+          sanitized_name: sanitized_name,
+          version: version,
+          rn_version: rn_version,
+          configuration: config,
+          destination: zip_path
+        }
+      )
+      unless downloaded_file
         Logger.log "Not available on Maven repository"
         Logger.log "Will build from source instead"
         return { status: :unavailable, message: "Not available on Maven" }
@@ -62,7 +62,7 @@ module CocoapodsRnrepo
       # Extract the zip file
       # The zip contains: FrameworkName.xcframework/ (may differ from pod name due to sanitization)
       # We extract to cache_dir, which should create: cache_dir/FrameworkName.xcframework/
-      unless Downloader.unzip_file(zip_path, cache_dir)
+      unless Downloader.unzip_file(downloaded_file, cache_dir)
         Logger.log "Failed to extract pre-built framework for #{pod_name}"
         FileUtils.rm_f(zip_path)
         return { status: :failed, message: "Extraction failed" }

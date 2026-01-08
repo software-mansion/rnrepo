@@ -39,7 +39,7 @@ To test it on a project that lives outside of RNRepo monorepo structure, you can
 
 ```bash
 cd packages/cocoapods-plugin
-bun run install
+bun run gem-install
 ```
 
 This will automatically uninstall any previous version, build the gem, and install it.
