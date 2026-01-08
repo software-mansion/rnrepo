@@ -16,7 +16,7 @@ module CocoapodsRnrepo
     end
 
     # Download from local test files (development/testing only)
-    # Looks for files in: ~/.rnrepo-test-files/
+    # Looks for files in: /tmp/rnrepo
     # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration
     # Returns: destination path if successful, nil if file not found
     def self.download_from_local_test(artifact_spec)
@@ -81,7 +81,7 @@ module CocoapodsRnrepo
     # Locate downloaded file in gradle cache
     # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration
     # Returns: path if found, nil if not found
-    def find_in_gradle_cache(spec)
+    def self.find_in_gradle_cache(spec)
       path_parts = [Dir.home, '.gradle/caches/modules-2/files-2.1', 'org.rnrepo.public', spec[:sanitized_name], spec[:version]]
       gradle_cache = File.join(*path_parts)
       
