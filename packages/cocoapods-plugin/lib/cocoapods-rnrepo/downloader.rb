@@ -36,7 +36,7 @@ module CocoapodsRnrepo
     end
 
     # Download file via gradle task
-    # Requires: artifact_spec hash with, :version, :rn_version, :configuration
+    # Requires: artifact_spec hash with, :sanitized_name, :version, :rn_version, :configuration
     # Returns: destination path if successful, nil on failure
     def self.download_via_gradle(artifact_spec)
       Logger.log "Downloading via gradle..."
@@ -67,7 +67,7 @@ module CocoapodsRnrepo
 
         if status.success?
           Logger.log "Gradle download completed successfully"
-          return find_in_gradle_cache(artifact_spec)
+          return self.find_in_gradle_cache(artifact_spec)
         else
           Logger.log "Gradle execution failed: #{stderr}"
           return nil
