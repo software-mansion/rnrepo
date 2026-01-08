@@ -60,16 +60,6 @@ module CocoapodsRnrepo
             end
           end
 
-          # Detect build configuration from Xcode environment (Release/Debug)
-          # If not set or invalid, we'll skip pre-built frameworks and build from source
-          xcode_config = ENV['CONFIGURATION']
-          config = nil
-
-          if xcode_config && (xcode_config == 'Debug' || xcode_config == 'Release')
-            # Convert to lowercase ('release' or 'debug') to match build artifact naming
-            config = xcode_config.downcase
-          end
-
           # Avoid duplicates
           unless rn_pods.any? { |p| p[:name] == pod_name }
             rn_pods << {
@@ -78,8 +68,7 @@ module CocoapodsRnrepo
               source: source_path,
               package_root: package_root,
               npm_package_name: npm_package_name,
-              rn_version: rn_version,
-              config: config
+              rn_version: rn_version
             }
           end
         end
