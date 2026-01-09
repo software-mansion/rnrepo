@@ -73,7 +73,7 @@ function getPodName(appDir: string): string {
 
   // Try to find podspec file using bun glob
   const glob = new Glob('*.podspec');
-  const podspecFiles = Array.from(glob.scanSync({ cwd: packagePath }));
+  const podspecFiles = Array.from(glob.scanSync({ cwd: packagePath })) as string[];
 
   if (podspecFiles.length > 0) {
     return basename(podspecFiles[0], '.podspec');
@@ -148,9 +148,8 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
   }
 
   const podName = getPodName(appDir);
-  const appScheme = basename(appDir); // The main app scheme (e.g., "rnrepo_build_app")
   console.log(
-    `📱 Building app scheme: ${appScheme} (to generate pod: ${podName})`
+    `📱 Building library pod: ${podName}`
   );
 
   const buildDir = join(workDir, 'build');
@@ -165,7 +164,7 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
       // TEMPORARILY DISABLED: Build for device (uncomment when needed for full XCFramework)
       // await xcodebuild(
       //   projectPath,
-      //   appScheme, // Build the app, not individual pods
+      //   podName,
       //   'iphoneos',
       //   CONFIGURATION,
       //   buildDir,
@@ -176,7 +175,7 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
       // Building the app will build all pods including the one we want
       await xcodebuild(
         projectPath,
-        appScheme, // Build the app, not individual pods
+        podName,
         'iphonesimulator',
         CONFIGURATION,
         buildDir,
@@ -215,7 +214,7 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
         );
       }
 
-      const frameworkFile = frameworks[0]; // e.g., "react_native_webview.framework"
+      const frameworkFile = frameworks[0] as string; // e.g., "react_native_webview.framework"
       const simulatorFrameworkPath = join(podBuildDir, frameworkFile);
 
       console.log(`✓ Found framework: ${frameworkFile}`);
@@ -285,6 +284,8 @@ async function buildLibrary() {
     await $`pod install`.cwd(iosPath).env({
       ...process.env,
       USE_FRAMEWORKS: 'static',
+      USE_PREBUILT_REACT_NATIVE: '1', // Use prebuilt React Native to speed up builds
+      RCT_USE_RN_DEP: '1', // Use RN dependency management
     });
     console.log('✓ Pod install completed with static frameworks');
 

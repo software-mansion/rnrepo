@@ -114,7 +114,7 @@ async function main() {
 
     // List available files to find the xcframework zip
     const files = readdirSync(artifactDir);
-    for (const buildConfig of ['Release', 'Debug']) {
+    for (const buildConfig of ['release', 'debug']) {
       console.log(`\n🔍 Searching for ${buildConfig} build...`);
       const xcframeworkZip = files.find((f) =>
         f.includes(`${sanitizedLibraryName}-${libraryVersion}`) &&
@@ -149,6 +149,7 @@ async function main() {
           -Dpackaging=zip \
           -Dclassifier=${classifier} \
           -DrepositoryId=RNRepo \
+          -DgeneratePom=false \
           -Durl=${MAVEN_REPOSITORY_URL}`;
       console.log('✓ XCFramework deployed successfully');
 
