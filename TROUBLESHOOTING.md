@@ -120,7 +120,7 @@ Caused by: com.android.builder.merge.DuplicateRelativeFileException: 2 files fou
 
 This error occurs when:
 1. A library built from sources includes native code from a provider library
-3. The Gradle build system encounters duplicate `.so` files in different locations during the merge phase
+2. The Gradle build system encounters duplicate `.so` files in different locations during the merge phase
 
 #### Automatic Solution
 The RNRepo plugin automatically detects when both a provider library (e.g., `react-native-worklets`) and its consumer library (e.g., `react-native-reanimated`) are supported as prebuilts. When this happens, it adds `pickFirsts` configuration for all native library files to resolve the conflict gracefully.
