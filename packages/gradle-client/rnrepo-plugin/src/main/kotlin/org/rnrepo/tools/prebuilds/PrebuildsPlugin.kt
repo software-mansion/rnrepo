@@ -516,7 +516,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 logger.info("Checking availability of package ${packageItem.npmName} version ${packageItem.version} at $urlString")
                 val isAvailable = connection.responseCode == HttpURLConnection.HTTP_OK
                 if (isAvailable) {
-                    logger.info("✓ Package ${packageItem.name}@${packageItem.version} found at ${repo.url}")
+                    logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} found at ${repo.url}")
                 }
                 isAvailable
             } catch (e: Exception) {
