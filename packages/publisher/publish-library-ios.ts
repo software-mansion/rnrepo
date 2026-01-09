@@ -73,9 +73,9 @@ async function main() {
       throw new Error('Could not get build workflow run name');
     }
 
-    // Format: "Build for iOS {library_name}@{library_version} RN@{react_native_version}( with worklets@{worklets_version})?( [{configuration}])?( - snapshot)?"
+    // Format: "Build for iOS {library_name}@{library_version} RN@{react_native_version}( with worklets@{worklets_version})?( - snapshot)?"
     const match = buildRunName.match(
-      /Build for iOS (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?( \[(.+?)\])?( - snapshot)?$/
+      /Build for iOS (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?( - snapshot)?$/
     );
     if (!match) {
       throw new Error(`Could not parse workflow run name: ${buildRunName}`);
@@ -89,7 +89,6 @@ async function main() {
       _,
       workletsVersion,
       __,
-      configuration,
       isSnapshotRun,
     ] = match;
 
@@ -97,14 +96,12 @@ async function main() {
     console.log(`   Build Run: ${buildRunName}`);
     console.log(`   Library: ${libraryName}@${libraryVersion}`);
     console.log(`   React Native: ${reactNativeVersion}`);
-    console.log(`   Configuration: ${configuration || 'release'}`);
     console.log(
       `${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`
     );
     console.log(`   Snapshot Run: ${isSnapshotRun ? 'Yes' : 'No'}`);
 
     const sanitizedLibraryName = sanitizePackageName(libraryName);
-    const buildConfig = configuration || 'release';
 
     // Find the downloaded artifact directory
     const artifactDir = join(process.cwd(), 'framework-artifacts');
@@ -117,46 +114,48 @@ async function main() {
 
     // List available files to find the xcframework zip
     const files = readdirSync(artifactDir);
-    const xcframeworkZip = files.find((f) =>
-      f.includes(`${sanitizedLibraryName}-${libraryVersion}`) &&
-      f.includes(`rn${reactNativeVersion}`) &&
-      f.includes(`-${buildConfig}.xcframework.zip`)
-    );
+    for (const buildConfig of ['Release', 'Debug']) {
+      console.log(`\n🔍 Searching for ${buildConfig} build...`);
+      const xcframeworkZip = files.find((f) =>
+        f.includes(`${sanitizedLibraryName}-${libraryVersion}`) &&
+        f.includes(`rn${reactNativeVersion}`) &&
+        f.includes(`-${buildConfig}.xcframework.zip`)
+      );
 
-    if (!xcframeworkZip) {
-      throw new Error(
-        `XCFramework zip not found for ${libraryName}@${libraryVersion} (config: ${buildConfig}) in ${artifactDir}\n` +
-          `Available files: ${files.join(', ')}`
+      if (!xcframeworkZip) {
+        throw new Error(
+          `XCFramework zip not found for ${libraryName}@${libraryVersion} (config: ${buildConfig}) in ${artifactDir}\n` +
+            `Available files: ${files.join(', ')}`
+        );
+      }
+
+      const xcframeworkPath = join(artifactDir, xcframeworkZip);
+      console.log(`\n📦 Found XCFramework: ${xcframeworkZip}`);
+
+      // For iOS, we publish to Maven repository as a platform-specific artifact
+      // The artifact follows the naming convention: {library}-{version}-rn{rnVersion}-{config}.xcframework.zip
+      const classifier = `rn${reactNativeVersion}-${buildConfig}${
+        workletsVersion ? `-worklets${workletsVersion}` : ''
+      }`;
+
+      // Deploy the XCFramework zip to Maven repository
+      // Using the same Maven infrastructure as Android for cross-platform compatibility
+      console.log('\n🚀 Deploying to Maven repository...');
+      await $`mvn deploy:deploy-file \
+          -Dfile=${xcframeworkPath} \
+          -DgroupId=org.rnrepo.public \
+          -DartifactId=${sanitizedLibraryName} \
+          -Dversion=${libraryVersion} \
+          -Dpackaging=zip \
+          -Dclassifier=${classifier} \
+          -DrepositoryId=RNRepo \
+          -Durl=${MAVEN_REPOSITORY_URL}`;
+      console.log('✓ XCFramework deployed successfully');
+
+      console.log(
+        `✅ Published library ${libraryName}@${libraryVersion} (${buildConfig}) to remote Maven repository`
       );
     }
-
-    const xcframeworkPath = join(artifactDir, xcframeworkZip);
-    console.log(`\n📦 Found XCFramework: ${xcframeworkZip}`);
-
-    // For iOS, we publish to Maven repository as a platform-specific artifact
-    // The artifact follows the naming convention: {library}-{version}-rn{rnVersion}-{config}.xcframework.zip
-    const classifier = `rn${reactNativeVersion}-${buildConfig}${
-      workletsVersion ? `-worklets${workletsVersion}` : ''
-    }`;
-
-    // Deploy the XCFramework zip to Maven repository
-    // Using the same Maven infrastructure as Android for cross-platform compatibility
-    console.log('\n🚀 Deploying to Maven repository...');
-    await $`mvn deploy:deploy-file \
-        -Dfile=${xcframeworkPath} \
-        -DgroupId=org.rnrepo.public \
-        -DartifactId=${sanitizedLibraryName} \
-        -Dversion=${libraryVersion} \
-        -Dpackaging=zip \
-        -Dclassifier=${classifier} \
-        -DrepositoryId=RNRepo \
-        -Durl=${MAVEN_REPOSITORY_URL}`;
-    console.log('✓ XCFramework deployed successfully');
-
-    console.log(
-      `✅ Published library ${libraryName}@${libraryVersion} (${buildConfig}) to remote Maven repository`
-    );
-
     // Update Supabase status to 'completed' after publish is fully complete
     if (isSnapshotRun) {
       console.log(
@@ -179,7 +178,6 @@ async function main() {
         {
           githubRunUrl: githubRunUrl,
           workletsVersion: workletsVersion || null,
-          configuration: buildConfig,
         }
       );
       console.log('✓ Database status updated to completed');

@@ -1,6 +1,6 @@
 name: Build iOS Library
 
-run-name: Build for iOS ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}${{ inputs.worklets_version && format(' with worklets@{0}', inputs.worklets_version) || '' }}${{ inputs.configuration && format(' [{0}]', inputs.configuration) || '' }}${{ inputs.test_run_snapshot && ' - snapshot' || '' }}
+run-name: Build for iOS ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}${{ inputs.worklets_version && format(' with worklets@{0}', inputs.worklets_version) || '' }}${{ inputs.test_run_snapshot && ' - snapshot' || '' }}
 
 on:
   workflow_dispatch:
@@ -17,13 +17,6 @@ on:
         description: 'React Native version'
         required: true
         type: string
-      configuration:
-        description: 'Build configuration'
-        required: true
-        type: choice
-        options:
-          - debug
-          - release
       worklets_version:
         description: 'Worklets version'
         required: false
@@ -61,7 +54,7 @@ jobs:
         run: bun install
 
       - name: 🔨 Build library for iOS
-        run: bun run packages/builder/build-library-ios.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ inputs.configuration }}" "${{ runner.temp }}" "${{ inputs.worklets_version }}"
+        run: bun run packages/builder/build-library-ios.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}" "${{ inputs.worklets_version }}"
 
       - name: 📦 Upload framework artifacts
         uses: actions/upload-artifact@v4

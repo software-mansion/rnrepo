@@ -17,7 +17,6 @@ import {
  * @param libraryName - Name of the library from NPM
  * @param libraryVersion - Version of the library from NPM
  * @param reactNativeVersion - React Native version to use for building
- * @param buildConfig - Build configuration: "release" or "debug"
  * @param workDir - Working directory where "app" (RN project) and "outputs" (XCFrameworks) will be created
  * @param workletsVersion - (Optional) react-native-worklets version to install
  */
@@ -26,7 +25,6 @@ const [
   libraryName,
   libraryVersion,
   reactNativeVersion,
-  buildConfig,
   workDir,
   workletsVersion,
 ] = process.argv.slice(2);
@@ -35,26 +33,16 @@ if (
   !libraryName ||
   !libraryVersion ||
   !reactNativeVersion ||
-  !buildConfig ||
   !workDir
 ) {
   console.error(
-    'Usage: bun run build-library-ios.ts <library-name> <library-version> <react-native-version> <build-config> <work-dir> [<worklets-version>]'
-  );
-  process.exit(1);
-}
-
-// Validate build configuration (must be lowercase)
-if (buildConfig !== 'release' && buildConfig !== 'debug') {
-  console.error(
-    `Invalid build configuration: ${buildConfig}. Must be "release" or "debug" (lowercase)`
+    'Usage: bun run build-library-ios.ts <library-name> <library-version> <react-native-version> <work-dir> [<worklets-version>]'
   );
   process.exit(1);
 }
 
 // Convert to Xcode configuration format (Release/Debug)
-const CONFIGURATION =
-  buildConfig.charAt(0).toUpperCase() + buildConfig.slice(1);
+const buildConfigs = ['Release', 'Debug'];
 const GITHUB_BUILD_URL = getGithubBuildUrl();
 
 // Note: Bitcode was deprecated in Xcode 14 and removed entirely by Apple.
@@ -64,7 +52,6 @@ const GITHUB_BUILD_URL = getGithubBuildUrl();
 console.log('📦 Building iOS library:');
 console.log(`   Library: ${libraryName}@${libraryVersion}`);
 console.log(`   React Native: ${reactNativeVersion}`);
-console.log(`   Configuration: ${CONFIGURATION}`);
 console.log(
   `${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`
 );
@@ -173,103 +160,105 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
   mkdirSync(buildDir, { recursive: true });
   mkdirSync(outputPath, { recursive: true });
 
-  try {
-    // TEMPORARILY DISABLED: Build for device (uncomment when needed for full XCFramework)
-    // await xcodebuild(
-    //   projectPath,
-    //   appScheme, // Build the app, not individual pods
-    //   'iphoneos',
-    //   CONFIGURATION,
-    //   buildDir,
-    //   derivedDataPath
-    // );
+  for (const CONFIGURATION of buildConfigs) {
+    try {
+      // TEMPORARILY DISABLED: Build for device (uncomment when needed for full XCFramework)
+      // await xcodebuild(
+      //   projectPath,
+      //   appScheme, // Build the app, not individual pods
+      //   'iphoneos',
+      //   CONFIGURATION,
+      //   buildDir,
+      //   derivedDataPath
+      // );
 
-    // Build for simulator (for faster testing)
-    // Building the app will build all pods including the one we want
-    await xcodebuild(
-      projectPath,
-      appScheme, // Build the app, not individual pods
-      'iphonesimulator',
-      CONFIGURATION,
-      buildDir,
-      derivedDataPath
-    );
-
-    // Find the built framework using glob
-    console.log('🔍 Locating built framework...');
-
-    // CocoaPods may sanitize pod names to valid C identifiers (e.g., dashes → underscores)
-    // So we glob for *.framework instead of assuming the sanitization logic
-    const podBuildDir = join(
-      buildDir,
-      `${CONFIGURATION}-iphonesimulator`,
-      podName
-    );
-
-    const glob = new Glob('*.framework');
-    const frameworks = Array.from(
-      glob.scanSync({ cwd: podBuildDir, onlyFiles: false })
-    );
-
-    if (frameworks.length === 0) {
-      throw new Error(
-        `No framework found in ${podBuildDir}\n` +
-          `Pod name: ${podName}\n` +
-          `Expected to find *.framework`
+      // Build for simulator (for faster testing)
+      // Building the app will build all pods including the one we want
+      await xcodebuild(
+        projectPath,
+        appScheme, // Build the app, not individual pods
+        'iphonesimulator',
+        CONFIGURATION,
+        buildDir,
+        derivedDataPath
       );
-    }
 
-    if (frameworks.length > 1) {
-      throw new Error(
-        `Multiple frameworks found in ${podBuildDir}: ${frameworks.join(
-          ', '
-        )}\n` + `Expected exactly one framework for pod: ${podName}`
+      // Find the built framework using glob
+      console.log('🔍 Locating built framework...');
+
+      // CocoaPods may sanitize pod names to valid C identifiers (e.g., dashes → underscores)
+      // So we glob for *.framework instead of assuming the sanitization logic
+      const podBuildDir = join(
+        buildDir,
+        `${CONFIGURATION}-iphonesimulator`,
+        podName
       );
+
+      const glob = new Glob('*.framework');
+      const frameworks = Array.from(
+        glob.scanSync({ cwd: podBuildDir, onlyFiles: false })
+      );
+
+      if (frameworks.length === 0) {
+        throw new Error(
+          `No framework found in ${podBuildDir}\n` +
+            `Pod name: ${podName}\n` +
+            `Expected to find *.framework`
+        );
+      }
+
+      if (frameworks.length > 1) {
+        throw new Error(
+          `Multiple frameworks found in ${podBuildDir}: ${frameworks.join(
+            ', '
+          )}\n` + `Expected exactly one framework for pod: ${podName}`
+        );
+      }
+
+      const frameworkFile = frameworks[0]; // e.g., "react_native_webview.framework"
+      const simulatorFrameworkPath = join(podBuildDir, frameworkFile);
+
+      console.log(`✓ Found framework: ${frameworkFile}`);
+
+      // Create XCFramework using the actual framework name from CocoaPods
+      console.log('🔨 Creating XCFramework...');
+      const xcframeworkFile = frameworkFile.replace('.framework', '.xcframework');
+      const xcframeworkPath = join(outputPath, xcframeworkFile);
+
+      // Remove existing xcframework if present
+      if (existsSync(xcframeworkPath)) {
+        rmSync(xcframeworkPath, { recursive: true, force: true });
+      }
+
+      const args = ['-create-xcframework', '-framework', simulatorFrameworkPath];
+
+      // Add simulator dSYM if present
+      const simulatorDsym = `${simulatorFrameworkPath}.dSYM`;
+      if (existsSync(simulatorDsym)) {
+        args.push('-debug-symbols', simulatorDsym);
+        console.log('   Including debug symbols (dSYM)');
+      }
+
+      // When device build is enabled, add it here:
+      // const deviceFrameworkPath = ...
+      // args.push('-framework', deviceFrameworkPath);
+      // if (existsSync(deviceDsym)) args.push('-debug-symbols', deviceDsym);
+
+      args.push('-output', xcframeworkPath);
+
+      await $`xcodebuild ${args}`;
+      console.log(`✓ Created XCFramework at ${xcframeworkPath}`);
+
+      // Create zip archive
+      console.log('📦 Creating zip archive...');
+      const sanitizedLibraryName = sanitizePackageName(libraryName);
+      const zipName = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}-${CONFIGURATION.toLowerCase()}.xcframework.zip`;
+      await $`zip -r ${zipName} ${xcframeworkFile}`.cwd(outputPath).quiet();
+      console.log(`✓ Created zip archive: ${zipName}`);
+    } catch (error) {
+      console.error('❌ Static XCFramework build failed:', error);
+      throw error;
     }
-
-    const frameworkFile = frameworks[0]; // e.g., "react_native_webview.framework"
-    const simulatorFrameworkPath = join(podBuildDir, frameworkFile);
-
-    console.log(`✓ Found framework: ${frameworkFile}`);
-
-    // Create XCFramework using the actual framework name from CocoaPods
-    console.log('🔨 Creating XCFramework...');
-    const xcframeworkFile = frameworkFile.replace('.framework', '.xcframework');
-    const xcframeworkPath = join(outputPath, xcframeworkFile);
-
-    // Remove existing xcframework if present
-    if (existsSync(xcframeworkPath)) {
-      rmSync(xcframeworkPath, { recursive: true, force: true });
-    }
-
-    const args = ['-create-xcframework', '-framework', simulatorFrameworkPath];
-
-    // Add simulator dSYM if present
-    const simulatorDsym = `${simulatorFrameworkPath}.dSYM`;
-    if (existsSync(simulatorDsym)) {
-      args.push('-debug-symbols', simulatorDsym);
-      console.log('   Including debug symbols (dSYM)');
-    }
-
-    // When device build is enabled, add it here:
-    // const deviceFrameworkPath = ...
-    // args.push('-framework', deviceFrameworkPath);
-    // if (existsSync(deviceDsym)) args.push('-debug-symbols', deviceDsym);
-
-    args.push('-output', xcframeworkPath);
-
-    await $`xcodebuild ${args}`;
-    console.log(`✓ Created XCFramework at ${xcframeworkPath}`);
-
-    // Create zip archive
-    console.log('📦 Creating zip archive...');
-    const sanitizedLibraryName = sanitizePackageName(libraryName);
-    const zipName = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}-${buildConfig}.xcframework.zip`;
-    await $`zip -r ${zipName} ${xcframeworkFile}`.cwd(outputPath).quiet();
-    console.log(`✓ Created zip archive: ${zipName}`);
-  } catch (error) {
-    console.error('❌ Static XCFramework build failed:', error);
-    throw error;
   }
 }
 
