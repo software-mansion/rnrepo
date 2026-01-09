@@ -93,6 +93,8 @@ For standard React Native setups or when using Expo but managing your android fo
    + apply plugin: "org.rnrepo.tools.prebuilds-plugin"
    ```
 
+   ⚠️ **Important:** The plugin must be applied **after** defining repositories. If you're using a non-standard project structure (not following the `rootProject/android/app` layout), ensure that the `repositories` block is defined before the plugin is applied, otherwise the plugin won't be able to find the RNRepo Maven repository and all packages will fall back to building from source.
+
 That's it! Now build your app as usual and Gradle will pull prebuilt artifacts from `packages.rnrepo.org` whenever a library + RN version pair is available. If a dependency is missing, Gradle gracefully falls back to building from source.
 
 ---

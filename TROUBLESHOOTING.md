@@ -131,3 +131,24 @@ The RNRepo plugin automatically detects when both a provider library (e.g., `rea
 
 If other libraries cause similar issues, please report them so they can be added to the automatic handling list.
 
+### No Supported Packages Found or Empty Repository List
+
+#### Problem Description
+You might encounter a situation where the RNRepo plugin reports that no packages are supported or no repositories could be found:
+
+```
+[📦 RNRepo] Found the following supported prebuilt packages: None
+```
+
+Or in info logs:
+```
+[📦 RNRepo] HTTP RNRepo repositories to check: <no repositories listed>
+```
+
+This typically means that:
+1. Your project has packages that could be prebuilt, but none are being recognized as supported (i.e., unsupported packages/versions, or all are in the deny list)
+2. The plugin cannot find any configured Maven repositories pointing to the RNRepo registry
+3. The RNRepo plugin is being applied before the Maven repository is defined in your `build.gradle` file
+
+#### Solution
+Ensure that your `build.gradle` applies the RNRepo plugin **after** defining the RNRepo maven repository. This ensures the RNRepo Maven repository is available to all subprojects, including your app module, before the RNRepo plugin attempts to check package availability.
