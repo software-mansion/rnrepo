@@ -106,3 +106,28 @@ These messages indicate that the RNRepo plugin has detected an inconsistency and
 2. **Add to deny list**: If you encounter persistent issues with specific C++ libraries, you can add them to the deny list in your `rnrepo.config.json` to force them to be built from sources.
 
 3. **Review build variant configuration**: Ensure your build configuration doesn't mix debug and release builds for interdependent packages.
+
+### Duplicate Native Library Files (.so) Conflicts
+
+#### Problem Description
+When building your Android app, you might encounter an error about duplicate native library files being found in different locations:
+
+```
+Caused by: com.android.builder.merge.DuplicateRelativeFileException: 2 files found with path 'lib/arm64-v8a/libName.so' from inputs:
+ - /path/to/node_modules/react-native-some-package/android/build/intermediates/library_jni/debug/copyDebugJniLibsProjectOnly/jni/arm64-v8a/libName.so
+ - /path/to/.gradle/caches/.../react-native-some-package-0.0.0-rn0.81.4/jni/arm64-v8a/libName.so
+```
+
+This error occurs when:
+1. A library built from sources includes native code from a provider library
+3. The Gradle build system encounters duplicate `.so` files in different locations during the merge phase
+
+#### Automatic Solution
+The RNRepo plugin automatically detects when both a provider library (e.g., `react-native-worklets`) and its consumer library (e.g., `react-native-reanimated`) are supported as prebuilts. When this happens, it adds `pickFirsts` configuration for all native library files to resolve the conflict gracefully.
+
+**Supported providers that are automatically handled:**
+- `react-native-worklets` (provider) → pickFirsts for `libworklets.so`
+- `react-native-nitro-modules` (provider) → pickFirsts for `libNitroModules.so`
+
+If other libraries cause similar issues, please report them so they can be added to the automatic handling list.
+

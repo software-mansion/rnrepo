@@ -97,20 +97,8 @@ class PrebuildsPlugin : Plugin<Project> {
                 )
             }
 
-            // Add pickFirsts due to duplicates of libworklets.so from reanimated .aar and worklets
-            extension.supportedPackages.find { it.name == "react-native-reanimated" }?.let {
-                val androidExtension = project.extensions.getByName("android") as? BaseExtension
-                androidExtension?.let { android ->
-                    android.packagingOptions.apply {
-                        jniLibs.pickFirsts += "lib/arm64-v8a/libworklets.so"
-                        jniLibs.pickFirsts += "lib/armeabi-v7a/libworklets.so"
-                        jniLibs.pickFirsts += "lib/x86/libworklets.so"
-                        jniLibs.pickFirsts += "lib/x86_64/libworklets.so"
-                    }
-                } ?: run {
-                    logger.warn("The Android Gradle Plugin is not applied to this project.")
-                }
-            }
+            // Configure pickFirsts for packages with native libraries that may have duplicates
+            configurePickFirsts(project, extension.supportedPackages)
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.supportedPackages.forEach { packageItem ->
@@ -200,6 +188,39 @@ class PrebuildsPlugin : Plugin<Project> {
     ) {
         project.dependencies.add(configurationName, dependencyNotation)
         logger.info("Added dependency: $dependencyNotation to configuration: $configurationName in project ${project.name}")
+    }
+
+    /**
+     * Configures pickFirsts for native libraries that may have duplicates.
+     */
+    private fun configurePickFirsts(
+        project: Project,
+        supportedPackages: Set<PackageItem>,
+    ) {
+        val consumedPackageAndLibName =
+            mapOf(
+                "react-native-worklets" to "libworklets.so",
+                "react-native-nitro-modules" to "libNitroModules.so",
+            )
+        val architectures = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+        val androidExtension = project.extensions.getByName("android") as? BaseExtension
+        if (androidExtension == null) {
+            logger.warn("Android extension not found in project ${project.name}, cannot configure pickFirsts.")
+            return
+        }
+
+        consumedPackageAndLibName.forEach { (consumedPackageName, nativeLibName) ->
+            val isConsumedPackageSupported = supportedPackages.any { it.name == consumedPackageName }
+            if (!isConsumedPackageSupported) {
+                logger.info("Consumed package '$consumedPackageName' is not supported, skipping pickFirsts configuration.")
+                return@forEach
+            }
+            logger.info("Consumed package '$consumedPackageName' is supported, configuring pickFirsts for '$nativeLibName'.")
+            architectures.forEach { arch ->
+                androidExtension.packagingOptions.jniLibs.pickFirsts
+                    .add("lib/$arch/$nativeLibName")
+            }
+        }
     }
 
     /**
