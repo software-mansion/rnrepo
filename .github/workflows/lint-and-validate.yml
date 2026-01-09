@@ -39,7 +39,7 @@ jobs:
               - '**/*.tsx'
               - '.github/workflows/lint-and-validate.yml'
             kotlin:
-              - 'packages/client/**'
+              - 'packages/gradle-client/**'
               - '.github/workflows/lint-and-validate.yml'
             json:
               - '*.json'
@@ -55,7 +55,7 @@ jobs:
 
       - name: 🔍 Lint kotlin
         if: ${{ steps.filter.outputs.kotlin == 'true' }}
-        run: bun run lint-client
+        run: bun run lint-gradle-client
 
       - name: 🔍 Lint typescript
         if: ${{ steps.filter.outputs.typescript == 'true' }}
@@ -65,9 +65,9 @@ jobs:
         if: ${{ steps.filter.outputs.json == 'true' }}
         run: bun run validate
 
-      - name: 🧪 Run client tests
+      - name: 🧪 Run gradle-client tests
         if: ${{ steps.filter.outputs.kotlin == 'true' }}
-        run: bun run test-client
+        run: bun run test-gradle-client
 
       - name: 🧪 Run ts tests
         if: ${{ steps.filter.outputs.typescript == 'true' }}
