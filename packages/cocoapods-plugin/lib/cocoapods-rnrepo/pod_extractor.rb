@@ -138,19 +138,6 @@ module CocoapodsRnrepo
 
       "#{base_url}/#{artifact_path}/#{version}/#{filename}"
     end
-
-    # Legacy: Build Maven URL for Android AAR files
-    # This is kept for reference but not currently used
-    def self.build_maven_url(package_name, version)
-      base_url = 'https://packages.rnrepo.org/snapshots/org/rnrepo'
-
-      # Convert package name to Maven artifact format following React Native's pattern
-      # Same logic as sanitizePackageName in packages/config/src/utils.ts
-      # @react-native-community/slider -> react-native-community_slider
-      artifact_name = package_name.gsub(/^@/, '').gsub('/', '_')
-
-      "#{base_url}/#{artifact_name}/#{version}/#{artifact_name}-#{version}.zip"
-    end
   end
 end
 

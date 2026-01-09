@@ -259,7 +259,7 @@ module Pod
             end
           end
 
-          # Remove resource_bundles and convert to resources (like cocoapods-binary does)
+          # Remove resource_bundles and convert to resources
           if spec.attributes_hash["resource_bundles"]
             bundle_names = spec.attributes_hash["resource_bundles"].keys
             spec.attributes_hash["resource_bundles"] = nil
