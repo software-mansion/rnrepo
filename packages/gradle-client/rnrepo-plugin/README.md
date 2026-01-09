@@ -5,7 +5,7 @@
 To build the plugin locally:
 
 ```bash
-cd packages/client/rnrepo-plugin
+cd packages/gradle-client/rnrepo-plugin
 ./gradlew build
 ```
 
@@ -26,7 +26,7 @@ def baseVersion = '0.0.1'  // Update this version
 To publish locally for testing (e.g., to `~/.m2/repository`):
 
 ```bash
-cd packages/client/rnrepo-plugin
+cd packages/gradle-client/rnrepo-plugin
 ./gradlew publishReleasePublicationToMavenLocalRepository
 ```
 
@@ -62,6 +62,6 @@ You can disable the RNRepo plugin execution by setting the `DISABLE_RNREPO` envi
 To run the unittests for the RNRepo plugin, navigate to the plugin's directory and execute the test task:
 
 ```bash
-cd packages/client/rnrepo-plugin
+cd packages/gradle-client/rnrepo-plugin
 ./gradlew test
 ```

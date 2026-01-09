@@ -93,7 +93,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 addDependency(
                     project,
                     "implementation",
-                    "org.rnrepo.public:${packageItem.npmName}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
+                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
                 )
             }
 
@@ -115,10 +115,10 @@ class PrebuildsPlugin : Plugin<Project> {
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.supportedPackages.forEach { packageItem ->
                 val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                project.evaluationDependsOn(":${packageItem.npmName}")
+                project.evaluationDependsOn(":${packageItem.name}")
                 project.afterEvaluate {
                     try {
-                        val libraryProject = project.project(":${packageItem.npmName}")
+                        val libraryProject = project.project(":${packageItem.name}")
                         val libraryCodegenTaskProvider = libraryProject.tasks.named(codegenTaskName)
                         val appPreBuildTaskProvider = project.tasks.named("preBuild")
                         appPreBuildTaskProvider.configure {
@@ -137,11 +137,11 @@ class PrebuildsPlugin : Plugin<Project> {
                 val substitutionAction =
                     Action<Project> { evaluatedProject ->
                         extension.supportedPackages.forEach { packageItem ->
-                            val module = "org.rnrepo.public:${packageItem.npmName}:${packageItem.version}"
+                            val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
                             evaluatedProject.configurations.all { config ->
                                 config.resolutionStrategy.dependencySubstitution { substitutions ->
                                     substitutions.all { dependencySubstitution ->
-                                        if (dependencySubstitution.requested.displayName.contains("${packageItem.npmName}")) {
+                                        if (dependencySubstitution.requested.displayName.contains("${packageItem.name}")) {
                                             dependencySubstitution.useTarget(substitutions.module(module))
                                             dependencySubstitution.artifactSelection {
                                                 it.selectArtifact(
@@ -460,7 +460,7 @@ class PrebuildsPlugin : Plugin<Project> {
         RNVersion: String,
         repositories: RepositoryHandler,
     ): Boolean {
-        val artifactName = "${packageItem.npmName}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
+        val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
         val artifactDir =
             Paths
                 .get(
@@ -470,7 +470,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     "modules-2",
                     "files-2.1",
                     "org.rnrepo.public",
-                    "${packageItem.npmName}",
+                    "${packageItem.name}",
                     "${packageItem.version}",
                 ).toFile()
         if (artifactDir.exists() && artifactDir.isDirectory) {
@@ -506,7 +506,7 @@ class PrebuildsPlugin : Plugin<Project> {
         }
 
         return httpRepositories.parallelStream().anyMatch { repo ->
-            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.npmName}/${packageItem.version}/$artifactName"
+            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/$artifactName"
             var connection: HttpURLConnection? = null
             try {
                 connection = URL(urlString).openConnection() as HttpURLConnection
