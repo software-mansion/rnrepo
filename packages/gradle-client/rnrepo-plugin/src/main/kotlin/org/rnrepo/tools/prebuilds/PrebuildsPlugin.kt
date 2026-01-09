@@ -197,7 +197,7 @@ class PrebuildsPlugin : Plugin<Project> {
         project: Project,
         supportedPackages: Set<PackageItem>,
     ) {
-        val consumedPackageAndLibName =
+        val prebuiltSoProvidersPackageAndLibName =
             mapOf(
                 "react-native-worklets" to "libworklets.so",
                 "react-native-nitro-modules" to "libNitroModules.so",
@@ -209,13 +209,13 @@ class PrebuildsPlugin : Plugin<Project> {
             return
         }
 
-        consumedPackageAndLibName.forEach { (consumedPackageName, nativeLibName) ->
-            val isConsumedPackageSupported = supportedPackages.any { it.name == consumedPackageName }
-            if (!isConsumedPackageSupported) {
-                logger.info("Consumed package '$consumedPackageName' is not supported, skipping pickFirsts configuration.")
+        prebuiltSoProvidersPackageAndLibName.forEach { (prebuiltSoProvidersPackageName, nativeLibName) ->
+            val isprebuiltSoProvidersPackageSupported = supportedPackages.any { it.name == prebuiltSoProvidersPackageName }
+            if (!isprebuiltSoProvidersPackageSupported) {
+                logger.info("Provider package '$prebuiltSoProvidersPackageName' is not supported, skipping pickFirsts configuration.")
                 return@forEach
             }
-            logger.info("Consumed package '$consumedPackageName' is supported, configuring pickFirsts for '$nativeLibName'.")
+            logger.info("Provider package '$prebuiltSoProvidersPackageName' is supported, configuring pickFirsts for '$nativeLibName'.")
             architectures.forEach { arch ->
                 androidExtension.packagingOptions.jniLibs.pickFirsts
                     .add("lib/$arch/$nativeLibName")
@@ -523,6 +523,9 @@ class PrebuildsPlugin : Plugin<Project> {
             }
         logger.info("HTTP RNRepo repositories to check: ${httpRepositories.joinToString("") { "\n - ${it.url}" }}")
         if (httpRepositories.isEmpty()) {
+            logger.warn(
+                "No RNRepo maven repository found to check for packages. Check your gradle configuration (https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md#no-supported-packages-found-or-empty-repository-list).",
+            )
             return false
         }
 
