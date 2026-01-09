@@ -294,8 +294,6 @@ Pod::HooksManager.register('cocoapods-rnrepo', :post_install) do |installer_cont
   # Add build phase script to each target that uses prebuilt frameworks
   installer_context.pods_project.targets.each do |pod_target|
     # Check if this target uses any prebuilt frameworks
-    uses_prebuilt = prebuilt_pods.any? { |pod_info| pod_target.name.start_with?(pod_info[:name]) }
-    # Check if this target uses any prebuilt frameworks
     # Target names in Xcode are like "react-native-svg" or "React-native-svg"
     pod_name = prebuilt_pods.find { |pod_info| pod_target.name.start_with?(pod_info[:name]) }
     next unless pod_name
@@ -311,9 +309,6 @@ Pod::HooksManager.register('cocoapods-rnrepo', :post_install) do |installer_cont
       CocoapodsRnrepo::Logger.log "  Build phase already exists for #{pod_info[:name]}"
       next
     end
-
-    package_root = pod_info[:package_root]
-    cache_dir = File.join(package_root, '.rnrepo-cache')
 
     # Skip aggregate targets that don't have source build phases
     next unless pod_target.respond_to?(:source_build_phase)
