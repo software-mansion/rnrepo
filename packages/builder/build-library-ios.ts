@@ -4,7 +4,6 @@ import { join, basename } from 'path';
 import { sanitizePackageName } from '@rnrepo/config';
 import {
   type AllowedLicense,
-  getGithubBuildUrl,
   setupReactNativeProject,
 } from './build-utils';
 
@@ -43,7 +42,6 @@ if (
 
 // Convert to Xcode configuration format (Release/Debug)
 const buildConfigs = ['Release', 'Debug'];
-const GITHUB_BUILD_URL = getGithubBuildUrl();
 
 // Note: Bitcode was deprecated in Xcode 14 and removed entirely by Apple.
 // We build static frameworks instead, which provide better app size and performance.

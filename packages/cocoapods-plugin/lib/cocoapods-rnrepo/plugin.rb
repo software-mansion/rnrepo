@@ -119,11 +119,12 @@ module Pod
     # Hook into resolve_dependencies to modify specs BEFORE project generation
     old_method = instance_method(:resolve_dependencies)
     define_method(:resolve_dependencies) do
+      # Get the list of prebuilt pod info (hashes with :name, :package_root, etc.)
+      prebuilt_pods = Pod::Installer.prebuilt_rnrepo_pods || []
+
       # Call the original method first
       old_method.bind(self).call
 
-      # Get the list of prebuilt pod info (hashes with :name, :package_root, etc.)
-      prebuilt_pods = Pod::Installer.prebuilt_rnrepo_pods || []
       return if prebuilt_pods.empty?
 
       CocoapodsRnrepo::Logger.log ""
@@ -145,37 +146,41 @@ module Pod
           next
         end
 
-        # Find the xcframework from Debug cache (we'll use this for name detection)
+        # Find the xcframework (name may differ from pod name due to sanitization)
         cache_dir = File.join(node_modules_path, '.rnrepo-cache')
-        debug_cache_dir = File.join(cache_dir, 'Debug')
 
-        xcframeworks = Dir.glob(File.join(debug_cache_dir, "*.xcframework"))
+        # Create Current symlink if it doesn't exist (defaults to Debug, will be updated at build time)
+        current_link = File.join(cache_dir, 'Current')
+        unless File.exist?(current_link)
+          # Prefer Debug for development
+          debug_cache_dir = File.join(cache_dir, 'Debug')
+          release_cache_dir = File.join(cache_dir, 'Release')
+          default_config = File.exist?(debug_cache_dir) ? 'Debug' : 'Release'
+          FileUtils.ln_s(default_config, current_link)
+          CocoapodsRnrepo::Logger.log "  Created Current symlink -> #{default_config}"
+        end
+
+        # Look for xcframeworks in Current (which is a symlink to Debug or Release)
+        xcframeworks = Dir.glob(File.join(current_link, "*.xcframework"))
 
         if xcframeworks.empty?
-          CocoapodsRnrepo::Logger.log "  ⚠️  xcframework not found in #{debug_cache_dir}"
+          CocoapodsRnrepo::Logger.log "  ⚠️  xcframework not found in #{current_link}"
           next
         end
 
         if xcframeworks.length > 1
-          CocoapodsRnrepo::Logger.log "  ⚠️  Multiple xcframeworks found in #{debug_cache_dir}"
+          CocoapodsRnrepo::Logger.log "  ⚠️  Multiple xcframeworks found in #{current_link}"
           next
         end
 
         xcframework_path = xcframeworks.first
         xcframework_name = File.basename(xcframework_path)
 
-        # Verify Release cache also exists
-        release_cache_dir = File.join(cache_dir, 'Release')
-        release_xcframeworks = Dir.glob(File.join(release_cache_dir, "*.xcframework"))
-
-        if release_xcframeworks.empty?
-          CocoapodsRnrepo::Logger.log "  ⚠️  Release xcframework not found in #{release_cache_dir}"
-          next
-        end
-
         CocoapodsRnrepo::Logger.log "  Configuring #{pod_name} (#{pod_specs.count} spec(s)) at #{node_modules_path}"
 
-        # Verify both Debug and Release xcframeworks are properly structured
+        # Verify the xcframework exists and is properly structured
+        debug_cache_dir = File.join(cache_dir, 'Debug')
+        release_cache_dir = File.join(cache_dir, 'Release')
         [debug_cache_dir, release_cache_dir].each do |config_dir|
           config_name = File.basename(config_dir)
           config_xcframeworks = Dir.glob(File.join(config_dir, "*.xcframework"))
@@ -223,9 +228,15 @@ module Pod
             # Initialize platform hash if needed
             spec.attributes_hash[platform] ||= {}
 
-            # Use relative path pointing to "Current" directory which will be set by build script
-            # The build script will create a symlink: .rnrepo-cache/Current -> Debug or Release
-            xcframework_relative_path = ".rnrepo-cache/Current/#{xcframework_name}"
+            # Create a symlink at pod root pointing to the Current framework
+            # This allows CocoaPods to find it easily
+            pod_root_link = File.join(node_modules_path, xcframework_name)
+            unless File.exist?(pod_root_link)
+              FileUtils.ln_s(File.join('.rnrepo-cache', 'Current', xcframework_name), pod_root_link)
+            end
+
+            # Use simple relative path from pod directory
+            xcframework_relative_path = xcframework_name
 
             # Add static xcframework as vendored_frameworks
             # CocoaPods handles static xcframeworks automatically
@@ -248,7 +259,7 @@ module Pod
             end
           end
 
-          # Remove resource_bundles and convert to resources (like cocoapods-binary does)
+          # Remove resource_bundles and convert to resources
           if spec.attributes_hash["resource_bundles"]
             bundle_names = spec.attributes_hash["resource_bundles"].keys
             spec.attributes_hash["resource_bundles"] = nil
@@ -283,8 +294,6 @@ Pod::HooksManager.register('cocoapods-rnrepo', :post_install) do |installer_cont
   # Add build phase script to each target that uses prebuilt frameworks
   installer_context.pods_project.targets.each do |pod_target|
     # Check if this target uses any prebuilt frameworks
-    uses_prebuilt = prebuilt_pods.any? { |pod_info| pod_target.name.start_with?(pod_info[:name]) }
-    # Check if this target uses any prebuilt frameworks
     # Target names in Xcode are like "react-native-svg" or "React-native-svg"
     pod_name = prebuilt_pods.find { |pod_info| pod_target.name.start_with?(pod_info[:name]) }
     next unless pod_name
@@ -300,9 +309,6 @@ Pod::HooksManager.register('cocoapods-rnrepo', :post_install) do |installer_cont
       CocoapodsRnrepo::Logger.log "  Build phase already exists for #{pod_info[:name]}"
       next
     end
-
-    package_root = pod_info[:package_root]
-    cache_dir = File.join(package_root, '.rnrepo-cache')
 
     # Skip aggregate targets that don't have source build phases
     next unless pod_target.respond_to?(:source_build_phase)
