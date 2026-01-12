@@ -16,13 +16,16 @@ fun getArgument(property: String): String =
         ?: throw GradleException("Argument '$property' not provided. Use: gradle downloadArtifact -Dpackage='<pkg>' -Dversion='<version>' -DrnVersion='<rn-version>' -Dconfiguration='<release|debug>'")
 
 // Task that accepts string arguments and downloads zip from Maven
-// Run: gradle downloadArtifact -Dpackage='<pkg>' -Dversion='<version>' -DrnVersion='<rn-version>' -Dconfiguration='<release|debug>'
+// Run: gradle downloadArtifact -Dpackage='<pkg>' -Dversion='<version>' -DrnVersion='<rn-version>' -Dconfiguration='<release|debug>' [-DworkletsVersion='<version>']
 tasks.register("downloadArtifact") {
     val packageName = getArgument("package")
     val version = getArgument("version")
     val rnVersion = getArgument("rnVersion")
     val configuration = getArgument("configuration")
-    val fullNotation = "org.rnrepo.public:$packageName:$version:rn$rnVersion-$configuration"
+    val workletsVersion = System.getProperty("workletsVersion") ?: project.findProperty("workletsVersion") as? String
+    
+    val workletsSuffix = if (!workletsVersion.isNullOrEmpty()) "-worklets$workletsVersion" else ""
+    val fullNotation = "org.rnrepo.public:$packageName:$version:rn$rnVersion$workletsSuffix-$configuration"
     
     logger.info("[📦 RNRepo] Downloading $packageName version $version with RN version $rnVersion")
     dependencies {
