@@ -131,9 +131,9 @@ async function main() {
 
       // For iOS, we publish to Maven repository as a platform-specific artifact
       // The artifact follows the naming convention: {library}-{version}-rn{rnVersion}-{config}.xcframework.zip
-      const classifier = `rn${reactNativeVersion}-${buildConfig}${
+      const classifier = `rn${reactNativeVersion}${
         workletsVersion ? `-worklets${workletsVersion}` : ''
-      }`;
+      }-${buildConfig}`;
 
       // Deploy the XCFramework zip to Maven repository
       // Using the same Maven infrastructure as Android for cross-platform compatibility
