@@ -106,3 +106,49 @@ These messages indicate that the RNRepo plugin has detected an inconsistency and
 2. **Add to deny list**: If you encounter persistent issues with specific C++ libraries, you can add them to the deny list in your `rnrepo.config.json` to force them to be built from sources.
 
 3. **Review build variant configuration**: Ensure your build configuration doesn't mix debug and release builds for interdependent packages.
+
+### Duplicate Native Library Files (.so) Conflicts
+
+#### Problem Description
+When building your Android app, you might encounter an error about duplicate native library files being found in different locations:
+
+```
+Caused by: com.android.builder.merge.DuplicateRelativeFileException: 2 files found with path 'lib/arm64-v8a/libName.so' from inputs:
+ - /path/to/node_modules/react-native-some-package/android/build/intermediates/library_jni/debug/copyDebugJniLibsProjectOnly/jni/arm64-v8a/libName.so
+ - /path/to/.gradle/caches/.../react-native-some-package-0.0.0-rn0.81.4/jni/arm64-v8a/libName.so
+```
+
+This error occurs when:
+1. A library built from sources includes native code from a provider library
+2. The Gradle build system encounters duplicate `.so` files in different locations during the merge phase
+
+#### Automatic Solution
+The RNRepo plugin automatically detects when a provider library (e.g., `react-native-worklets`) is present. When this happens, it adds `pickFirsts` configuration for all native library files of the provider to resolve the conflict gracefully.
+
+**Supported providers that are automatically handled:**
+- `react-native-worklets` (provider) → pickFirsts for `libworklets.so`
+- `react-native-nitro-modules` (provider) → pickFirsts for `libNitroModules.so`
+
+If other libraries cause similar issues, please report them so they can be added to the automatic handling list.
+
+### No Supported Packages Found or Empty Repository List
+
+#### Problem Description
+You might encounter a situation where the RNRepo plugin reports that no packages are supported or no repositories could be found:
+
+```
+[📦 RNRepo] Found the following supported prebuilt packages: None
+```
+
+Or in info logs:
+```
+[📦 RNRepo] HTTP RNRepo repositories to check: <no repositories listed>
+```
+
+This typically means that:
+1. Your project has packages that could be prebuilt, but none are being recognized as supported (i.e., unsupported packages/versions, or all are in the deny list)
+2. The plugin cannot find any configured Maven repositories pointing to the RNRepo registry
+3. The RNRepo plugin is being applied before the Maven repository is defined in your `build.gradle` file
+
+#### Solution
+Ensure that your `build.gradle` applies the RNRepo plugin **after** defining the RNRepo maven repository. This ensures the RNRepo Maven repository is available to all subprojects, including your app module, before the RNRepo plugin attempts to check package availability.
