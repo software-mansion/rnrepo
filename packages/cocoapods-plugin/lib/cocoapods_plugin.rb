@@ -1,0 +1,2 @@
+require 'cocoapods-rnrepo/plugin'
+
