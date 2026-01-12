@@ -26,7 +26,7 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
     CocoapodsRnrepo::Logger.log "  Found: #{pod_info[:name]} v#{pod_info[:version] || 'unknown'}"
     if pod_info[:name] == 'RNWorklets'
       worklets_version = pod_info[:version]
-    end 
+    end
   end
 
   if rn_pods.empty?

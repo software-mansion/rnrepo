@@ -25,7 +25,7 @@ module CocoapodsRnrepo
 
     # Download from local test files (development/testing only)
     # Looks for files in: /tmp/rnrepo
-    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
+    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination, :worklets_version (optional)
     # Returns: destination path if successful, nil if file not found
     def self.download_from_local_test(artifact_spec)
       local_test_dir = "/tmp/rnrepo"
@@ -45,7 +45,7 @@ module CocoapodsRnrepo
     end
 
     # Download file via gradle task
-    # Requires: artifact_spec hash with, :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
+    # Requires: artifact_spec hash with: :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
     # Returns: destination path if successful, nil on failure
     def self.download_via_gradle(artifact_spec)
       Logger.log "Downloading via gradle..."
