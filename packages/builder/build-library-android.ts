@@ -1,8 +1,13 @@
 import { $ } from 'bun';
-import { existsSync, mkdirSync, readFileSync } from 'fs';
-import { arch, cpus, platform } from 'node:os';
+import { existsSync } from 'fs';
 import { join } from 'path';
-import { convertToGradleProjectName } from '@rnrepo/config';
+import { sanitizePackageName } from '@rnrepo/config';
+import {
+  type AllowedLicense,
+  getGithubBuildUrl,
+  getCpuInfo,
+  setupReactNativeProject,
+} from './build-utils';
 
 /**
  * Build Library Android Script
@@ -16,9 +21,14 @@ import { convertToGradleProjectName } from '@rnrepo/config';
  * @param workletsVersion - (Optional) react-native-worklets version to install
  */
 
-const [libraryName, libraryVersion, reactNativeVersion, workDir, workletsVersion] =
-  process.argv.slice(2);
-let postinstallGradleScriptPath: string = "";
+const [
+  libraryName,
+  libraryVersion,
+  reactNativeVersion,
+  workDir,
+  workletsVersion,
+] = process.argv.slice(2);
+let postinstallGradleScriptPath: string = '';
 
 if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   console.error(
@@ -27,25 +37,13 @@ if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
   process.exit(1);
 }
 
-type AllowedLicense = 'MIT' | 'Apache-2.0' | 'BSD-3-Clause' | 'BSD-2-Clause';
-
-const ALLOWED_LICENSES: AllowedLicense[] = [
-  'MIT',
-  'Apache-2.0',
-  'BSD-3-Clause',
-  'BSD-2-Clause',
-];
-
-const GITHUB_SERVER_URL = process.env.GITHUB_SERVER_URL;
-const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY;
-const GITHUB_RUN_ID = process.env.GITHUB_RUN_ID;
-const GITHUB_BUILD_URL = `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}`;
+const GITHUB_BUILD_URL = getGithubBuildUrl();
 
 // Main execution
 console.log('📦 Building Android library:');
 console.log(`   Library: ${libraryName}@${libraryVersion}`);
 console.log(`   React Native: ${reactNativeVersion}`);
-console.log(`${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`);
+console.log(workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : '');
 
 try {
   await buildLibrary();
@@ -55,39 +53,11 @@ try {
   process.exit(1);
 }
 
-async function installSetup(appDir: string, phase: "preInstall" | "postInstall") {
-  const libraryJsonPath = join(
-    __dirname,
-    '..',
-    '..',
-    'libraries.json'
-  );
-  const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
-  const scriptPath = libraryJson[libraryName]?.[phase + "ScriptPath"] as string | undefined;
-  if (scriptPath && existsSync(scriptPath)) {
-    const fullScriptPath = join(__dirname, '..', '..', scriptPath);
-    if (scriptPath.endsWith('.gradle')) {
-      if (phase === 'preInstall') {
-        throw new Error('Gradle scripts are only supported in postInstall phase');
-      }
-      postinstallGradleScriptPath = fullScriptPath;
-      console.log(`✓ Using postInstall Gradle script for ${libraryName}`);
-    } else if (scriptPath.endsWith('.ts') || scriptPath.endsWith('.js')) {
-      await $`bun run ${fullScriptPath}`.cwd(appDir);
-      console.log(`✓ Executed ${phase} script for ${libraryName}`);
-    }
-  } else {
-    console.log(`ℹ️ No ${phase} script found for ${libraryName}`);
-  }
-}
-
-function getCpuInfo() {
-  return `${arch()}-${platform()}-${cpus().length}coresAt${cpus()[0].speed}`;
-}
-
 async function buildAAR(appDir: string, license: AllowedLicense) {
-  const gradleProjectName = convertToGradleProjectName(libraryName);
-  const classifier = `rn${reactNativeVersion}${workletsVersion ? `-worklets${workletsVersion}` : ''}`;
+  const gradleProjectName = sanitizePackageName(libraryName);
+  const classifier = `rn${reactNativeVersion}${
+    workletsVersion ? `-worklets${workletsVersion}` : ''
+  }`;
   const packagePath = join(appDir, 'node_modules', libraryName);
   const androidPath = join(appDir, 'android');
 
@@ -135,7 +105,6 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
   }
 
   try {
-
     // first build the app so we can get codegen artifacts generated
     console.log('🔨 Building Android app to generate codegen artifacts...');
     await $`./gradlew assembleRelease --no-daemon`.cwd(androidPath);
@@ -144,7 +113,11 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
       --no-daemon \
       --init-script ${addPublishingGradleScriptPath} \
       --init-script ${addPrefabReduceGradleScriptPath} \
-      ${postinstallGradleScriptPath ? { raw: "--init-script " + postinstallGradleScriptPath} : ""} \
+      ${
+        postinstallGradleScriptPath
+          ? { raw: '--init-script ' + postinstallGradleScriptPath }
+          : ''
+      } \
       -PrnrepoArtifactId=${gradleProjectName} \
       -PrnrepoPublishVersion=${libraryVersion} \
       -PrnrepoClassifier=${classifier} \
@@ -177,97 +150,29 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
   }
 }
 
-function extractAndVerifyLicense(appDir: string): AllowedLicense {
-  const packageJsonPath = join(
-    appDir,
-    'node_modules',
-    libraryName,
-    'package.json'
-  );
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-  const licenseName = packageJson.license;
-  if (!ALLOWED_LICENSES.includes(licenseName as AllowedLicense)) {
-    throw new Error(
-      `License ${licenseName} is not allowed. Allowed licenses are: ${ALLOWED_LICENSES.join(
-        ', '
-      )}`
-    );
-  }
-  return licenseName as AllowedLicense;
-}
-
-function checkRnVersion(appDir: string, expectedVersion: string) {
-  const rnPackageJsonPath = join(
-    appDir,
-    'node_modules',
-    'react-native',
-    'package.json'
-  );
-  const rnPackageJson = JSON.parse(readFileSync(rnPackageJsonPath, 'utf-8'));
-  const actualVersion = rnPackageJson.version;
-  if (actualVersion !== expectedVersion) {
-    throw new Error(
-      `React Native version mismatch: expected ${expectedVersion}, got ${actualVersion}`
-    );
-  }
-  console.log(`✓ React Native version ${actualVersion} is correct`);
-}
-
 async function buildLibrary() {
-  const appDir = join(workDir, 'rnrepo_build_app');
-
-  // Create work directory if it doesn't exist
-  mkdirSync(workDir, { recursive: true });
-
-  // Check that app and outputs directories don't exist yet
-  if (existsSync(appDir)) {
-    throw new Error(`App directory ${appDir} already exists.`);
-  }
-
   console.log(
     `🔨 Building AAR for ${libraryName}@${libraryVersion} with RN ${reactNativeVersion}...`
   );
 
   try {
-    // Create RN project in the work directory
-    console.log(
-      `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
+    // Setup React Native project and install library
+    const {
+      appDir,
+      license,
+      postinstallGradleScriptPath: gradleScriptPath,
+    } = await setupReactNativeProject(
+      workDir,
+      libraryName,
+      libraryVersion,
+      reactNativeVersion,
+      workletsVersion
     );
 
-    $.cwd(workDir);
-    await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`.quiet();
-    console.log(`✓ Copying patches...`);
-    await $`cp -r ${workDir}/patches ${appDir}`;
-    $.cwd(appDir);
-
-    // Perform any library-specific setup before installing
-    await installSetup(appDir, "preInstall");
-
-    // Install the library
-    console.log(`📦 Installing ${libraryName}@${libraryVersion}...`);
-    await $`npm install ${libraryName}@${libraryVersion} --save-exact`.quiet();
-
-    // Extract license name from the library's package.json
-    const license = extractAndVerifyLicense(appDir);
-
-    // Perform any library-specific setup after installing
-    await installSetup(appDir, "postInstall");
-
-    // Install react-native-worklets if specified
-    if (workletsVersion) {
-      console.log(`📦 Installing react-native-worklets@${workletsVersion}...`);
-      await $`npm install react-native-worklets@${workletsVersion} --save-exact`.quiet();
+    // Set gradle script path if returned
+    if (gradleScriptPath) {
+      postinstallGradleScriptPath = gradleScriptPath;
     }
-
-    // Install all dependencies
-    console.log('📦 Installing all dependencies...');
-    await $`npm install`.quiet();
-
-    console.log('📦 Applying patches...');
-    await $`npx patch-package`.cwd(appDir);
-
-    // Check if the react-native version is correctly set
-    checkRnVersion(appDir, reactNativeVersion);
 
     // Build AAR
     console.log('🔨 Building AAR...');
