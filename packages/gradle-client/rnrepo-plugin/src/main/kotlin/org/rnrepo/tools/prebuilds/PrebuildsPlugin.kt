@@ -210,8 +210,8 @@ class PrebuildsPlugin : Plugin<Project> {
         }
 
         prebuiltSoProvidersPackageAndLibName.forEach { (prebuiltSoProvidersPackageName, nativeLibName) ->
-            val isprebuiltSoProvidersPackageSupported = supportedPackages.any { it.name == prebuiltSoProvidersPackageName }
-            if (!isprebuiltSoProvidersPackageSupported) {
+            val isPrebuiltSoProvidersPackageSupported = supportedPackages.any { it.name == prebuiltSoProvidersPackageName }
+            if (!isPrebuiltSoProvidersPackageSupported) {
                 logger.info("Provider package '$prebuiltSoProvidersPackageName' is not supported, skipping pickFirsts configuration.")
                 return@forEach
             }
