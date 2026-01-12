@@ -139,7 +139,7 @@ module CocoapodsRnrepo
       # Extract the zip file to config-specific directory
       # The zip contains: FrameworkName.xcframework/ (may differ from pod name due to sanitization)
       # We extract to cache_dir, which should create: cache_dir/FrameworkName.xcframework/
-      unless Downloader.unzip_file(downloaded_file, cache_dir)
+      unless Downloader.unzip_file(downloaded_file, config_cache_dir)
         Logger.log "Failed to extract pre-built framework for #{pod_name}"
         FileUtils.rm_f(zip_path)
         return { status: :failed, message: "Extraction failed" }
