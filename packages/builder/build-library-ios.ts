@@ -155,14 +155,14 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
   mkdirSync(buildDir, { recursive: true });
   mkdirSync(outputPath, { recursive: true });
 
-  for (const CONFIGURATION of buildConfigs) {
+  for (const configuration of buildConfigs) {
     try {
       // TEMPORARILY DISABLED: Build for device (uncomment when needed for full XCFramework)
       // await xcodebuild(
       //   projectPath,
       //   podName,
       //   'iphoneos',
-      //   CONFIGURATION,
+      //   configuration,
       //   buildDir,
       //   derivedDataPath
       // );
@@ -173,7 +173,7 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
         projectPath,
         podName,
         'iphonesimulator',
-        CONFIGURATION,
+        configuration,
         buildDir,
         derivedDataPath
       );
@@ -185,7 +185,7 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
       // So we glob for *.framework instead of assuming the sanitization logic
       const podBuildDir = join(
         buildDir,
-        `${CONFIGURATION}-iphonesimulator`,
+        `${configuration}-iphonesimulator`,
         podName
       );
 
@@ -247,7 +247,7 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
       // Create zip archive
       console.log('📦 Creating zip archive...');
       const sanitizedLibraryName = sanitizePackageName(libraryName);
-      const zipName = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}-${CONFIGURATION.toLowerCase()}.xcframework.zip`;
+      const zipName = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}-${configuration.toLowerCase()}.xcframework.zip`;
       await $`zip -r ${zipName} ${xcframeworkFile}`.cwd(outputPath).quiet();
       console.log(`✓ Created zip archive: ${zipName}`);
     } catch (error) {

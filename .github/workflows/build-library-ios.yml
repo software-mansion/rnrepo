@@ -30,7 +30,6 @@ on:
 jobs:
   build-library-ios:
     runs-on: macos-latest
-    # runs-on: rnrepo-builder-macos-14
     timeout-minutes: 60
 
     steps:

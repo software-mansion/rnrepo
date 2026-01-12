@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { existsSync, readdirSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { $ } from 'bun';
 import { updateBuildStatus, type Platform } from '@rnrepo/database';
@@ -109,24 +109,17 @@ async function main() {
       );
     }
 
-    // List available files to find the xcframework zip
-    const files = readdirSync(artifactDir);
+    // Find the XCFramework zip files for both Release and Debug builds
     for (const buildConfig of ['release', 'debug']) {
       console.log(`\n🔍 Searching for ${buildConfig} build...`);
-      const xcframeworkZip = files.find((f) =>
-        f.includes(`${sanitizedLibraryName}-${libraryVersion}`) &&
-        f.includes(`rn${reactNativeVersion}`) &&
-        f.includes(`-${buildConfig}.xcframework.zip`)
-      );
+      const xcframeworkZip = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}${workletsVersion ? `-worklets${workletsVersion}` : ''}-${buildConfig}.xcframework.zip`;
+      const xcframeworkPath = join(artifactDir, xcframeworkZip);
 
-      if (!xcframeworkZip) {
+      if (!existsSync(xcframeworkPath)) {
         throw new Error(
-          `XCFramework zip not found for ${libraryName}@${libraryVersion} (config: ${buildConfig}) in ${artifactDir}\n` +
-            `Available files: ${files.join(', ')}`
+          `XCFramework zip not found for ${libraryName}@${libraryVersion} (config: ${buildConfig}) in ${xcframeworkPath}`
         );
       }
-
-      const xcframeworkPath = join(artifactDir, xcframeworkZip);
       console.log(`\n📦 Found XCFramework: ${xcframeworkZip}`);
 
       // For iOS, we publish to Maven repository as a platform-specific artifact
