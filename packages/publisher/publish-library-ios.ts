@@ -143,7 +143,7 @@ async function main() {
           -DgroupId=org.rnrepo.public \
           -DartifactId=${sanitizedLibraryName} \
           -Dversion=${libraryVersion} \
-          -Dpackaging=zip \
+          -Dpackaging=xcframework.zip \
           -Dclassifier=${classifier} \
           -DrepositoryId=RNRepo \
           -DgeneratePom=false \
