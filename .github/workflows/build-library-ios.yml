@@ -29,7 +29,7 @@ on:
 
 jobs:
   build-library-ios:
-    runs-on: rnrepo-builder-macos-14
+    runs-on: macos-latest
     timeout-minutes: 60
 
     steps:
@@ -39,7 +39,7 @@ jobs:
       - name: Use latest stable Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.1'
+          xcode-version: '26.1'
       
       - name: Install Ruby gems
         run: gem install cocoapods -v 1.15.2
@@ -55,17 +55,9 @@ jobs:
       - name: 🔨 Build library for iOS
         run: bun run packages/builder/build-library-ios.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}" "${{ inputs.worklets_version }}"
 
-      # - name: 📋 List artifacts with checksums
-      #   run: |
-      #     find TODO:FRAMEWORK_PATH.xcframework -type f -exec md5sum {} \;
-
-      # - name: 📦 Zip artifacts
-      #   run: zip -r ${{ inputs.library_name }}-${{ inputs.library_version }}-rn${{ inputs.react_native_version }}.zip TODO:FRAMEWORK_PATH
-
-      # - name: 📦 Upload Maven artifacts
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: maven-artifacts
-      #     path: |
-      #       TODO:FRAMEWORK_PATH/${{ inputs.library_name }}-${{ inputs.library_version }}-rn${{ inputs.react_native_version }}.zip
-      #     retention-days: 1
+      - name: 📦 Upload framework artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: framework-artifacts
+          path: ${{ runner.temp }}/outputs/
+          retention-days: 1

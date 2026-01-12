@@ -68,18 +68,19 @@ async function main() {
       throw new Error('Could not get build workflow run name');
     }
 
-    // Format: "Build for Android {library_name}@{library_version} RN@{react_native_version}( with worklets@{worklets_version})?"
-    const match = buildRunName.match(/Build for Android (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?$/);
+    // Format: "Build for {platform} {library_name}@{library_version} RN@{react_native_version}( with worklets@{worklets_version})?"
+    const match = buildRunName.match(/Build for (Android|iOS) (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?$/);
     if (!match) {
       throw new Error(`Could not parse workflow run name: ${buildRunName}`);
     }
 
-    const [, libraryName, libraryVersion, reactNativeVersion, _, workletsVersion] = match;
+    const [, platform, libraryName, libraryVersion, reactNativeVersion, _, workletsVersion] = match;
 
     console.log(`📝 Updating build status:`);
     console.log(`   Build Run: ${buildRunName}`);
     console.log(`   Library: ${libraryName}@${libraryVersion}`);
     console.log(`   React Native: ${reactNativeVersion}`);
+    console.log(`   Platform: ${platform}`);
     console.log(`   Worklets: ${workletsVersion || 'none'}`);
     console.log(`   Status: ${status}`);
     console.log('');
@@ -94,7 +95,7 @@ async function main() {
       libraryName,
       libraryVersion,
       reactNativeVersion,
-      'android' as Platform,
+      platform.toLowerCase() as Platform,
       status,
       {
         githubRunUrl,

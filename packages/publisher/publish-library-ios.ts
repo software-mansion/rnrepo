@@ -6,9 +6,9 @@ import { updateBuildStatus, type Platform } from '@rnrepo/database';
 import { sanitizePackageName } from '@rnrepo/config';
 
 /**
- * Publish Library Android Script
+ * Publish Library iOS Script
  *
- * This script publishes a React Native library to a repository.
+ * This script publishes a React Native library XCFramework to a Maven repository.
  *
  * @param buildRunId - ID of the build workflow run
  */
@@ -16,7 +16,7 @@ import { sanitizePackageName } from '@rnrepo/config';
 const [buildRunId] = process.argv.slice(2);
 
 if (!buildRunId) {
-  console.error('Usage: bun run publish-library-android.ts <build-run-id>');
+  console.error('Usage: bun run publish-library-ios.ts <build-run-id>');
   process.exit(1);
 }
 
@@ -25,7 +25,6 @@ const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY;
 const MAVEN_USERNAME = process.env.MAVEN_USERNAME;
 const MAVEN_PASSWORD = process.env.MAVEN_PASSWORD;
 const MAVEN_REPOSITORY_URL = process.env.MAVEN_REPOSITORY_URL;
-const MAVEN_GPG_KEY = process.env.MAVEN_GPG_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
@@ -40,11 +39,6 @@ if (!MAVEN_USERNAME || !MAVEN_PASSWORD || !MAVEN_REPOSITORY_URL) {
   console.error(
     'Error: MAVEN_USERNAME, MAVEN_PASSWORD and MAVEN_REPOSITORY_URL environment variables are required'
   );
-  process.exit(1);
-}
-
-if (!MAVEN_GPG_KEY) {
-  console.error('Error: MAVEN_GPG_KEY environment variable is required');
   process.exit(1);
 }
 
@@ -79,9 +73,9 @@ async function main() {
       throw new Error('Could not get build workflow run name');
     }
 
-    // Format: "Build for Android {library_name}@{library_version} RN@{react_native_version}( with worklets@{worklets_version})"
+    // Format: "Build for iOS {library_name}@{library_version} RN@{react_native_version}( with worklets@{worklets_version})?( - snapshot)?"
     const match = buildRunName.match(
-      /Build for Android (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?( - snapshot)?$/
+      /Build for iOS (.+?)@(.+?) RN@(.+?)( with worklets@(.+?))?( - snapshot)?$/
     );
     if (!match) {
       throw new Error(`Could not parse workflow run name: ${buildRunName}`);
@@ -104,87 +98,55 @@ async function main() {
     console.log(workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : '');
     console.log(`   Snapshot Run: ${isSnapshotRun ? 'Yes' : 'No'}`);
 
-    const mavenLibraryName = sanitizePackageName(libraryName);
+    const sanitizedLibraryName = sanitizePackageName(libraryName);
 
-    // Find the downloaded artifact directory (starts with maven-artifacts-)
-    const artifactDir = join(process.cwd(), 'maven-artifacts');
-    const artifactsBasePath = join(
-      artifactDir,
-      mavenLibraryName,
-      libraryVersion
-    );
+    // Find the downloaded artifact directory
+    const artifactDir = join(process.cwd(), 'framework-artifacts');
 
-    if (!existsSync(artifactsBasePath)) {
+    if (!existsSync(artifactDir)) {
       throw new Error(
-        `Library ${libraryName}@${libraryVersion} not found in downloaded artifacts at ${artifactsBasePath}`
+        `Framework artifacts directory not found at ${artifactDir}`
       );
     }
 
-    const baseFileName = `${mavenLibraryName}-${libraryVersion}`;
-    const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
-    const classifier = `rn${reactNativeVersion}${
-      workletsVersion ? `-worklets${workletsVersion}` : ''
-    }`;
-    const aarFile = join(
-      artifactsBasePath,
-      `${baseFileName}-${classifier}.aar`
-    );
+    // Find the XCFramework zip files for both Release and Debug builds
+    for (const buildConfig of ['release', 'debug']) {
+      console.log(`\n🔍 Searching for ${buildConfig} build...`);
+      const xcframeworkZip = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}-${buildConfig}.xcframework.zip`;
+      const xcframeworkPath = join(artifactDir, xcframeworkZip);
 
-    // Deploy POM separately (may return 409 if already published, which is acceptable)
-    try {
-      await $`mvn deploy:deploy-file \
-          -Dfile=${pomFile} \
-          -DgroupId=org.rnrepo.public \
-          -DartifactId=${mavenLibraryName} \
-          -Dversion=${libraryVersion} \
-          -Dpackaging=pom \
-          -DrepositoryId=RNRepo \
-          -Durl=${MAVEN_REPOSITORY_URL}`;
-      console.log('✓ POM deployed successfully');
-    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      // 409 Conflict is acceptable - POM may already exist (shared across versions)
-      if (
-        error?.stdout?.includes(
-          'status code: 409, reason phrase: Conflict (409)'
-        )
-      ) {
-        console.log('⚠ POM already exists (409 conflict) - continuing...');
-      } else {
-        throw error;
+      if (!existsSync(xcframeworkPath)) {
+        throw new Error(
+          `XCFramework zip not found for ${libraryName}@${libraryVersion} (config: ${buildConfig}) in ${xcframeworkPath}`
+        );
       }
+      console.log(`\n📦 Found XCFramework: ${xcframeworkZip}`);
+
+      // For iOS, we publish to Maven repository as a platform-specific artifact
+      // The artifact follows the naming convention: {library}-{version}-rn{rnVersion}-{config}.xcframework.zip
+      const classifier = `rn${reactNativeVersion}${
+        workletsVersion ? `-worklets${workletsVersion}` : ''
+      }-${buildConfig}`;
+
+      // Deploy the XCFramework zip to Maven repository
+      // Using the same Maven infrastructure as Android for cross-platform compatibility
+      console.log('\n🚀 Deploying to Maven repository...');
+      await $`mvn deploy:deploy-file \
+          -Dfile=${xcframeworkPath} \
+          -DgroupId=org.rnrepo.public \
+          -DartifactId=${sanitizedLibraryName} \
+          -Dversion=${libraryVersion} \
+          -Dpackaging=xcframework.zip \
+          -Dclassifier=${classifier} \
+          -DrepositoryId=RNRepo \
+          -DgeneratePom=false \
+          -Durl=${MAVEN_REPOSITORY_URL}`;
+      console.log('✓ XCFramework deployed successfully');
+
+      console.log(
+        `✅ Published library ${libraryName}@${libraryVersion} (${buildConfig}) to remote Maven repository`
+      );
     }
-
-    // Sign and deploy AAR using gpg:sign-and-deploy-file (signs and deploys in one step)
-    // The task uses MAVEN_GPG_KEY and MAVEN_GPG_PASSPHRASE environment variables to sign the artifact
-    await $`mvn gpg:sign-and-deploy-file \
-        -Dfile=${aarFile} \
-        -DgroupId=org.rnrepo.public \
-        -DartifactId=${mavenLibraryName} \
-        -Dversion=${libraryVersion} \
-        -Dpackaging=aar \
-        -Dclassifier=${classifier} \
-        -DgeneratePom=false \
-        -DrepositoryId=RNRepo \
-        -Durl=${MAVEN_REPOSITORY_URL}`;
-    console.log('✓ AAR signed and deployed successfully');
-
-    console.log(
-      `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
-    );
-
-    // Pull build duration from pom file
-    let buildDurationSeconds: number | null = null;
-    const pomContent = await Bun.file(pomFile).text();
-    const durationMatch = pomContent.match(
-      /<rnrepo\.buildDurationSeconds>(.+?)<\/rnrepo\.buildDurationSeconds>/
-    );
-    if (durationMatch) {
-      buildDurationSeconds = parseFloat(durationMatch[1].replace(',', '.'));
-      console.log(`⏱️  Build duration seconds: ${buildDurationSeconds}`);
-    } else {
-      console.warn('⚠️  Build duration not found in POM file');
-    }
-
     // Update Supabase status to 'completed' after publish is fully complete
     if (isSnapshotRun) {
       console.log(
@@ -192,6 +154,7 @@ async function main() {
       );
       process.exit(0);
     }
+
     try {
       const githubRunUrl =
         run.html_url ||
@@ -201,12 +164,11 @@ async function main() {
         libraryName,
         libraryVersion,
         reactNativeVersion,
-        'android' as Platform,
+        'ios' as Platform,
         'completed',
         {
           githubRunUrl: githubRunUrl,
           workletsVersion: workletsVersion || null,
-          buildDurationSeconds: buildDurationSeconds || undefined,
         }
       );
       console.log('✓ Database status updated to completed');
