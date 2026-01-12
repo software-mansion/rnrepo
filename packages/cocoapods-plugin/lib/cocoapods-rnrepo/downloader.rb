@@ -102,6 +102,8 @@ module CocoapodsRnrepo
       uri = URI.parse(url)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = (uri.scheme == 'https')
+      http.read_timeout = 60
+      http.open_timeout = 10
 
       request = Net::HTTP::Get.new(uri.request_uri)
 
