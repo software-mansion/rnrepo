@@ -112,7 +112,7 @@ async function main() {
     // Find the XCFramework zip files for both Release and Debug builds
     for (const buildConfig of ['release', 'debug']) {
       console.log(`\n🔍 Searching for ${buildConfig} build...`);
-      const xcframeworkZip = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}${workletsVersion ? `-worklets${workletsVersion}` : ''}-${buildConfig}.xcframework.zip`;
+      const xcframeworkZip = `${sanitizedLibraryName}-${libraryVersion}-rn${reactNativeVersion}-${buildConfig}.xcframework.zip`;
       const xcframeworkPath = join(artifactDir, xcframeworkZip);
 
       if (!existsSync(xcframeworkPath)) {
