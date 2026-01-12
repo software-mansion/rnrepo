@@ -33,6 +33,7 @@ module CocoapodsRnrepo
 
       npm_package_name = pod_info[:npm_package_name] || pod_name
       rn_version = pod_info[:rn_version]
+      worklets_version = pod_info[:worklets_version]
 
       # Sanitize package name for filename (remove @ and replace / with _)
       # Matches sanitizePackageName() in @rnrepo/config
@@ -51,7 +52,8 @@ module CocoapodsRnrepo
           version,
           rn_version,
           'debug',
-          pod_name
+          pod_name,
+          worklets_version
         )
         if debug_result[:status] == :downloaded || debug_result[:status] == :cached
           configs_available << 'Debug'
@@ -72,7 +74,8 @@ module CocoapodsRnrepo
           version,
           rn_version,
           'release',
-          pod_name
+          pod_name,
+          worklets_version
         )
         if release_result[:status] == :downloaded || release_result[:status] == :cached
           configs_available << 'Release'
@@ -112,9 +115,10 @@ module CocoapodsRnrepo
     private
 
     # Download and extract a specific configuration (debug or release)
-    def self.download_and_extract_config(cache_dir, config_cache_dir, sanitized_name, version, rn_version, config, pod_name)
-      # Filename format: npm-package-name-version-rnX.Y.Z-config.xcframework.zip
-      zip_filename = "#{sanitized_name}-#{version}-rn#{rn_version}-#{config}.xcframework.zip"
+    def self.download_and_extract_config(cache_dir, config_cache_dir, sanitized_name, version, rn_version, config, pod_name, worklets_version = nil)
+      # Filename format: npm-package-name-version-rnX.Y.Z[-workletsX.Y.Z]-config.xcframework.zip
+      worklets_suffix = worklets_version ? "-worklets#{worklets_version}" : ''
+      zip_filename = "#{sanitized_name}-#{version}-rn#{rn_version}#{worklets_suffix}-#{config}.xcframework.zip"
       zip_path = File.join(cache_dir, zip_filename)
 
       downloaded_file = Downloader.download_file(
@@ -123,6 +127,7 @@ module CocoapodsRnrepo
           sanitized_name: sanitized_name,
           version: version,
           rn_version: rn_version,
+          worklets_version: worklets_version,
           configuration: config,
           destination: zip_path
         }

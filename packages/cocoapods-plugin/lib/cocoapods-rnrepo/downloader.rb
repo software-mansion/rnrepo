@@ -17,11 +17,12 @@ module CocoapodsRnrepo
 
     # Download from local test files (development/testing only)
     # Looks for files in: /tmp/rnrepo
-    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration
+    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
     # Returns: destination path if successful, nil if file not found
     def self.download_from_local_test(artifact_spec)
       local_test_dir = "/tmp/rnrepo"
-      filename = "#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}-#{artifact_spec[:configuration]}.xcframework.zip"
+      worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
+      filename = "#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
       local_test_file = File.join(local_test_dir, filename)
 
       if File.exist?(local_test_file)
@@ -36,7 +37,7 @@ module CocoapodsRnrepo
     end
 
     # Download file via gradle task
-    # Requires: artifact_spec hash with, :sanitized_name, :version, :rn_version, :configuration
+    # Requires: artifact_spec hash with, :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
     # Returns: destination path if successful, nil on failure
     def self.download_via_gradle(artifact_spec)
       Logger.log "Downloading via gradle..."
@@ -51,7 +52,7 @@ module CocoapodsRnrepo
       end
 
       begin
-        _stdout, stderr, status = Open3.capture3(
+        gradle_args = [
           'gradle',
           '--project-cache-dir', '/tmp/rnrepo-gradle-project-cache-dir',
           '--build-file', gradle_file,
@@ -63,7 +64,13 @@ module CocoapodsRnrepo
           '-Dversion=' + artifact_spec[:version],
           '-DrnVersion=' + artifact_spec[:rn_version],
           '-Dconfiguration=' + artifact_spec[:configuration]
-        )
+        ]
+        
+        if artifact_spec[:worklets_version]
+          gradle_args << '-DworkletsVersion=' + artifact_spec[:worklets_version]
+        end
+        
+        _stdout, stderr, status = Open3.capture3(*gradle_args)
 
         if status.success?
           Logger.log "Gradle download completed successfully"
@@ -92,11 +99,12 @@ module CocoapodsRnrepo
     end
 
     # Download file via HTTP request
-    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination
+    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination, :worklets_version (optional)
     # Returns: destination path if successful, nil on failure
     def self.download_via_http(artifact_spec)
-      # url = "https://packages.rnrepo.org/releases/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}-#{artifact_spec[:configuration]}.xcframework.zip"
-      url = "https://repo.swmtest.xyz/releases/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}-#{artifact_spec[:configuration]}.xcframework.zip"
+      worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
+      # url = "https://packages.rnrepo.org/releases/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
+      url = "https://repo.swmtest.xyz/releases/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
       Logger.log "Downloading from #{url}..."
 
       uri = URI.parse(url)
