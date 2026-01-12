@@ -93,7 +93,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 addDependency(
                     project,
                     "implementation",
-                    "org.rnrepo.public:${packageItem.npmName}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
+                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
                 )
             }
 
@@ -115,10 +115,10 @@ class PrebuildsPlugin : Plugin<Project> {
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.supportedPackages.forEach { packageItem ->
                 val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                project.evaluationDependsOn(":${packageItem.npmName}")
+                project.evaluationDependsOn(":${packageItem.name}")
                 project.afterEvaluate {
                     try {
-                        val libraryProject = project.project(":${packageItem.npmName}")
+                        val libraryProject = project.project(":${packageItem.name}")
                         val libraryCodegenTaskProvider = libraryProject.tasks.named(codegenTaskName)
                         val appPreBuildTaskProvider = project.tasks.named("preBuild")
                         appPreBuildTaskProvider.configure {
@@ -137,11 +137,11 @@ class PrebuildsPlugin : Plugin<Project> {
                 val substitutionAction =
                     Action<Project> { evaluatedProject ->
                         extension.supportedPackages.forEach { packageItem ->
-                            val module = "org.rnrepo.public:${packageItem.npmName}:${packageItem.version}"
+                            val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
                             evaluatedProject.configurations.all { config ->
                                 config.resolutionStrategy.dependencySubstitution { substitutions ->
                                     substitutions.all { dependencySubstitution ->
-                                        if (dependencySubstitution.requested.displayName.contains("${packageItem.npmName}")) {
+                                        if (dependencySubstitution.requested.displayName.contains("${packageItem.name}")) {
                                             dependencySubstitution.useTarget(substitutions.module(module))
                                             dependencySubstitution.artifactSelection {
                                                 it.selectArtifact(
@@ -163,23 +163,25 @@ class PrebuildsPlugin : Plugin<Project> {
                 substitutionAction.execute(subproject)
             }
 
-            project.gradle.projectsEvaluated {
-                logger.info("Checking if all dependencies with c++ code have their consumers supported...")
-                PACKAGES_WITH_CPP.keys.parallelStream().forEach { packageName ->
-                    val packageItem = extension.projectPackages.find { it.name == packageName }
-                    if (packageItem == null) {
-                        logger.info("Package $packageName not found in project packages, skipping dependency check.")
-                        return@forEach
+            if (getBuildType(project) == "debug") {
+                project.gradle.projectsEvaluated {
+                    logger.info("Checking if all dependencies with c++ code have their consumers supported...")
+                    PACKAGES_WITH_CPP.keys.parallelStream().forEach { packageName ->
+                        val packageItem = extension.projectPackages.find { it.name == packageName }
+                        if (packageItem == null) {
+                            logger.info("Package $packageName not found in project packages, skipping dependency check.")
+                            return@forEach
+                        }
+                        if (!extension.supportedPackages.contains(packageItem)) {
+                            logger.info("Package $packageName is not supported, skipping dependency check.")
+                            return@forEach
+                        }
+                        checkDependencies(
+                            packageItem,
+                            project,
+                            extension.supportedPackages,
+                        )
                     }
-                    if (!extension.supportedPackages.contains(packageItem)) {
-                        logger.info("Package $packageName is not supported, skipping dependency check.")
-                        return@forEach
-                    }
-                    checkDependencies(
-                        packageItem,
-                        project,
-                        extension.supportedPackages,
-                    )
                 }
             }
         }
@@ -458,7 +460,7 @@ class PrebuildsPlugin : Plugin<Project> {
         RNVersion: String,
         repositories: RepositoryHandler,
     ): Boolean {
-        val artifactName = "${packageItem.npmName}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
+        val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
         val artifactDir =
             Paths
                 .get(
@@ -468,7 +470,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     "modules-2",
                     "files-2.1",
                     "org.rnrepo.public",
-                    "${packageItem.npmName}",
+                    "${packageItem.name}",
                     "${packageItem.version}",
                 ).toFile()
         if (artifactDir.exists() && artifactDir.isDirectory) {
@@ -504,7 +506,7 @@ class PrebuildsPlugin : Plugin<Project> {
         }
 
         return httpRepositories.parallelStream().anyMatch { repo ->
-            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.npmName}/${packageItem.version}/$artifactName"
+            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/$artifactName"
             var connection: HttpURLConnection? = null
             try {
                 connection = URL(urlString).openConnection() as HttpURLConnection
@@ -644,7 +646,7 @@ class PrebuildsPlugin : Plugin<Project> {
         packageItem: PackageItem,
         project: Project,
         supportedPackages: MutableSet<PackageItem>,
-        unavailablePackages: MutableCollection<PackageItem>,
+        unavailablePackages: MutableSet<PackageItem>,
     ) {
         logger.info("${packageItem.npmName} is supported, checking if all packages depending on it are supported.")
         PACKAGES_WITH_CPP.get(packageItem.name)?.forEach { dependentPackagePattern ->
@@ -667,6 +669,20 @@ class PrebuildsPlugin : Plugin<Project> {
                 unavailablePackages.add(packageItem)
                 logger.lifecycle(
                     "A package depending on ${packageItem.npmName} matching pattern '$dependentPackagePattern' is not available as a prebuild, building ${packageItem.npmName} from sources.",
+                )
+                val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
+                val packagesToRemove =
+                    supportedPackages.filter { supportedPackage ->
+                        packagesToCheckRegex.any { regex ->
+                            regex.matches(supportedPackage.name)
+                        }
+                    }
+                supportedPackages.removeAll(packagesToRemove)
+                unavailablePackages.addAll(packagesToRemove)
+                logger.lifecycle(
+                    "Removing packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages:${printList(
+                        packagesToRemove,
+                    )}",
                 )
                 return
             }
@@ -713,7 +729,7 @@ class PrebuildsPlugin : Plugin<Project> {
         packageItem: PackageItem,
         repositories: RepositoryHandler,
         extension: PackagesManager,
-        unavailablePackages: MutableCollection<PackageItem>,
+        unavailablePackages: MutableSet<PackageItem>,
         elseClosure: () -> Unit,
     ) {
         when {
@@ -754,8 +770,9 @@ class PrebuildsPlugin : Plugin<Project> {
         val supportedPackages =
             java.util.concurrent.ConcurrentHashMap
                 .newKeySet<PackageItem>()
-        val unavailablePackages = java.util.concurrent.ConcurrentLinkedQueue<PackageItem>()
-
+        val unavailablePackages =
+            java.util.concurrent.ConcurrentHashMap
+                .newKeySet<PackageItem>()
         val (dependentList, otherPackages) = extension.projectPackages.partition { PACKAGES_WITH_CPP.containsKey(it.name) }
         otherPackages.parallelStream().forEach { packageItem ->
             checkIfPackageIsSupported(

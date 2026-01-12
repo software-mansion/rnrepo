@@ -1,0 +1,103 @@
+name: Publish React Native Library for iOS
+
+run-name: Publish library for iOS from build workflow
+
+on:
+  workflow_run:
+    workflows: [Build iOS Library]
+    types: [completed]
+
+jobs:
+  handle-build-completion:
+    runs-on: rnrepo-ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    if: github.event.workflow_run.conclusion != 'success' && !contains(github.event.workflow_run.display_title, 'snapshot')
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 📝 Update build status (failure)
+        run: bun run packages/publisher/update-build-status.ts -- "${{ github.event.workflow_run.id }}" "failed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
+  publish-library:
+    runs-on: rnrepo-ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    if: github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - name: 📥 Download framework artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          name: framework-artifacts
+          path: framework-artifacts
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔐 Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+
+      - name: 🔐 Generate Maven settings.xml
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0
+                    http://maven.apache.org/xsd/settings-1.2.0.xsd">
+            <servers>
+              <server>
+                <id>RNRepo</id>
+                <username>${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}</username>
+                <password><![CDATA[${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}]]></password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+      - name: 📤 Publish library
+        run: bun run packages/publisher/publish-library-ios.ts -- "${{ github.event.workflow_run.id }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          MAVEN_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}
+          MAVEN_REPOSITORY_URL: ${{ format('{0}{1}', secrets.RNREPO_SWM_REPOSITORY_URL_BASE, contains(github.event.workflow_run.display_title, 'snapshot') && '/snapshots' || '/releases') }}
+          MAVEN_GPG_KEY: ${{ secrets.GPG_KEY_ID }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+

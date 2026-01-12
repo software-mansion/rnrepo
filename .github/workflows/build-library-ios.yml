@@ -1,0 +1,71 @@
+name: Build iOS Library
+
+run-name: Build for iOS ${{ inputs.library_name }}@${{ inputs.library_version }} RN@${{ inputs.react_native_version }}${{ inputs.worklets_version && format(' with worklets@{0}', inputs.worklets_version) || '' }}${{ inputs.test_run_snapshot && ' - snapshot' || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      library_name:
+        description: 'Library name (from NPM)'
+        required: true
+        type: string
+      library_version:
+        description: 'Library version (from NPM)'
+        required: true
+        type: string
+      react_native_version:
+        description: 'React Native version'
+        required: true
+        type: string
+      worklets_version:
+        description: 'Worklets version'
+        required: false
+        type: string
+      test_run_snapshot:
+        description: 'Test build for snapshot repository publishing'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-library-ios:
+    runs-on: rnrepo-builder-macos-14
+    timeout-minutes: 60
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.1'
+      
+      - name: Install Ruby gems
+        run: gem install cocoapods -v 1.15.2
+      
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔨 Build library for iOS
+        run: bun run packages/builder/build-library-ios.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}" "${{ inputs.worklets_version }}"
+
+      # - name: 📋 List artifacts with checksums
+      #   run: |
+      #     find TODO:FRAMEWORK_PATH.xcframework -type f -exec md5sum {} \;
+
+      # - name: 📦 Zip artifacts
+      #   run: zip -r ${{ inputs.library_name }}-${{ inputs.library_version }}-rn${{ inputs.react_native_version }}.zip TODO:FRAMEWORK_PATH
+
+      # - name: 📦 Upload Maven artifacts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: maven-artifacts
+      #     path: |
+      #       TODO:FRAMEWORK_PATH/${{ inputs.library_name }}-${{ inputs.library_version }}-rn${{ inputs.react_native_version }}.zip
+      #     retention-days: 1
