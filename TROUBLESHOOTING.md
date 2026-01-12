@@ -123,7 +123,7 @@ This error occurs when:
 2. The Gradle build system encounters duplicate `.so` files in different locations during the merge phase
 
 #### Automatic Solution
-The RNRepo plugin automatically detects when a provider library (e.g., `react-native-worklets`) or its consumer library (e.g., `react-native-reanimated`) are present. When this happens, it adds `pickFirsts` configuration for all native library files to resolve the conflict gracefully.
+The RNRepo plugin automatically detects when a provider library (e.g., `react-native-worklets`) is present. When this happens, it adds `pickFirsts` configuration for all native library files of the provider to resolve the conflict gracefully.
 
 **Supported providers that are automatically handled:**
 - `react-native-worklets` (provider) → pickFirsts for `libworklets.so`
