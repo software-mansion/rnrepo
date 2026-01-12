@@ -8,7 +8,7 @@ import { sanitizePackageName } from '@rnrepo/config';
 /**
  * Publish Library iOS Script
  *
- * This script publishes a React Native library XCFramework to a CocoaPods-compatible repository.
+ * This script publishes a React Native library XCFramework to a Maven repository.
  *
  * @param buildRunId - ID of the build workflow run
  */
@@ -88,7 +88,6 @@ async function main() {
       reactNativeVersion,
       _,
       workletsVersion,
-      __,
       isSnapshotRun,
     ] = match;
 
@@ -96,9 +95,7 @@ async function main() {
     console.log(`   Build Run: ${buildRunName}`);
     console.log(`   Library: ${libraryName}@${libraryVersion}`);
     console.log(`   React Native: ${reactNativeVersion}`);
-    console.log(
-      `${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`
-    );
+    console.log(workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : '');
     console.log(`   Snapshot Run: ${isSnapshotRun ? 'Yes' : 'No'}`);
 
     const sanitizedLibraryName = sanitizePackageName(libraryName);

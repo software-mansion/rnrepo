@@ -95,7 +95,7 @@ async function main() {
       libraryName,
       libraryVersion,
       reactNativeVersion,
-      platform as Platform,
+      platform.toLowerCase() as Platform,
       status,
       {
         githubRunUrl,

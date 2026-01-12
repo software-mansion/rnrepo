@@ -52,9 +52,7 @@ const GITHUB_BUILD_URL = getGithubBuildUrl();
 console.log('📦 Building iOS library:');
 console.log(`   Library: ${libraryName}@${libraryVersion}`);
 console.log(`   React Native: ${reactNativeVersion}`);
-console.log(
-  `${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`
-);
+console.log(workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : '');
 
 try {
   await buildLibrary();

@@ -101,9 +101,7 @@ async function main() {
     console.log(`   Build Run: ${buildRunName}`);
     console.log(`   Library: ${libraryName}@${libraryVersion}`);
     console.log(`   React Native: ${reactNativeVersion}`);
-    console.log(
-      `${workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : ''}`
-    );
+    console.log(workletsVersion ? `   Worklets Version: ${workletsVersion}\n` : '');
     console.log(`   Snapshot Run: ${isSnapshotRun ? 'Yes' : 'No'}`);
 
     const mavenLibraryName = sanitizePackageName(libraryName);
