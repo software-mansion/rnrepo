@@ -24,8 +24,8 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
   # Log what we found
   rn_pods.each do |pod_info|
     CocoapodsRnrepo::Logger.log "  Found: #{pod_info[:name]} v#{pod_info[:version] || 'unknown'}"
-    if pod_info[:name] == 'react-native-worklets'
-      worklets_version = pod_info[:worklets_version]
+    if pod_info[:name] == 'RNWorklets'
+      worklets_version = pod_info[:version]
     end 
   end
 
@@ -44,7 +44,7 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
 
   # Download and cache pre-built frameworks
   rn_pods.each do |pod_info|
-    pod_info[:worklets_version] = worklets_version
+    pod_info[:worklets_version] = pod_info[:name] == 'RNReanimated' ? worklets_version : nil
     result = CocoapodsRnrepo::FrameworkCache.fetch_framework(
       installer_context,
       pod_info,

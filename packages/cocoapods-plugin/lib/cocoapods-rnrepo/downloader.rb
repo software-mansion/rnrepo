@@ -6,9 +6,17 @@ require 'open3'
 
 module CocoapodsRnrepo
   class Downloader
+    @@repo_url = "https://packages.rnrepo.org/releases"
+    @@gradle_executable = nil
+
+    def self.find_gradle_executable
+      android_gradlew = File.join(Dir.pwd, '..', 'android', 'gradlew')
+      @@gradle_executable = (File.executable?(android_gradlew) ? android_gradlew : 'gradle')
+    end
 
     def self.gradle_installed?
-      _stdout, _stderr, status = Open3.capture3('gradle', '-v')
+      self.find_gradle_executable
+      _stdout, _stderr, status = Open3.capture3(@@gradle_executable, '-v')
       status.success?
     rescue => e
       Logger.log "Gradle check error: #{e.message}"
@@ -53,7 +61,7 @@ module CocoapodsRnrepo
 
       begin
         gradle_args = [
-          'gradle',
+          @@gradle_executable,
           '--project-cache-dir', '/tmp/rnrepo-gradle-project-cache-dir',
           '--build-file', gradle_file,
           '--no-daemon',
@@ -63,18 +71,19 @@ module CocoapodsRnrepo
           '-Dpackage=' + artifact_spec[:sanitized_name],
           '-Dversion=' + artifact_spec[:version],
           '-DrnVersion=' + artifact_spec[:rn_version],
-          '-Dconfiguration=' + artifact_spec[:configuration]
+          '-Dconfiguration=' + artifact_spec[:configuration],
+          '-Durl=' + @@repo_url
         ]
         
         if artifact_spec[:worklets_version]
           gradle_args << '-DworkletsVersion=' + artifact_spec[:worklets_version]
         end
         
-        _stdout, stderr, status = Open3.capture3(*gradle_args)
+        stdout, stderr, status = Open3.capture3(*gradle_args)
 
         if status.success?
           Logger.log "Gradle download completed successfully"
-          return self.find_in_gradle_cache(artifact_spec)
+          return self.find_path_in_gradle_output(stdout)
         else
           Logger.log "Gradle execution failed: #{stderr}"
           return nil
@@ -85,26 +94,23 @@ module CocoapodsRnrepo
       end
     end
 
-    # Locate downloaded file in gradle cache
-    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration
-    # Returns: path if found, nil if not found
-    def self.find_in_gradle_cache(spec)
-      path_parts = [Dir.home, '.gradle/caches/modules-2/files-2.1', 'org.rnrepo.public', spec[:sanitized_name], spec[:version]]
-      gradle_cache = File.join(*path_parts)
-      
-      pattern = "#{spec[:sanitized_name]}-#{spec[:version]}-rn#{spec[:rn_version]}-#{spec[:configuration]}.xcframework.zip"
-      downloaded_path = Dir.glob(File.join(gradle_cache, '**', pattern)).first
-
-      downloaded_path || Logger.log("Downloaded file not found in gradle cache at #{gradle_cache}")
+    def self.find_path_in_gradle_output(output)
+      prefix = "DOWNLOADED_FILE:"
+      output.lines.each do |line|
+        if line.start_with?(prefix)
+          return line.sub(prefix, '').strip
+        end
+      end
+      nil
     end
+
 
     # Download file via HTTP request
     # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination, :worklets_version (optional)
     # Returns: destination path if successful, nil on failure
     def self.download_via_http(artifact_spec)
       worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
-      # url = "https://packages.rnrepo.org/releases/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
-      url = "https://repo.swmtest.xyz/releases/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
+      url = "#{@@repo_url}/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
       Logger.log "Downloading from #{url}..."
 
       uri = URI.parse(url)

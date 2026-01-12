@@ -1,8 +1,9 @@
+val default_rnrepo_url = System.getProperty("url") ?: "https://packages.rnrepo.org/releases/"
+
 repositories {
     mavenCentral()
     google()
-    //maven { url = uri("https://packages.rnrepo.org/releases/") }
-    maven { url = uri("https://repo.swmtest.xyz/releases/") }
+    maven { url = uri(default_rnrepo_url) }
 }
 
 configurations.create("zipDownload") {
@@ -16,7 +17,7 @@ fun getArgument(property: String): String =
         ?: throw GradleException("Argument '$property' not provided. Use: gradle downloadArtifact -Dpackage='<pkg>' -Dversion='<version>' -DrnVersion='<rn-version>' -Dconfiguration='<release|debug>'")
 
 // Task that accepts string arguments and downloads zip from Maven
-// Run: gradle downloadArtifact -Dpackage='<pkg>' -Dversion='<version>' -DrnVersion='<rn-version>' -Dconfiguration='<release|debug>' [-DworkletsVersion='<version>']
+// Run: gradle downloadArtifact -Dpackage='<pkg>' -Dversion='<version>' -DrnVersion='<rn-version>' -Dconfiguration='<release|debug>' [-DworkletsVersion='<version>'] [-Durl='<rnrepo-url>']
 tasks.register("downloadArtifact") {
     val packageName = getArgument("package")
     val version = getArgument("version")
@@ -29,7 +30,7 @@ tasks.register("downloadArtifact") {
     
     logger.info("[📦 RNRepo] Downloading $packageName version $version with RN version $rnVersion")
     dependencies {
-        add("zipDownload", "$fullNotation@xcframework.zip")
+        add("zipDownload", "$fullNotation.xcframework@zip")
     }
     
     val resolvedFiles = configurations["zipDownload"].resolve()
@@ -39,5 +40,7 @@ tasks.register("downloadArtifact") {
     
     resolvedFiles.forEach { file ->
         logger.info("[📦 RNRepo] $fullNotation downloaded to: ${file.absolutePath}")
+        // Output the file path for external scripts to consume
+        println("DOWNLOADED_FILE:${file.absolutePath}")
     }
 }

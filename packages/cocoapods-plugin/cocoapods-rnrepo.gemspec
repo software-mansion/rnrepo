@@ -20,7 +20,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'cocoapods', '>= 1.0.0'
   spec.add_dependency 'rubyzip', '~> 2.3'
-  spec.add_dependency 'openssl', '~> 4.0'
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'rake'
