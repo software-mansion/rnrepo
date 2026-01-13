@@ -25,6 +25,12 @@ end
 
 # Hook into CocoaPods pre-install phase to download frameworks
 Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_context|
+  # Check if plugin is disabled via environment variable
+  if ENV['DISABLE_RNREPO']
+    CocoapodsRnrepo::Logger.log "⊘ RNREPO plugin is disabled (DISABLE_RNREPO is set)"
+    next
+  end
+
   CocoapodsRnrepo::Logger.log "🚀 Scanning for React Native dependencies to replace with pre-builds..."
 
   # Get the ios directory (where Podfile is located)
@@ -322,6 +328,11 @@ end
 
 # Hook into CocoaPods post-install phase to add build scripts
 Pod::HooksManager.register('cocoapods-rnrepo', :post_install) do |installer_context|
+  # Check if plugin is disabled via environment variable
+  if ENV['DISABLE_RNREPO']
+    next
+  end
+
   # Get the list of prebuilt pod info
   prebuilt_pods = Pod::Installer.prebuilt_rnrepo_pods || []
   next if prebuilt_pods.empty?
