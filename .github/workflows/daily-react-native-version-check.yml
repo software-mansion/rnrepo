@@ -1,0 +1,17 @@
+name: Daily React Native Version Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-react-native-version:
+    runs-on: rnrepo-ubuntu-latest
+    name: Check for new React Native versions
+
+    steps:
+      - name: 🏗 Checkout code
+        uses: actions/checkout@v4
