@@ -162,7 +162,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     // If library has codegen, build codegen version as well
     if (shouldBuildCodegen) {
       // first build the app so we can get codegen artifacts generated
-      console.log('🔨 Building Android app to generate codegen artifacts...');
+      console.log('🔨 Building Android app to generate codegen static libraries');
       await $`./gradlew assembleRelease --no-daemon`.cwd(androidPath);
 
       console.log('📦 Publishing codegen version...');
@@ -178,7 +178,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
         -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
         -PrnrepoLicenseName=${license} \
         -PrnrepoLicenseUrl=https://opensource.org/license/${license} \
-        -PbuildWithCodegen=true
+        -PrnrepoCodegenName=${packageJson.codegenConfig.name}
       `.cwd(androidPath);
 
       // verify codegen version
