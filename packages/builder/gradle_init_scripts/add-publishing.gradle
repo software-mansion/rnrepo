@@ -31,6 +31,9 @@ gradle.projectsEvaluated {
         // Target only Android library modules
         if (project.plugins.hasPlugin("com.android.library")) {
             
+            // Flag to control whether to build with codegen support
+            def buildWithCodegen = project.hasProperty('buildWithCodegen') ? project.property('buildWithCodegen').toBoolean() : false
+            
             def getCodegenName = {
                 def pkgJson = file("${project.projectDir}/../package.json")
                 if (pkgJson.exists()) {
@@ -42,7 +45,7 @@ gradle.projectsEvaluated {
                 return null
             }
 
-            def codegenName = getCodegenName()
+            def codegenName = buildWithCodegen ? getCodegenName() : null
 
             // Task to extract static libs from .cxx to jniLibs
             def extractTask = project.tasks.register("extractCodegenBinaries") {
@@ -61,7 +64,7 @@ gradle.projectsEvaluated {
                         }
                     }
                     // Metadata for the consumer
-                    def metaDir = file("${project.projectDir}/src/main/assets")
+                    def metaDir = file("${project.projectDir}/src/main/assets/meta")
                     metaDir.mkdirs()
                     file("${metaDir}/codegen_name.txt").text = codegenName
                 }
@@ -110,15 +113,19 @@ gradle.projectsEvaluated {
                             artifacts.removeAll { it.classifier == null }
                             def aarTask = project.tasks.findByName('bundleReleaseAar')
                             if (aarTask) {
+                                def baseClassifier = project.findProperty('rnrepoClassifier') ?: ''
+                                def finalClassifier = codegenName ? "${baseClassifier}-codegen" : baseClassifier
                                 artifact(aarTask.outputs.files.singleFile) {
-                                    classifier = project.findProperty('rnrepoClassifier')
+                                    classifier = finalClassifier
                                     extension = 'aar'
                                 }
                             }
 
-                            artifact(packageHeadersTask) {
-                                classifier = 'headers'
-                                extension = 'zip'
+                            if (codegenName) {
+                                artifact(packageHeadersTask) {
+                                    classifier = 'headers'
+                                    extension = 'zip'
+                                }
                             }
 
                             pom {
@@ -143,11 +150,6 @@ gradle.projectsEvaluated {
                                     def buildUrl = project.findProperty('rnrepoBuildUrl')
                                     if (buildUrl != null) {
                                         propertiesNode.appendNode('rnrepo.buildUrl', buildUrl)
-                                    }
-                                    
-                                    // Add codegen info to POM for easier discovery
-                                    if (codegenName) { 
-                                        propertiesNode.appendNode('rnrepo.codegenName', codegenName) 
                                     }
                                 }
                                 licenses {

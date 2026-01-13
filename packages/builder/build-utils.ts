@@ -154,7 +154,7 @@ export async function setupReactNativeProject(
 
 
   console.log(`✓ Copying patches...`);
-  await $`cp -r ${workDir}/patches ${appDir}`;
+  await $`cp -r ./patches ${appDir}`.cwd(__dirname);
 
   // Perform any library-specific setup before installing
   await installSetup(appDir, libraryName, 'preInstall');

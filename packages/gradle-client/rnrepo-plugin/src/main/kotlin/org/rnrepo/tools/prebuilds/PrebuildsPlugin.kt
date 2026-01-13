@@ -7,6 +7,7 @@ import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.logging.Logger
@@ -21,6 +22,7 @@ data class PackageItem(
     val version: String,
     val npmName: String,
     var classifier: String = "",
+    var hasCodegen: Boolean = false,
 )
 
 /**
@@ -83,6 +85,36 @@ class PrebuildsPlugin : Plugin<Project> {
         if (shouldPluginExecute(project, extension)) {
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
 
+
+            // createCMakeLists wrapper
+            // 1. Tworzymy konfigurację dla zależności
+        val frozenConfig = project.configurations.create("frozenPrebuilts") {
+            it.isCanBeResolved = true
+            it.isCanBeConsumed = false
+        }
+
+        // 2. Configure CMake wrapper BEFORE evaluation
+        project.pluginManager.withPlugin("com.android.application") {
+            val android = project.extensions.findByType(BaseExtension::class.java)
+            if (android != null) {
+                configureCMakeWrapper(project, android)
+            }
+        }
+
+        // 3. Czekamy na ewaluację projektu dla pozostałych zadań
+        project.afterEvaluate {
+            // 4. Rejestrujemy zadanie ekstrakcji
+            val extractTask = project.tasks.register("extractFrozenPrebuilts", ExtractPrebuiltsTask::class.java) {
+                it.frozenConfiguration.set(frozenConfig)
+                it.outputDir.set(project.layout.buildDirectory.dir("generated/rnrepo/prebuilts"))
+            }
+
+            // 5. Podpinamy ekstrakcję pod cykl życia (przed budowaniem natywnym)
+            project.tasks.matching { it.name.startsWith("externalNativeBuild") || it.name == "preBuild" }.all {
+                it.dependsOn(extractTask)
+            }
+        }
+
             // Check what packages are in project and which are we supporting
             getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(extension)
@@ -90,34 +122,48 @@ class PrebuildsPlugin : Plugin<Project> {
 
             // Setup
             extension.supportedPackages.forEach { packageItem ->
+                val codegenSuffix = if (packageItem.hasCodegen) "-codegen" else ""
+                val dependencyNotation = "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}${codegenSuffix}@aar"
                 addDependency(
                     project,
                     "implementation",
-                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
+                    dependencyNotation,
                 )
+                // Add to frozenConfig only if package has codegen metadata
+                if (packageItem.hasCodegen) {
+                    addDependency(
+                        project,
+                        "frozenPrebuilts",
+                        dependencyNotation,
+                    )
+                    logger.lifecycle("📦 Package ${packageItem.npmName} has codegen, adding to frozen prebuilts")
+                }
             }
 
             // Configure pickFirsts for packages with native libraries that may have duplicates
             configurePickFirsts(project, extension.supportedPackages)
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
-            extension.supportedPackages.forEach { packageItem ->
-                val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                project.evaluationDependsOn(":${packageItem.name}")
-                project.afterEvaluate {
-                    try {
-                        val libraryProject = project.project(":${packageItem.name}")
-                        val libraryCodegenTaskProvider = libraryProject.tasks.named(codegenTaskName)
-                        val appPreBuildTaskProvider = project.tasks.named("preBuild")
-                        appPreBuildTaskProvider.configure {
-                            it.dependsOn(libraryCodegenTaskProvider)
+            // Skip packages with hasCodegen=true since they use prebuilt codegen artifacts
+            extension.supportedPackages
+                .filter { !it.hasCodegen }
+                .forEach { packageItem ->
+                    val codegenTaskName = "generateCodegenArtifactsFromSchema"
+                    project.evaluationDependsOn(":${packageItem.name}")
+                    project.afterEvaluate {
+                        try {
+                            val libraryProject = project.project(":${packageItem.name}")
+                            val libraryCodegenTaskProvider = libraryProject.tasks.named(codegenTaskName)
+                            val appPreBuildTaskProvider = project.tasks.named("preBuild")
+                            appPreBuildTaskProvider.configure {
+                                it.dependsOn(libraryCodegenTaskProvider)
+                            }
+                            logger.lifecycle("✅ Successfully linked ${packageItem.npmName}:$codegenTaskName to ${project.name}:preBuild")
+                        } catch (e: Exception) {
+                            logger.lifecycle("⚠️ Failed to find or link task :${packageItem.npmName}:$codegenTaskName. Error: ${e.message}")
                         }
-                        logger.lifecycle("✅ Successfully linked ${packageItem.npmName}:$codegenTaskName to ${project.name}:preBuild")
-                    } catch (e: Exception) {
-                        logger.lifecycle("⚠️ Failed to find or link task :${packageItem.npmName}:$codegenTaskName. Error: ${e.message}")
                     }
                 }
-            }
 
             // Add substitution for supported packages for all projects and all configurations
             project.rootProject.allprojects.forEach { subproject ->
@@ -131,11 +177,12 @@ class PrebuildsPlugin : Plugin<Project> {
                                     substitutions.all { dependencySubstitution ->
                                         if (dependencySubstitution.requested.displayName.contains("${packageItem.name}")) {
                                             dependencySubstitution.useTarget(substitutions.module(module))
+                                            val codegenSuffix = if (packageItem.hasCodegen) "-codegen" else ""
                                             dependencySubstitution.artifactSelection {
                                                 it.selectArtifact(
                                                     "aar",
                                                     "aar",
-                                                    "rn${extension.reactNativeVersion}${packageItem.classifier}",
+                                                    "rn${extension.reactNativeVersion}${packageItem.classifier}${codegenSuffix}",
                                                 )
                                             }
                                             logger.info(
@@ -517,7 +564,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 logger.info("Found maven repository: ${repo.name} with URL: ${repo.url}")
                 if (repo.url.scheme != "http" && repo.url.scheme != "https") return@mapNotNull null
                 val host = repo.url.host
-                if (host == null || (!host.endsWith(".rnrepo.org") && host != "rnrepo.org")) return@mapNotNull null
+                // if (host == null || (!host.endsWith(".rnrepo.org") && host != "rnrepo.org")) return@mapNotNull null
                 // This is an HTTP/HTTPS RNRepo repository
                 repo
             }
@@ -530,17 +577,39 @@ class PrebuildsPlugin : Plugin<Project> {
         }
 
         return httpRepositories.parallelStream().anyMatch { repo ->
-            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/$artifactName"
+            // First, try to find version with -codegen classifier
+            val codegenAarUrl = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}-codegen.aar"
             var connection: HttpURLConnection? = null
             try {
-                connection = URL(urlString).openConnection() as HttpURLConnection
+                connection = URL(codegenAarUrl).openConnection() as HttpURLConnection
                 connection.requestMethod = "HEAD"
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
-                logger.info("Checking availability of package ${packageItem.npmName} version ${packageItem.version} at $urlString")
+                logger.info("Checking availability of codegen package ${packageItem.npmName} version ${packageItem.version} with -codegen classifier at $codegenAarUrl")
+                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} with codegen found at ${repo.url}")
+                    packageItem.hasCodegen = true
+                    return@anyMatch true
+                }
+            } catch (e: Exception) {
+                logger.debug("Codegen classifier not found for ${packageItem.npmName}: ${e.message}")
+            } finally {
+                connection?.disconnect()
+            }
+            
+            // If codegen version not found, check regular version
+            val aarUrl = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
+            connection = null
+            try {
+                connection = URL(aarUrl).openConnection() as HttpURLConnection
+                connection.requestMethod = "HEAD"
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                logger.info("Checking availability of package ${packageItem.npmName} version ${packageItem.version} at $aarUrl")
                 val isAvailable = connection.responseCode == HttpURLConnection.HTTP_OK
                 if (isAvailable) {
                     logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} found at ${repo.url}")
+                    packageItem.hasCodegen = false
                 }
                 isAvailable
             } catch (e: Exception) {
@@ -826,4 +895,103 @@ class PrebuildsPlugin : Plugin<Project> {
         logger.lifecycle("Found the following supported prebuilt packages:${printList(extension.supportedPackages, "📦")}")
         logger.lifecycle("Packages not available – fallback to building from sources:${printList(unavailablePackages, "❓")}")
     }
+
+private fun configureCMakeWrapper(project: Project, android: BaseExtension) {
+    val cmakeExt = android.externalNativeBuild.cmake
+    val wrapperFile = File(project.buildDir, "generated/rnrepo/CMakeLists.txt")
+    val frozenListFile = File(project.buildDir, "generated/rnrepo/prebuilts/frozen_libs.txt")
+    val autolinkFile = File(project.buildDir, "generated/autolinking/src/main/jni/Android-autolinking.cmake")
+
+    val userCMake = cmakeExt.path // Zapamiętujemy oryginał przed nadpisaniem go wrapperem
+
+    // Extract project name from user's CMakeLists.txt or use default
+    val projectName = if (userCMake != null && userCMake.exists()) {
+        try {
+            val projectRegex = """project\s*\(\s*([^)]+)\s*\)""".toRegex()
+            val match = projectRegex.find(userCMake.readText())
+            match?.groupValues?.get(1)?.trim() ?: "appmodules"
+        } catch (e: Exception) {
+            logger.warn("Failed to read project name from ${userCMake.absolutePath}: ${e.message}")
+            "appmodules"
+        }
+    } else {
+        "appmodules"
+    }
+
+    val wrapperContent = """
+        cmake_minimum_required(VERSION 3.13)
+        project($projectName)
+        
+        # Scrubbing - remove codegen libraries from autolinking to avoid duplicate symbols
+        if(EXISTS "${frozenListFile.absolutePath}" AND EXISTS "${autolinkFile.absolutePath}")
+            file(STRINGS "${frozenListFile.absolutePath}" FROZEN_LINES)
+            foreach(LINE ${'$'}{FROZEN_LINES})
+                string(REPLACE ";" " " ARGS "${'$'}{LINE}")
+                separate_arguments(ARGS_LIST NATIVE_COMMAND ${'$'}{ARGS})
+                list(GET ARGS_LIST 0 LIB_NAME)
+                execute_process(COMMAND sed -i "" "/${'$'}{LIB_NAME}/d" "${autolinkFile.absolutePath}")
+            endforeach()
+        endif()
+        
+        # Include logic
+        if ("${userCMake?.absolutePath ?: ""}" STREQUAL "")
+            # Default RN App Logic (Variables like REACT_ANDROID_DIR provided by NdkConfiguratorUtils)
+            include("${'$'}{REACT_ANDROID_DIR}/cmake-utils/ReactNative-application.cmake")
+        else()
+            include("${userCMake?.absolutePath}")
+        endif()
+
+        function(link_prebuilt_codegen library_name prebuilt_path codegen_jni_dir)
+            set(target_name "react_codegen_${'$'}{library_name}")
+            set(DUMMY_SOURCE "${'$'}{CMAKE_CURRENT_BINARY_DIR}/placeholder_${'$'}{library_name}.cpp")
+
+            if(NOT EXISTS "${'$'}{DUMMY_SOURCE}")
+                file(WRITE "${'$'}{DUMMY_SOURCE}" "// Generated placeholder for ${'$'}{library_name}\n")
+            endif()
+
+            add_library(${'$'}{target_name} STATIC "${'$'}{DUMMY_SOURCE}")
+
+            target_include_directories(${'$'}{target_name} PUBLIC
+                ${'$'}{codegen_jni_dir}
+                ${'$'}{codegen_jni_dir}/react/renderer/components/${'$'}{library_name}
+            )
+
+            target_link_libraries(${'$'}{target_name} ${'$'}{prebuilt_path} fbjni jsi reactnative)
+
+            if(COMMAND target_compile_reactnative_options)
+                target_compile_reactnative_options(${'$'}{target_name} PRIVATE)
+            endif()
+
+            target_link_libraries(${'$'}{CMAKE_PROJECT_NAME} ${'$'}{target_name})
+
+            target_link_libraries(${'$'}{target_name} common_flags)
+        endfunction()
+
+        # Link Frozen Libs
+        if(EXISTS "${frozenListFile.absolutePath}")
+            message(STATUS "RNRepo: Loading frozen libraries from ${frozenListFile.absolutePath}")
+            file(STRINGS "${frozenListFile.absolutePath}" FROZEN_LINES)
+            foreach(LINE ${'$'}{FROZEN_LINES})
+                string(REPLACE ";" " " ARGS "${'$'}{LINE}")
+                separate_arguments(ARGS_LIST NATIVE_COMMAND ${'$'}{ARGS})
+                list(GET ARGS_LIST 0 L_NAME)
+                list(GET ARGS_LIST 1 L_RAW_PATH)
+                list(GET ARGS_LIST 2 L_HEADERS)
+                string(CONFIGURE "${'$'}{L_RAW_PATH}" L_PATH)
+                
+                message(STATUS "Linking frozen lib: ${'$'}{L_NAME} for ABI: ${'$'}{ANDROID_ABI}")
+                link_prebuilt_codegen("${'$'}{L_NAME}" "${'$'}{L_PATH}" "${'$'}{L_HEADERS}")
+            endforeach()
+        else()
+            message(STATUS "RNRepo: No frozen libraries file found at ${frozenListFile.absolutePath}")
+        endif()
+    """.trimIndent()
+
+    // Generate wrapper file immediately during configuration
+    wrapperFile.parentFile.mkdirs()
+    wrapperFile.writeText(wrapperContent)
+
+    // Set the path BEFORE project evaluation
+    cmakeExt.path = wrapperFile
+}
 }
