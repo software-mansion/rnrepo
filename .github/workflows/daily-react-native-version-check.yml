@@ -39,7 +39,7 @@ jobs:
 
       - name: 📤 Commit changes if exists
         run: |
-          if git diff --quiet; then
+          if git diff --quiet react-native-versions.json; then
             echo "No changes to commit"
             exit 0
           else
