@@ -37,7 +37,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: 📤 Commit changes if exists
+      - name: 📤 Check changes
         run: |
           if git diff --quiet react-native-versions.json; then
             echo "No changes to commit"
@@ -47,12 +47,12 @@ jobs:
 
       - name: 🔄 Create or update Pull Request
         if: env.HAS_CHANGES == 'true'
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v8
         with:
           base: ios
           add-paths: react-native-versions.json
           branch: chore/update-react-native-versions
-          token: ${{ secrets.SCHEDULER_GITHUB_PAT }}
+          token: ${{ secrets.SCRIPTS_GITHUB_TOKEN }}
           commit-message: "[BOT] Update React Native versions"
           title: "[BOT] Update React Native versions"
           body: |
