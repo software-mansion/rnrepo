@@ -52,7 +52,7 @@ jobs:
           base: ios
           add-paths: react-native-versions.json
           branch: chore/update-react-native-versions
-          token: ${{ secrets.SCRIPTS_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "[BOT] Update React Native versions"
           title: "[BOT] Update React Native versions"
           body: |

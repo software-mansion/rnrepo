@@ -35,17 +35,19 @@ async function main(): Promise<void> {
         'react-native',
         `>${currentVersions[currentVersions.length - 1]}`,
         yesterdayString
-    ).then(versions => versions.map(v => v.version));
+    ).then(versions => versions
+      .map(v => v.version)
+      .filter(v => !currentVersions.includes(v) && !v.includes('1000'))
+    );
 
     console.log(`🔍 Found ${new_versions.length} React Native versions published since ${yesterdayString}`);
-
+    // add entry
+    new_versions.push('0.0.0-experimental-future');
     // Add new versions to the current list
     if (new_versions.length > 0) {
         console.log(`   Versions: ${new_versions.join(', ')}`);
         new_versions.forEach(version => {
-            if (!currentVersions.includes(version)) {
-                currentVersions.push(version);
-            }
+            currentVersions.push(version);
         });
 
         // Write the updated versions back to react-native-versions.json
