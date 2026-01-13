@@ -81,8 +81,8 @@ jobs:
             <servers>
               <server>
                 <id>RNRepo</id>
-                <username>${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}</username>
-                <password><![CDATA[${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}]]></password>
+                <username>${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME_DEV }}</username>
+                <password><![CDATA[${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN_DEV }}]]></password>
               </server>
             </servers>
           </settings>
@@ -93,9 +93,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          MAVEN_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}
-          MAVEN_REPOSITORY_URL: ${{ format('{0}{1}', secrets.RNREPO_SWM_REPOSITORY_URL_BASE, contains(github.event.workflow_run.display_title, 'snapshot') && '/snapshots' || '/releases') }}
+          MAVEN_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME_DEV }}
+          MAVEN_PASSWORD: ${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN_DEV }}
+          MAVEN_REPOSITORY_URL: ${{ format('{0}{1}', secrets.RNREPO_SWM_REPOSITORY_URL_BASE_DEV, contains(github.event.workflow_run.display_title, 'snapshot') && '/snapshots' || '/releases') }}
           MAVEN_GPG_KEY: ${{ secrets.GPG_KEY_ID }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

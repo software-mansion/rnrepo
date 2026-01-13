@@ -25,6 +25,9 @@ const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY;
 const MAVEN_USERNAME = process.env.MAVEN_USERNAME;
 const MAVEN_PASSWORD = process.env.MAVEN_PASSWORD;
 const MAVEN_REPOSITORY_URL = process.env.MAVEN_REPOSITORY_URL;
+if (MAVEN_REPOSITORY_URL?.includes('packages.rnrepo')) {
+  throw new Error('Publishing to packages.rnrepo is not allowed anymore.');
+}
 const MAVEN_GPG_KEY = process.env.MAVEN_GPG_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
@@ -192,28 +195,28 @@ async function main() {
       );
       process.exit(0);
     }
-    try {
-      const githubRunUrl =
-        run.html_url ||
-        `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
+    // try {
+    //   const githubRunUrl =
+    //     run.html_url ||
+    //     `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
 
-      await updateBuildStatus(
-        libraryName,
-        libraryVersion,
-        reactNativeVersion,
-        'android' as Platform,
-        'completed',
-        {
-          githubRunUrl: githubRunUrl,
-          workletsVersion: workletsVersion || null,
-          buildDurationSeconds: buildDurationSeconds || undefined,
-        }
-      );
-      console.log('✓ Database status updated to completed');
-    } catch (error) {
-      console.warn(`⚠️  Failed to update database status: ${error}`);
-      // Don't fail the publish if database update fails
-    }
+    //   await updateBuildStatus(
+    //     libraryName,
+    //     libraryVersion,
+    //     reactNativeVersion,
+    //     'android' as Platform,
+    //     'completed',
+    //     {
+    //       githubRunUrl: githubRunUrl,
+    //       workletsVersion: workletsVersion || null,
+    //       buildDurationSeconds: buildDurationSeconds || undefined,
+    //     }
+    //   );
+    //   console.log('✓ Database status updated to completed');
+    // } catch (error) {
+    //   console.warn(`⚠️  Failed to update database status: ${error}`);
+    //   // Don't fail the publish if database update fails
+    // }
 
     process.exit(0);
   } catch (error) {
