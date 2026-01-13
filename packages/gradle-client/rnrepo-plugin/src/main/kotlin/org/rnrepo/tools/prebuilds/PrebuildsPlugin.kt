@@ -562,7 +562,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 logger.info("Found maven repository: ${repo.name} with URL: ${repo.url}")
                 if (repo.url.scheme != "http" && repo.url.scheme != "https") return@mapNotNull null
                 val host = repo.url.host
-                // if (host == null || (!host.endsWith(".rnrepo.org") && host != "rnrepo.org")) return@mapNotNull null
+                if (host == null || (!host.endsWith(".rnrepo.org") && host != "rnrepo.org")) return@mapNotNull null
                 // This is an HTTP/HTTPS RNRepo repository
                 repo
             }
