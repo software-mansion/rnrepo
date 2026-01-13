@@ -3,6 +3,25 @@ require 'cocoapods-rnrepo/logger'
 require 'cocoapods-rnrepo/pod_extractor'
 require 'cocoapods-rnrepo/downloader'
 require 'cocoapods-rnrepo/framework_cache'
+require 'json'
+
+# Helper method to load and parse rnrepo.config.json
+def load_rnrepo_config(workspace_root)
+  config_path = File.join(workspace_root, '..', 'rnrepo.config.json')
+  return {} unless File.exist?(config_path)
+
+  begin
+    JSON.parse(File.read(config_path))
+  rescue => e
+    CocoapodsRnrepo::Logger.log "⚠ Warning: Failed to parse rnrepo.config.json: #{e.message}"
+    {}
+  end
+end
+
+def get_ios_denylist(workspace_root)
+  config = load_rnrepo_config(workspace_root)
+  (config['denylist'] || {})['ios'] || []
+end
 
 # Hook into CocoaPods pre-install phase to download frameworks
 Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_context|
@@ -37,6 +56,18 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
   downloaded_pods = []
   unavailable_pods = []
   failed_pods = []
+  denied_pods = []
+
+  # Handle denylist
+  ios_denylist = get_ios_denylist(workspace_root)
+  rn_pods = rn_pods.reject do |pod_info|
+    if ios_denylist.include?(pod_info[:name])
+      denied_pods << pod_info[:name]
+      true
+    else
+      false
+    end
+  end
 
   # Download and cache pre-built frameworks
   rn_pods.each do |pod_info|
@@ -60,6 +91,13 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
 
   # Display summary
   CocoapodsRnrepo::Logger.log "Total React Native dependencies detected: #{rn_pods.count}"
+
+  if denied_pods.any?
+    CocoapodsRnrepo::Logger.log "⊘ Denied from pre-builds (#{denied_pods.count}):"
+    denied_pods.each do |pod_name|
+      CocoapodsRnrepo::Logger.log "  • #{pod_name}"
+    end
+  end
 
   if cached_pods.any?
     CocoapodsRnrepo::Logger.log "✓ Already Cached (#{cached_pods.count}):"
@@ -92,7 +130,7 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
 
   # Overall stats
   prebuilt_count = cached_pods.count + downloaded_pods.count
-  source_build_count = unavailable_pods.count + failed_pods.count
+  source_build_count = unavailable_pods.count + failed_pods.count + denied_pods.count
 
   if prebuilt_count > 0
     percentage = ((prebuilt_count.to_f / rn_pods.count) * 100).round(1)
