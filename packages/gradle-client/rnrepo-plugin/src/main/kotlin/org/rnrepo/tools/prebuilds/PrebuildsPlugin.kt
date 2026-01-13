@@ -7,7 +7,6 @@ import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.logging.Logger
@@ -86,32 +85,34 @@ class PrebuildsPlugin : Plugin<Project> {
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
 
             // Setup codegen prebuilts configuration for codegen dependencies
-            val codegenConfig = project.configurations.create("codegenPrebuilts") {
-            it.isCanBeResolved = true
-            it.isCanBeConsumed = false
-        }
+            val codegenConfig =
+                project.configurations.create("codegenPrebuilts") {
+                    it.isCanBeResolved = true
+                    it.isCanBeConsumed = false
+                }
 
-        // Configure CMake wrapper before project evaluation
-        project.pluginManager.withPlugin("com.android.application") {
-            val android = project.extensions.findByType(BaseExtension::class.java)
-            if (android != null) {
-                configureCMakeWrapper(project, android)
-            }
-        }
-
-        // Wait for project evaluation to complete remaining setup tasks
-        project.afterEvaluate {
-            // Register extraction task for codegen prebuilts
-            val extractTask = project.tasks.register("extractCodegenPrebuilts", ExtractPrebuiltsTask::class.java) {
-                it.codegenConfiguration.set(codegenConfig)
-                it.outputDir.set(project.layout.buildDirectory.dir("generated/rnrepo/prebuilts"))
+            // Configure CMake wrapper before project evaluation
+            project.pluginManager.withPlugin("com.android.application") {
+                val android = project.extensions.findByType(BaseExtension::class.java)
+                if (android != null) {
+                    configureCMakeWrapper(project, android)
+                }
             }
 
-            // Hook extraction into build lifecycle before native build tasks
-            project.tasks.matching { it.name.startsWith("externalNativeBuild") || it.name == "preBuild" }.all {
-                it.dependsOn(extractTask)
+            // Wait for project evaluation to complete remaining setup tasks
+            project.afterEvaluate {
+                // Register extraction task for codegen prebuilts
+                val extractTask =
+                    project.tasks.register("extractCodegenPrebuilts", ExtractPrebuiltsTask::class.java) {
+                        it.codegenConfiguration.set(codegenConfig)
+                        it.outputDir.set(project.layout.buildDirectory.dir("generated/rnrepo/prebuilts"))
+                    }
+
+                // Hook extraction into build lifecycle before native build tasks
+                project.tasks.matching { it.name.startsWith("externalNativeBuild") || it.name == "preBuild" }.all {
+                    it.dependsOn(extractTask)
+                }
             }
-        }
 
             // Check what packages are in project and which are we supporting
             getProjectPackages(project.rootProject.allprojects, extension)
@@ -121,7 +122,8 @@ class PrebuildsPlugin : Plugin<Project> {
             // Setup
             extension.supportedPackages.forEach { packageItem ->
                 val codegenSuffix = if (packageItem.hasCodegen) "-codegen" else ""
-                val dependencyNotation = "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}${codegenSuffix}@aar"
+                val dependencyNotation =
+                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}$codegenSuffix@aar"
                 addDependency(
                     project,
                     "implementation",
@@ -180,7 +182,7 @@ class PrebuildsPlugin : Plugin<Project> {
                                                 it.selectArtifact(
                                                     "aar",
                                                     "aar",
-                                                    "rn${extension.reactNativeVersion}${packageItem.classifier}${codegenSuffix}",
+                                                    "rn${extension.reactNativeVersion}${packageItem.classifier}$codegenSuffix",
                                                 )
                                             }
                                             logger.info(
@@ -576,14 +578,17 @@ class PrebuildsPlugin : Plugin<Project> {
 
         return httpRepositories.parallelStream().anyMatch { repo ->
             // First, try to find version with -codegen classifier
-            val codegenAarUrl = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}-codegen.aar"
+            val codegenAarUrl =
+                "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}-codegen.aar"
             var connection: HttpURLConnection? = null
             try {
                 connection = URL(codegenAarUrl).openConnection() as HttpURLConnection
                 connection.requestMethod = "HEAD"
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
-                logger.info("Checking availability of codegen package ${packageItem.npmName} version ${packageItem.version} with -codegen classifier at $codegenAarUrl")
+                logger.info(
+                    "Checking availability of codegen package ${packageItem.npmName} version ${packageItem.version} with -codegen classifier at $codegenAarUrl",
+                )
                 if (connection.responseCode == HttpURLConnection.HTTP_OK) {
                     logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} with codegen found at ${repo.url}")
                     packageItem.hasCodegen = true
@@ -594,9 +599,10 @@ class PrebuildsPlugin : Plugin<Project> {
             } finally {
                 connection?.disconnect()
             }
-            
+
             // If codegen version not found, check regular version
-            val aarUrl = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
+            val aarUrl =
+                "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
             connection = null
             try {
                 connection = URL(aarUrl).openConnection() as HttpURLConnection
@@ -894,108 +900,113 @@ class PrebuildsPlugin : Plugin<Project> {
         logger.lifecycle("Packages not available – fallback to building from sources:${printList(unavailablePackages, "❓")}")
     }
 
-private fun configureCMakeWrapper(project: Project, android: BaseExtension) {
-    val cmakeExt = android.externalNativeBuild.cmake
-    val wrapperFile = File(project.buildDir, "generated/rnrepo/CMakeLists.txt")
-    val codegenListFile = File(project.buildDir, "generated/rnrepo/prebuilts/codegen_libs.txt")
-    val autolinkFile = File(project.buildDir, "generated/autolinking/src/main/jni/Android-autolinking.cmake")
+    private fun configureCMakeWrapper(
+        project: Project,
+        android: BaseExtension,
+    ) {
+        val cmakeExt = android.externalNativeBuild.cmake
+        val wrapperFile = File(project.buildDir, "generated/rnrepo/CMakeLists.txt")
+        val codegenListFile = File(project.buildDir, "generated/rnrepo/prebuilts/codegen_libs.txt")
+        val autolinkFile = File(project.buildDir, "generated/autolinking/src/main/jni/Android-autolinking.cmake")
 
-    val userCMake = cmakeExt.path // Store original CMake path before overriding with wrapper
+        val userCMake = cmakeExt.path // Store original CMake path before overriding with wrapper
 
-    // Extract project name from user's CMakeLists.txt or use default
-    val projectName = if (userCMake != null && userCMake.exists()) {
-        try {
-            val projectRegex = """project\s*\(\s*([^)]+)\s*\)""".toRegex()
-            val match = projectRegex.find(userCMake.readText())
-            match?.groupValues?.get(1)?.trim() ?: "appmodules"
-        } catch (e: Exception) {
-            logger.warn("Failed to read project name from ${userCMake.absolutePath}: ${e.message}")
-            "appmodules"
-        }
-    } else {
-        "appmodules"
+        // Extract project name from user's CMakeLists.txt or use default
+        val projectName =
+            if (userCMake != null && userCMake.exists()) {
+                try {
+                    val projectRegex = """project\s*\(\s*([^)]+)\s*\)""".toRegex()
+                    val match = projectRegex.find(userCMake.readText())
+                    match?.groupValues?.get(1)?.trim() ?: "appmodules"
+                } catch (e: Exception) {
+                    logger.warn("Failed to read project name from ${userCMake.absolutePath}: ${e.message}")
+                    "appmodules"
+                }
+            } else {
+                "appmodules"
+            }
+
+        val wrapperContent =
+            """
+            cmake_minimum_required(VERSION 3.13)
+            project($projectName)
+
+            # Scrubbing - remove codegen libraries from autolinking to avoid duplicate symbols
+            if(EXISTS "${codegenListFile.absolutePath}" AND EXISTS "${autolinkFile.absolutePath}")
+                file(STRINGS "${codegenListFile.absolutePath}" CODEGEN_LINES)
+                file(READ "${autolinkFile.absolutePath}" AUTOLINK_CONTENT)
+
+                foreach(LINE ${'$'}{CODEGEN_LINES})
+                    string(REPLACE ";" " " ARGS "${'$'}{LINE}")
+                    separate_arguments(ARGS_LIST NATIVE_COMMAND ${'$'}{ARGS})
+                    list(GET ARGS_LIST 0 LIB_NAME)
+
+                    # Remove lines containing the library name (cross-platform)
+                    string(REGEX REPLACE "[^\n]*${'$'}{LIB_NAME}[^\n]*\n" "" AUTOLINK_CONTENT "${'$'}{AUTOLINK_CONTENT}")
+                endforeach()
+
+                file(WRITE "${autolinkFile.absolutePath}" "${'$'}{AUTOLINK_CONTENT}")
+            endif()
+
+            # Include logic
+            if ("${userCMake?.absolutePath ?: ""}" STREQUAL "")
+                # Default RN App Logic (Variables like REACT_ANDROID_DIR provided by NdkConfiguratorUtils)
+                include("${'$'}{REACT_ANDROID_DIR}/cmake-utils/ReactNative-application.cmake")
+            else()
+                include("${userCMake?.absolutePath}")
+            endif()
+
+            function(link_prebuilt_codegen library_name prebuilt_path codegen_jni_dir)
+                set(target_name "react_codegen_${'$'}{library_name}")
+                set(DUMMY_SOURCE "${'$'}{CMAKE_CURRENT_BINARY_DIR}/placeholder_${'$'}{library_name}.cpp")
+
+                if(NOT EXISTS "${'$'}{DUMMY_SOURCE}")
+                    file(WRITE "${'$'}{DUMMY_SOURCE}" "// Generated placeholder for ${'$'}{library_name}\n")
+                endif()
+
+                add_library(${'$'}{target_name} STATIC "${'$'}{DUMMY_SOURCE}")
+
+                target_include_directories(${'$'}{target_name} PUBLIC
+                    ${'$'}{codegen_jni_dir}
+                    ${'$'}{codegen_jni_dir}/react/renderer/components/${'$'}{library_name}
+                )
+
+                target_link_libraries(${'$'}{target_name} ${'$'}{prebuilt_path} fbjni jsi reactnative)
+
+                if(COMMAND target_compile_reactnative_options)
+                    target_compile_reactnative_options(${'$'}{target_name} PRIVATE)
+                endif()
+
+                target_link_libraries(${'$'}{CMAKE_PROJECT_NAME} ${'$'}{target_name})
+
+                target_link_libraries(${'$'}{target_name} common_flags)
+            endfunction()
+
+            # Link Codegen Libs
+            if(EXISTS "${codegenListFile.absolutePath}")
+                message(STATUS "RNRepo: Loading codegen libraries from ${codegenListFile.absolutePath}")
+                file(STRINGS "${codegenListFile.absolutePath}" CODEGEN_LINES)
+                foreach(LINE ${'$'}{CODEGEN_LINES})
+                    string(REPLACE ";" " " ARGS "${'$'}{LINE}")
+                    separate_arguments(ARGS_LIST NATIVE_COMMAND ${'$'}{ARGS})
+                    list(GET ARGS_LIST 0 L_NAME)
+                    list(GET ARGS_LIST 1 L_RAW_PATH)
+                    list(GET ARGS_LIST 2 L_HEADERS)
+                    string(CONFIGURE "${'$'}{L_RAW_PATH}" L_PATH)
+
+                    message(STATUS "Linking codegen lib: ${'$'}{L_NAME} for ABI: ${'$'}{ANDROID_ABI}")
+                    link_prebuilt_codegen("${'$'}{L_NAME}" "${'$'}{L_PATH}" "${'$'}{L_HEADERS}")
+                endforeach()
+            else()
+                message(STATUS "RNRepo: No codegen libraries file found at ${codegenListFile.absolutePath}")
+            endif()
+            """.trimIndent()
+
+        // Generate wrapper file immediately during configuration
+        wrapperFile.parentFile.mkdirs()
+        wrapperFile.writeText(wrapperContent)
+
+        // Set the path BEFORE project evaluation
+        cmakeExt.path = wrapperFile
     }
-
-    val wrapperContent = """
-        cmake_minimum_required(VERSION 3.13)
-        project($projectName)
-        
-        # Scrubbing - remove codegen libraries from autolinking to avoid duplicate symbols
-        if(EXISTS "${codegenListFile.absolutePath}" AND EXISTS "${autolinkFile.absolutePath}")
-            file(STRINGS "${codegenListFile.absolutePath}" CODEGEN_LINES)
-            file(READ "${autolinkFile.absolutePath}" AUTOLINK_CONTENT)
-            
-            foreach(LINE ${'$'}{CODEGEN_LINES})
-                string(REPLACE ";" " " ARGS "${'$'}{LINE}")
-                separate_arguments(ARGS_LIST NATIVE_COMMAND ${'$'}{ARGS})
-                list(GET ARGS_LIST 0 LIB_NAME)
-                
-                # Remove lines containing the library name (cross-platform)
-                string(REGEX REPLACE "[^\n]*${'$'}{LIB_NAME}[^\n]*\n" "" AUTOLINK_CONTENT "${'$'}{AUTOLINK_CONTENT}")
-            endforeach()
-            
-            file(WRITE "${autolinkFile.absolutePath}" "${'$'}{AUTOLINK_CONTENT}")
-        endif()
-        
-        # Include logic
-        if ("${userCMake?.absolutePath ?: ""}" STREQUAL "")
-            # Default RN App Logic (Variables like REACT_ANDROID_DIR provided by NdkConfiguratorUtils)
-            include("${'$'}{REACT_ANDROID_DIR}/cmake-utils/ReactNative-application.cmake")
-        else()
-            include("${userCMake?.absolutePath}")
-        endif()
-
-        function(link_prebuilt_codegen library_name prebuilt_path codegen_jni_dir)
-            set(target_name "react_codegen_${'$'}{library_name}")
-            set(DUMMY_SOURCE "${'$'}{CMAKE_CURRENT_BINARY_DIR}/placeholder_${'$'}{library_name}.cpp")
-
-            if(NOT EXISTS "${'$'}{DUMMY_SOURCE}")
-                file(WRITE "${'$'}{DUMMY_SOURCE}" "// Generated placeholder for ${'$'}{library_name}\n")
-            endif()
-
-            add_library(${'$'}{target_name} STATIC "${'$'}{DUMMY_SOURCE}")
-
-            target_include_directories(${'$'}{target_name} PUBLIC
-                ${'$'}{codegen_jni_dir}
-                ${'$'}{codegen_jni_dir}/react/renderer/components/${'$'}{library_name}
-            )
-
-            target_link_libraries(${'$'}{target_name} ${'$'}{prebuilt_path} fbjni jsi reactnative)
-
-            if(COMMAND target_compile_reactnative_options)
-                target_compile_reactnative_options(${'$'}{target_name} PRIVATE)
-            endif()
-
-            target_link_libraries(${'$'}{CMAKE_PROJECT_NAME} ${'$'}{target_name})
-
-            target_link_libraries(${'$'}{target_name} common_flags)
-        endfunction()
-
-        # Link Codegen Libs
-        if(EXISTS "${codegenListFile.absolutePath}")
-            message(STATUS "RNRepo: Loading codegen libraries from ${codegenListFile.absolutePath}")
-            file(STRINGS "${codegenListFile.absolutePath}" CODEGEN_LINES)
-            foreach(LINE ${'$'}{CODEGEN_LINES})
-                string(REPLACE ";" " " ARGS "${'$'}{LINE}")
-                separate_arguments(ARGS_LIST NATIVE_COMMAND ${'$'}{ARGS})
-                list(GET ARGS_LIST 0 L_NAME)
-                list(GET ARGS_LIST 1 L_RAW_PATH)
-                list(GET ARGS_LIST 2 L_HEADERS)
-                string(CONFIGURE "${'$'}{L_RAW_PATH}" L_PATH)
-                
-                message(STATUS "Linking codegen lib: ${'$'}{L_NAME} for ABI: ${'$'}{ANDROID_ABI}")
-                link_prebuilt_codegen("${'$'}{L_NAME}" "${'$'}{L_PATH}" "${'$'}{L_HEADERS}")
-            endforeach()
-        else()
-            message(STATUS "RNRepo: No codegen libraries file found at ${codegenListFile.absolutePath}")
-        endif()
-    """.trimIndent()
-
-    // Generate wrapper file immediately during configuration
-    wrapperFile.parentFile.mkdirs()
-    wrapperFile.writeText(wrapperContent)
-
-    // Set the path BEFORE project evaluation
-    cmakeExt.path = wrapperFile
-}
 }

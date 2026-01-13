@@ -4,11 +4,12 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.*
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.TaskAction
 import java.io.File
 
 abstract class ExtractPrebuiltsTask : DefaultTask() {
-
     @get:InputFiles
     abstract val codegenConfiguration: Property<Configuration>
 
@@ -28,7 +29,7 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
         codegenConfiguration.get().resolvedConfiguration.resolvedArtifacts.forEach { artifact ->
             val moduleName = artifact.name
             val extractionDir = File(project.buildDir, "intermediates/rnrepo/$moduleName")
-            
+
             // 1. Unpack AAR
             project.copy {
                 it.from(project.zipTree(artifact.file))
@@ -36,18 +37,21 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
             }
 
             // 2. Find codegen_name.txt (either in root or assets)
-            val metaFile = File(extractionDir, "codegen_name.txt").let { 
-                if (it.exists()) it else File(extractionDir, "assets/meta/codegen_name.txt")
-            }
+            val metaFile =
+                File(extractionDir, "codegen_name.txt").let {
+                    if (it.exists()) it else File(extractionDir, "assets/meta/codegen_name.txt")
+                }
 
             if (metaFile.exists()) {
                 val codegenName = metaFile.readText().trim()
-                
+
                 // 3. Extract static libraries (.a files) for each ABI
                 abis.forEach { abi ->
-                    val staticLib = project.fileTree(extractionDir) {
-                        it.include("**/$abi/**/libreact_codegen_$codegenName.a")
-                    }.firstOrNull()
+                    val staticLib =
+                        project
+                            .fileTree(extractionDir) {
+                                it.include("**/$abi/**/libreact_codegen_$codegenName.a")
+                            }.firstOrNull()
 
                     if (staticLib != null) {
                         val abiDest = File(outDir, abi)
@@ -62,14 +66,16 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
                 // 4. Extract Headers
                 val headersDir = File(outDir, "headers/$codegenName")
                 headersDir.mkdirs()
-                
+
                 // Attempt to find headers ZIP in the same version but with 'headers' classifier
                 try {
                     val id = artifact.moduleVersion.id
                     val headerDep = "${id.group}:${id.name}:${id.version}:headers@zip"
-                    val headerArtifact = project.configurations.detachedConfiguration(
-                        project.dependencies.create(headerDep)
-                    ).singleFile
+                    val headerArtifact =
+                        project.configurations
+                            .detachedConfiguration(
+                                project.dependencies.create(headerDep),
+                            ).singleFile
 
                     project.copy {
                         it.from(project.zipTree(headerArtifact))
