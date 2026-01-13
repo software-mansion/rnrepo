@@ -49,7 +49,7 @@ jobs:
         if: env.HAS_CHANGES == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          base: ios
+          base: ios # TEMPORARY: change to main
           add-paths: react-native-versions.json
           branch: chore/update-react-native-versions
           token: ${{ secrets.GITHUB_TOKEN }}

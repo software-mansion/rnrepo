@@ -13,7 +13,7 @@ async function main(): Promise<void> {
   try {
     // create yyyy-mm-dd string for yesterday
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 100);
+    yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayString = yesterday.toISOString().split('T')[0];
 
     // Read current versions from react-native-versions.json
@@ -28,10 +28,13 @@ async function main(): Promise<void> {
     }
 
     console.log(`📋 Current React Native versions: ${currentVersions.length} versions`);
+    if (currentVersions.length == 0) {
+      throw new Error('No versions found in react-native-versions.json');
+    } 
     console.log(`   Latest in list: ${currentVersions[currentVersions.length - 1]}`);
 
     // Check for new versions
-    const new_versions = await findMatchingVersionsFromNPM(
+    const newVersions = await findMatchingVersionsFromNPM(
         'react-native',
         `>${currentVersions[currentVersions.length - 1]}`,
         yesterdayString
@@ -40,13 +43,12 @@ async function main(): Promise<void> {
       .filter(v => !currentVersions.includes(v) && !v.includes('1000'))
     );
 
-    console.log(`🔍 Found ${new_versions.length} React Native versions published since ${yesterdayString}`);
-    // add entry
-    new_versions.push('0.0.0-experimental-future');
+    console.log(`🔍 Found ${newVersions.length} React Native versions published since ${yesterdayString}`);
+    newVersions.push('0.0.0-experimental-future');     // add entry temporarily for future experimental versions
     // Add new versions to the current list
-    if (new_versions.length > 0) {
-        console.log(`   Versions: ${new_versions.join(', ')}`);
-        new_versions.forEach(version => {
+    if (newVersions.length > 0) {
+        console.log(`   Versions: ${newVersions.join(', ')}`);
+        newVersions.forEach(version => {
             currentVersions.push(version);
         });
 
@@ -62,6 +64,7 @@ async function main(): Promise<void> {
 
   } catch (error) {
     console.error('❌ Error checking for new React Native versions:', error);
+    process.exit(1);
   }
 }
 
