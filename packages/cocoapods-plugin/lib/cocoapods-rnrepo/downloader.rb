@@ -24,11 +24,12 @@ module CocoapodsRnrepo
     end
 
     # Download from local test files (development/testing only)
-    # Looks for files in: /tmp/rnrepo
+    # Looks for files in RNREPO_BUILDS_FOLDER environment variable
     # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination, :worklets_version (optional)
     # Returns: destination path if successful, nil if file not found
     def self.download_from_local_test(artifact_spec)
-      local_test_dir = "/tmp/rnrepo"
+      local_test_dir = ENV['RNREPO_BUILDS_FOLDER']
+      return nil unless local_test_dir && Dir.exist?(local_test_dir)
       worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
       filename = "#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
       local_test_file = File.join(local_test_dir, filename)
