@@ -10,7 +10,7 @@ import java.io.File
 abstract class ExtractPrebuiltsTask : DefaultTask() {
 
     @get:InputFiles
-    abstract val frozenConfiguration: Property<Configuration>
+    abstract val codegenConfiguration: Property<Configuration>
 
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
@@ -21,11 +21,11 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
         if (outDir.exists()) outDir.deleteRecursively()
         outDir.mkdirs()
 
-        val frozenListFile = File(outDir, "frozen_libs.txt")
+        val codegenListFile = File(outDir, "codegen_libs.txt")
         val abis = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
         val sb = StringBuilder()
 
-        frozenConfiguration.get().resolvedConfiguration.resolvedArtifacts.forEach { artifact ->
+        codegenConfiguration.get().resolvedConfiguration.resolvedArtifacts.forEach { artifact ->
             val moduleName = artifact.name
             val extractionDir = File(project.buildDir, "intermediates/rnrepo/$moduleName")
             
@@ -43,7 +43,7 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
             if (metaFile.exists()) {
                 val codegenName = metaFile.readText().trim()
                 
-                // 3. Extract .a files for each ABI
+                // 3. Extract static libraries (.a files) for each ABI
                 abis.forEach { abi ->
                     val staticLib = project.fileTree(extractionDir) {
                         it.include("**/$abi/**/libreact_codegen_$codegenName.a")
@@ -85,6 +85,6 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
                 sb.append("$codegenName;$cmakeLibPath;${headersDir.absolutePath}\n")
             }
         }
-        frozenListFile.writeText(sb.toString())
+        codegenListFile.writeText(sb.toString())
     }
 }

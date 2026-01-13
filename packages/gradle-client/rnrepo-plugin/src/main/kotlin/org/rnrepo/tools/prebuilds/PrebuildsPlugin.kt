@@ -85,15 +85,13 @@ class PrebuildsPlugin : Plugin<Project> {
         if (shouldPluginExecute(project, extension)) {
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
 
-
-            // createCMakeLists wrapper
-            // 1. Tworzymy konfigurację dla zależności
-        val frozenConfig = project.configurations.create("frozenPrebuilts") {
+            // Setup codegen prebuilts configuration for codegen dependencies
+            val codegenConfig = project.configurations.create("codegenPrebuilts") {
             it.isCanBeResolved = true
             it.isCanBeConsumed = false
         }
 
-        // 2. Configure CMake wrapper BEFORE evaluation
+        // Configure CMake wrapper before project evaluation
         project.pluginManager.withPlugin("com.android.application") {
             val android = project.extensions.findByType(BaseExtension::class.java)
             if (android != null) {
@@ -101,15 +99,15 @@ class PrebuildsPlugin : Plugin<Project> {
             }
         }
 
-        // 3. Czekamy na ewaluację projektu dla pozostałych zadań
+        // Wait for project evaluation to complete remaining setup tasks
         project.afterEvaluate {
-            // 4. Rejestrujemy zadanie ekstrakcji
-            val extractTask = project.tasks.register("extractFrozenPrebuilts", ExtractPrebuiltsTask::class.java) {
-                it.frozenConfiguration.set(frozenConfig)
+            // Register extraction task for codegen prebuilts
+            val extractTask = project.tasks.register("extractCodegenPrebuilts", ExtractPrebuiltsTask::class.java) {
+                it.codegenConfiguration.set(codegenConfig)
                 it.outputDir.set(project.layout.buildDirectory.dir("generated/rnrepo/prebuilts"))
             }
 
-            // 5. Podpinamy ekstrakcję pod cykl życia (przed budowaniem natywnym)
+            // Hook extraction into build lifecycle before native build tasks
             project.tasks.matching { it.name.startsWith("externalNativeBuild") || it.name == "preBuild" }.all {
                 it.dependsOn(extractTask)
             }
@@ -129,14 +127,14 @@ class PrebuildsPlugin : Plugin<Project> {
                     "implementation",
                     dependencyNotation,
                 )
-                // Add to frozenConfig only if package has codegen metadata
+                // Add to codegenConfig only if package has codegen metadata
                 if (packageItem.hasCodegen) {
                     addDependency(
                         project,
-                        "frozenPrebuilts",
+                        "codegenPrebuilts",
                         dependencyNotation,
                     )
-                    logger.lifecycle("📦 Package ${packageItem.npmName} has codegen, adding to frozen prebuilts")
+                    logger.lifecycle("📦 Package ${packageItem.npmName} has codegen, adding to codegen prebuilts")
                 }
             }
 
@@ -899,10 +897,10 @@ class PrebuildsPlugin : Plugin<Project> {
 private fun configureCMakeWrapper(project: Project, android: BaseExtension) {
     val cmakeExt = android.externalNativeBuild.cmake
     val wrapperFile = File(project.buildDir, "generated/rnrepo/CMakeLists.txt")
-    val frozenListFile = File(project.buildDir, "generated/rnrepo/prebuilts/frozen_libs.txt")
+    val codegenListFile = File(project.buildDir, "generated/rnrepo/prebuilts/codegen_libs.txt")
     val autolinkFile = File(project.buildDir, "generated/autolinking/src/main/jni/Android-autolinking.cmake")
 
-    val userCMake = cmakeExt.path // Zapamiętujemy oryginał przed nadpisaniem go wrapperem
+    val userCMake = cmakeExt.path // Store original CMake path before overriding with wrapper
 
     // Extract project name from user's CMakeLists.txt or use default
     val projectName = if (userCMake != null && userCMake.exists()) {
@@ -923,14 +921,20 @@ private fun configureCMakeWrapper(project: Project, android: BaseExtension) {
         project($projectName)
         
         # Scrubbing - remove codegen libraries from autolinking to avoid duplicate symbols
-        if(EXISTS "${frozenListFile.absolutePath}" AND EXISTS "${autolinkFile.absolutePath}")
-            file(STRINGS "${frozenListFile.absolutePath}" FROZEN_LINES)
-            foreach(LINE ${'$'}{FROZEN_LINES})
+        if(EXISTS "${codegenListFile.absolutePath}" AND EXISTS "${autolinkFile.absolutePath}")
+            file(STRINGS "${codegenListFile.absolutePath}" CODEGEN_LINES)
+            file(READ "${autolinkFile.absolutePath}" AUTOLINK_CONTENT)
+            
+            foreach(LINE ${'$'}{CODEGEN_LINES})
                 string(REPLACE ";" " " ARGS "${'$'}{LINE}")
                 separate_arguments(ARGS_LIST NATIVE_COMMAND ${'$'}{ARGS})
                 list(GET ARGS_LIST 0 LIB_NAME)
-                execute_process(COMMAND sed -i "" "/${'$'}{LIB_NAME}/d" "${autolinkFile.absolutePath}")
+                
+                # Remove lines containing the library name (cross-platform)
+                string(REGEX REPLACE "[^\n]*${'$'}{LIB_NAME}[^\n]*\n" "" AUTOLINK_CONTENT "${'$'}{AUTOLINK_CONTENT}")
             endforeach()
+            
+            file(WRITE "${autolinkFile.absolutePath}" "${'$'}{AUTOLINK_CONTENT}")
         endif()
         
         # Include logic
@@ -967,11 +971,11 @@ private fun configureCMakeWrapper(project: Project, android: BaseExtension) {
             target_link_libraries(${'$'}{target_name} common_flags)
         endfunction()
 
-        # Link Frozen Libs
-        if(EXISTS "${frozenListFile.absolutePath}")
-            message(STATUS "RNRepo: Loading frozen libraries from ${frozenListFile.absolutePath}")
-            file(STRINGS "${frozenListFile.absolutePath}" FROZEN_LINES)
-            foreach(LINE ${'$'}{FROZEN_LINES})
+        # Link Codegen Libs
+        if(EXISTS "${codegenListFile.absolutePath}")
+            message(STATUS "RNRepo: Loading codegen libraries from ${codegenListFile.absolutePath}")
+            file(STRINGS "${codegenListFile.absolutePath}" CODEGEN_LINES)
+            foreach(LINE ${'$'}{CODEGEN_LINES})
                 string(REPLACE ";" " " ARGS "${'$'}{LINE}")
                 separate_arguments(ARGS_LIST NATIVE_COMMAND ${'$'}{ARGS})
                 list(GET ARGS_LIST 0 L_NAME)
@@ -979,11 +983,11 @@ private fun configureCMakeWrapper(project: Project, android: BaseExtension) {
                 list(GET ARGS_LIST 2 L_HEADERS)
                 string(CONFIGURE "${'$'}{L_RAW_PATH}" L_PATH)
                 
-                message(STATUS "Linking frozen lib: ${'$'}{L_NAME} for ABI: ${'$'}{ANDROID_ABI}")
+                message(STATUS "Linking codegen lib: ${'$'}{L_NAME} for ABI: ${'$'}{ANDROID_ABI}")
                 link_prebuilt_codegen("${'$'}{L_NAME}" "${'$'}{L_PATH}" "${'$'}{L_HEADERS}")
             endforeach()
         else()
-            message(STATUS "RNRepo: No frozen libraries file found at ${frozenListFile.absolutePath}")
+            message(STATUS "RNRepo: No codegen libraries file found at ${codegenListFile.absolutePath}")
         endif()
     """.trimIndent()
 
