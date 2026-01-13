@@ -41,13 +41,14 @@ jobs:
         run: |
           if git diff --quiet react-native-versions.json; then
             echo "No changes to commit"
-            exit 0
           else
+            echo "HAS_CHANGES=true" >> $GITHUB_ENV
             git add react-native-versions.json
             git commit -m "[BOT] Update React Native versions"
           fi
 
       - name: 📝 Create or update branch
+        if: env.HAS_CHANGES == 'true'
         run: |
           BRANCH_NAME="chore/update-react-native-versions"
           
@@ -60,6 +61,7 @@ jobs:
           fi
 
       - name: 🔄 Create or update Pull Request
+        if: env.HAS_CHANGES == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
