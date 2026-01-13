@@ -8,6 +8,7 @@ require 'json'
 # Helper method to load and parse rnrepo.config.json
 def load_rnrepo_config(workspace_root)
   config_path = File.join(workspace_root, '..', 'rnrepo.config.json')
+  CocoapodsRnrepo::Logger.log "Loading rnrepo.config.json from #{config_path}"
   return {} unless File.exist?(config_path)
 
   begin
@@ -20,7 +21,8 @@ end
 
 def get_ios_denylist(workspace_root)
   config = load_rnrepo_config(workspace_root)
-  (config['denylist'] || {})['ios'] || []
+  denylist_config = config['denyList'] || config['denylist'] || {}
+  denylist_config['ios'] || []
 end
 
 # Hook into CocoaPods pre-install phase to download frameworks
@@ -67,7 +69,7 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
   # Handle denylist
   ios_denylist = get_ios_denylist(workspace_root)
   rn_pods = rn_pods.reject do |pod_info|
-    if ios_denylist.include?(pod_info[:name])
+    if ios_denylist.include?(pod_info[:npm_package_name])
       denied_pods << pod_info[:name]
       true
     else
@@ -98,13 +100,6 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
   # Display summary
   CocoapodsRnrepo::Logger.log "Total React Native dependencies detected: #{rn_pods.count}"
 
-  if denied_pods.any?
-    CocoapodsRnrepo::Logger.log "⊘ Denied from pre-builds (#{denied_pods.count}):"
-    denied_pods.each do |pod_name|
-      CocoapodsRnrepo::Logger.log "  • #{pod_name}"
-    end
-  end
-
   if cached_pods.any?
     CocoapodsRnrepo::Logger.log "✓ Already Cached (#{cached_pods.count}):"
     cached_pods.each do |pod_info|
@@ -131,6 +126,13 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
     CocoapodsRnrepo::Logger.log "✗ Failed to Process (#{failed_pods.count}):"
     failed_pods.each do |pod|
       CocoapodsRnrepo::Logger.log "  • #{pod}"
+    end
+  end
+
+  if denied_pods.any?
+    CocoapodsRnrepo::Logger.log "⊘ Denied from pre-builds (#{denied_pods.count}):"
+    denied_pods.each do |pod_name|
+      CocoapodsRnrepo::Logger.log "  • #{pod_name}"
     end
   end
 

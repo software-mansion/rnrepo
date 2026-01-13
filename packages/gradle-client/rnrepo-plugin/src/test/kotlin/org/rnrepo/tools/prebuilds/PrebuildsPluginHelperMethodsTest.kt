@@ -216,8 +216,9 @@ class PrebuildsPluginHelperMethodsTest {
         configFile.writeText(
             """
             {
-                "denyList": ["react-native-vector-icons", "react-native-image-picker"]
-            }
+                "denyList": {
+                    "android": ["react-native-vector-icons", "react-native-image-picker"]
+                }
             """.trimIndent(),
         )
         setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
