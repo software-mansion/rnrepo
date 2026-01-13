@@ -50,23 +50,36 @@ module CocoapodsRnrepo
     def self.download_via_gradle(artifact_spec)
       Logger.log "Downloading via gradle..."
 
+      # Create rnrepo directory
+      rnrepo_dir = File.join(Dir.pwd, 'rnrepo')
+      FileUtils.mkdir_p(rnrepo_dir)
+
       # Get the gem's root directory (parent of lib/)
       gem_root = File.expand_path('../../..', __FILE__)
-      gradle_file = File.join(gem_root, 'build.gradle.kts')
-      
-      unless File.exist?(gradle_file)
-        Logger.log "build.gradle.kts not found at #{gradle_file}"
+      gem_gradle_file = File.join(gem_root, 'build.gradle.kts')
+
+      unless File.exist?(gem_gradle_file)
+        Logger.log "build.gradle.kts not found at #{gem_gradle_file}"
+        return nil
+      end
+
+      # Write gradle file to ios directory to avoid permission issues
+      ios_gradle_file = File.join(rnrepo_dir, 'build.gradle.kts')
+      File.write(ios_gradle_file, "apply(from = \"#{gem_gradle_file}\")")
+
+      unless File.exist?(ios_gradle_file)
+        Logger.log "build.gradle.kts not found at #{ios_gradle_file}"
         return nil
       end
 
       begin
         gradle_args = [
           @@gradle_executable,
-          '--project-cache-dir', '/tmp/rnrepo-gradle-project-cache-dir',
-          '--build-file', gradle_file,
+          '--project-cache-dir=' + File.join(rnrepo_dir, 'gradle_project_cache'),
+          '-p', rnrepo_dir,
           '--no-daemon',
           '--no-build-cache',
-          '-PbuildDir=/tmp/rnrepo-gradle-build',
+          '-PbuildDir=' + File.join(rnrepo_dir, 'gradle_build_output'),
           'downloadArtifact',
           '-Dpackage=' + artifact_spec[:sanitized_name],
           '-Dversion=' + artifact_spec[:version],
