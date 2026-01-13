@@ -49,10 +49,10 @@ jobs:
         if: env.HAS_CHANGES == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
-          base: main
+          base: ios
           add-paths: react-native-versions.json
           branch: chore/update-react-native-versions
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.SCHEDULER_GITHUB_PAT }}
           commit-message: "[BOT] Update React Native versions"
           title: "[BOT] Update React Native versions"
           body: |
