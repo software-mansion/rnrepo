@@ -52,8 +52,9 @@ def configureCodegenTasks(project) {
         }
     }
 
-    // Task to package headers
+    // Task to package headers - must run after codegen generation
     def packageHeadersTask = project.tasks.register("packageCppHeaders") {
+        onlyIf { codegenName != null }
         dependsOn 'generateCodegenArtifactsFromSchema'
         doLast {
             def headersSourceDir = file("${project.buildDir}/generated/source/codegen/jni")
@@ -66,13 +67,27 @@ def configureCodegenTasks(project) {
                     into headersDestDir
                     include "**/*.h"
                 }
+                println "📦 Packaged codegen headers to assets/headers"
+            } else {
+                println "⚠️  Warning: Headers source directory not found at ${headersSourceDir}"
             }
         }
     }
+    
+        // Link packageHeadersTask to run after generateCodegenArtifactsFromSchema
+        def generateCodegenTask = project.tasks.findByName('generateCodegenArtifactsFromSchema')
+        if (generateCodegenTask) {
+            packageHeadersTask.configure {
+                dependsOn(generateCodegenTask)
+            }
+        }
 
-    if (project.tasks.findByName('bundleReleaseAar')) {
-        project.tasks.bundleReleaseAar.dependsOn(extractTask)
-    }
+        // Hook into mergeReleaseAssets instead of bundleReleaseAar to ensure files are copied before AGP scans assets
+        def mergeAssetsTask = project.tasks.findByName('mergeReleaseAssets')
+        if (mergeAssetsTask) {
+            mergeAssetsTask.dependsOn(extractTask)
+            mergeAssetsTask.dependsOn(packageHeadersTask)
+        }
 
     try {
         if (project.hasProperty('android')) {
@@ -184,10 +199,6 @@ gradle.projectsEvaluated {
                 def generatePomFileTask = project.tasks.findByName('generatePomFileForReleasePublication')
                 if (generatePomFileTask && bundleReleaseAarTask) {
                     generatePomFileTask.dependsOn(bundleReleaseAarTask)
-                    // Ensure headers are copied before AAR is bundled
-                    if (codegenName) {
-                        bundleReleaseAarTask.dependsOn(packageHeadersTask)
-                    }
                 }
             } catch (Exception e) {
                 println "Warning: Could not configure publishing for ${project.name}: ${e.message}"
