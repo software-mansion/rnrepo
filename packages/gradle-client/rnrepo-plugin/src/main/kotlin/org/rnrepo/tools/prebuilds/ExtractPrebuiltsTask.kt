@@ -63,32 +63,25 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
                     }
                 }
 
-                // 4. Extract Headers
+                // 4. Extract Headers from assets/headers
                 val headersDir = File(outDir, "headers/$codegenName")
                 headersDir.mkdirs()
-
-                // Attempt to find headers ZIP in the same version but with 'headers' classifier
-                try {
-                    val id = artifact.moduleVersion.id
-                    val headerDep = "${id.group}:${id.name}:${id.version}:headers@zip"
-                    val headerArtifact =
-                        project.configurations
-                            .detachedConfiguration(
-                                project.dependencies.create(headerDep),
-                            ).singleFile
-
+                
+                val headersSourceDir = File(extractionDir, "assets/headers")
+                if (headersSourceDir.exists()) {
                     project.copy {
-                        it.from(project.zipTree(headerArtifact))
+                        it.from(headersSourceDir)
                         it.into(headersDir)
+                        it.include("**/*.h")
                     }
-                } catch (e: Exception) {
-                    project.logger.warn("RNRepo: Headers not found for $moduleName")
+                    
+                    // 5. Register in manifest: name;path_to_a;path_to_headers
+                    // Using a placeholder ${ANDROID_ABI} for CMake
+                    val cmakeLibPath = "${outDir.absolutePath}/\${ANDROID_ABI}/libreact_codegen_$codegenName.a"
+                    sb.append("$codegenName;$cmakeLibPath;${headersDir.absolutePath}\n")
+                } else {
+                    project.logger.lifecycle("RNRepo: Headers not found in assets/headers for $moduleName - will build codegen from sources")
                 }
-
-                // 5. Register in manifest: name;path_to_a;path_to_headers
-                // Using a placeholder ${ANDROID_ABI} for CMake
-                val cmakeLibPath = "${outDir.absolutePath}/\${ANDROID_ABI}/libreact_codegen_$codegenName.a"
-                sb.append("$codegenName;$cmakeLibPath;${headersDir.absolutePath}\n")
             }
         }
         codegenListFile.writeText(sb.toString())

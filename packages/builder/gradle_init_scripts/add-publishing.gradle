@@ -53,12 +53,21 @@ def configureCodegenTasks(project) {
     }
 
     // Task to package headers
-    def packageHeadersTask = project.tasks.register("packageCppHeaders", Zip) {
+    def packageHeadersTask = project.tasks.register("packageCppHeaders") {
         dependsOn 'generateCodegenArtifactsFromSchema'
-        archiveClassifier = 'headers'
-        from("${project.buildDir}/generated/source/codegen/jni") { include "**/*.h" }
-        destinationDirectory = file("${project.buildDir}/outputs/cpp")
-        archiveFileName = "cpp-headers.zip"
+        doLast {
+            def headersSourceDir = file("${project.buildDir}/generated/source/codegen/jni")
+            def headersDestDir = file("${project.projectDir}/src/main/assets/headers")
+            
+            if (headersSourceDir.exists()) {
+                headersDestDir.mkdirs()
+                copy {
+                    from headersSourceDir
+                    into headersDestDir
+                    include "**/*.h"
+                }
+            }
+        }
     }
 
     if (project.tasks.findByName('bundleReleaseAar')) {
@@ -113,12 +122,6 @@ gradle.projectsEvaluated {
                                 }
                             }
 
-                            if (codegenName) {
-                                artifact(packageHeadersTask) {
-                                    classifier = 'headers'
-                                    extension = 'zip'
-                                }
-                            }
 
                             pom {
                                 withXml {
@@ -181,8 +184,10 @@ gradle.projectsEvaluated {
                 def generatePomFileTask = project.tasks.findByName('generatePomFileForReleasePublication')
                 if (generatePomFileTask && bundleReleaseAarTask) {
                     generatePomFileTask.dependsOn(bundleReleaseAarTask)
-                    // Ensure headers are ready before POM is generated
-                    generatePomFileTask.dependsOn(packageHeadersTask)
+                    // Ensure headers are copied before AAR is bundled
+                    if (codegenName) {
+                        bundleReleaseAarTask.dependsOn(packageHeadersTask)
+                    }
                 }
             } catch (Exception e) {
                 println "Warning: Could not configure publishing for ${project.name}: ${e.message}"
