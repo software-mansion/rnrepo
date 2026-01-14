@@ -98,7 +98,7 @@ class PrebuildsPlugin : Plugin<Project> {
             }
 
             // Configure pickFirsts for packages with native libraries that may have duplicates
-            configurePickFirsts(project, extension.supportedPackages)
+            configurePickFirsts(project, extension.projectPackages)
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.supportedPackages.forEach { packageItem ->
@@ -195,7 +195,7 @@ class PrebuildsPlugin : Plugin<Project> {
      */
     private fun configurePickFirsts(
         project: Project,
-        supportedPackages: Set<PackageItem>,
+        projectPackages: Set<PackageItem>,
     ) {
         val prebuiltSoProvidersPackageAndLibName =
             mapOf(
@@ -210,7 +210,7 @@ class PrebuildsPlugin : Plugin<Project> {
         }
 
         prebuiltSoProvidersPackageAndLibName.forEach { (prebuiltSoProvidersPackageName, nativeLibName) ->
-            val isPrebuiltSoProvidersPackageSupported = supportedPackages.any { it.name == prebuiltSoProvidersPackageName }
+            val isPrebuiltSoProvidersPackageSupported = projectPackages.any { it.name == prebuiltSoProvidersPackageName }
             if (!isPrebuiltSoProvidersPackageSupported) {
                 logger.info("Provider package '$prebuiltSoProvidersPackageName' is not supported, skipping pickFirsts configuration.")
                 return@forEach
