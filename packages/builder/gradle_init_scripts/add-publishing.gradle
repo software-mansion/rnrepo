@@ -73,21 +73,13 @@ def configureCodegenTasks(project) {
             }
         }
     }
-    
-        // Link packageHeadersTask to run after generateCodegenArtifactsFromSchema
-        def generateCodegenTask = project.tasks.findByName('generateCodegenArtifactsFromSchema')
-        if (generateCodegenTask) {
-            packageHeadersTask.configure {
-                dependsOn(generateCodegenTask)
-            }
-        }
 
-        // Hook into mergeReleaseAssets instead of bundleReleaseAar to ensure files are copied before AGP scans assets
-        def mergeAssetsTask = project.tasks.findByName('mergeReleaseAssets')
-        if (mergeAssetsTask) {
-            mergeAssetsTask.dependsOn(extractTask)
-            mergeAssetsTask.dependsOn(packageHeadersTask)
-        }
+    // Hook into mergeReleaseAssets instead of bundleReleaseAar to ensure files are copied before AGP scans assets
+    def mergeAssetsTask = project.tasks.findByName('mergeReleaseAssets')
+    if (mergeAssetsTask) {
+        mergeAssetsTask.dependsOn(extractTask)
+        mergeAssetsTask.dependsOn(packageHeadersTask)
+    }
 
     try {
         if (project.hasProperty('android')) {
