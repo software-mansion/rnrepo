@@ -202,7 +202,6 @@ class PrebuildsPlugin : Plugin<Project> {
                 "react-native-worklets" to "libworklets.so",
                 "react-native-nitro-modules" to "libNitroModules.so",
             )
-        val architectures = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
         val androidExtension = project.extensions.getByName("android") as? BaseExtension
         if (androidExtension == null) {
             logger.warn("Android extension not found in project ${project.name}, cannot configure pickFirsts.")
@@ -216,10 +215,8 @@ class PrebuildsPlugin : Plugin<Project> {
                 return@forEach
             }
             logger.info("Provider package '$prebuiltSoProvidersPackageName' is supported, configuring pickFirsts for '$nativeLibName'.")
-            architectures.forEach { arch ->
-                androidExtension.packagingOptions.jniLibs.pickFirsts
-                    .add("lib/$arch/$nativeLibName")
-            }
+            androidExtension.packagingOptions.jniLibs.pickFirsts
+                .add("lib/**/$nativeLibName")
         }
     }
 
