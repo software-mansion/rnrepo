@@ -8,14 +8,10 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { findMatchingVersionsFromNPM } from './npm';
+import semver from 'semver';
 
 async function main(): Promise<void> {
   try {
-    // create yyyy-mm-dd string for yesterday
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayString = yesterday.toISOString().split('T')[0];
-
     // Read current versions from react-native-versions.json
     const versionsFilePath = 'react-native-versions.json';
     let currentVersions: string[] = [];
@@ -31,31 +27,30 @@ async function main(): Promise<void> {
     if (currentVersions.length == 0) {
       throw new Error('No versions found in react-native-versions.json');
     } 
-    console.log(`   Latest in list: ${currentVersions[currentVersions.length - 1]}`);
 
     // Check for new versions
     const newVersions = await findMatchingVersionsFromNPM(
         'react-native',
-        `>${currentVersions[currentVersions.length - 1]}`,
-        yesterdayString
+        `>${currentVersions[0]}`
     ).then(versions => versions
       .map(v => v.version)
-      .filter(v => !currentVersions.includes(v) && !v.includes('1000'))
+      .filter(v => !currentVersions.includes(v) && !v.includes('1000')
+      // ignore versions that have smaller pathch version than the latest known of that minor
+      && semver.patch(v) >= semver.patch(currentVersions.find(cv => semver.minor(cv) === semver.minor(v)) || '0.0.0')
+      )
     );
 
-    console.log(`🔍 Found ${newVersions.length} React Native versions published since ${yesterdayString}`);
-    newVersions.push('0.0.0-experimental-future');     // add entry temporarily for future experimental versions
+    console.log(`🔍 Found ${newVersions.length} React Native versions published`);
+    newVersions.push('0.79.90-TESTING-DO-NOT-MERGE');     // add entry temporarily for future experimental versions
     // Add new versions to the current list
     if (newVersions.length > 0) {
-        console.log(`   Versions: ${newVersions.join(', ')}`);
-        newVersions.forEach(version => {
-            currentVersions.push(version);
-        });
+        console.log(`   New versions: ${newVersions.join(', ')}`);
+        const sorted = [...newVersions, ...currentVersions].sort(semver.compare);
 
         // Write the updated versions back to react-native-versions.json
         writeFileSync(
           versionsFilePath,
-          JSON.stringify(currentVersions, null, 2) + '\n'
+          JSON.stringify(sorted, null, 2) + '\n'
         );
         console.log(`✅ Updated react-native-versions.json with new version(s)`);
     } else {
