@@ -1,5 +1,5 @@
 import { $ } from 'bun';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { sanitizePackageName } from '@rnrepo/config';
 import {
@@ -75,6 +75,25 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     );
   }
 
+  // Check if library has codegen configuration
+  const packageJsonPath = join(packagePath, 'package.json');
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+  const hasCodegenConfig = !!packageJson.codegenConfig?.name;
+  
+  // Check if library has custom react-native.config.js file, which may override codegen settings
+  const hasCustomCodegen = existsSync(join(packagePath, 'react-native.config.js'));
+  
+  // we don't want to build codegen version if custom codegen is present since e.g. with custom shadow nodes, additional headers should be linked
+  const shouldBuildCodegen = hasCodegenConfig && !hasCustomCodegen;
+  
+  if (!shouldBuildCodegen) {
+    throw new Error(
+      `⚠️ Library probably has custom codegen configuration in react-native.config.js, skipping codegen build`
+    );
+  } else {
+    console.log(`✓ Library has codegen configuration: ${packageJson.codegenConfig.name}`);
+  }
+
   const addPublishingGradleScriptPath = join(
     __dirname,
     'gradle_init_scripts',
@@ -105,41 +124,95 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
   }
 
   try {
-    await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
-      --no-daemon \
-      --init-script ${addPublishingGradleScriptPath} \
-      --init-script ${addPrefabReduceGradleScriptPath} \
-      ${
-        postinstallGradleScriptPath
-          ? { raw: '--init-script ' + postinstallGradleScriptPath }
-          : ''
-      } \
-      -PrnrepoArtifactId=${gradleProjectName} \
-      -PrnrepoPublishVersion=${libraryVersion} \
-      -PrnrepoClassifier=${classifier} \
-      -PrnrepoCpuInfo=${getCpuInfo()} \
-      -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
-      -PrnrepoLicenseName=${license} \
-      -PrnrepoLicenseUrl=https://opensource.org/license/${license}
-    `.cwd(androidPath);
+    // console.log('📦 Publishing standard version...');
+    // await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
+    //   --no-daemon \
+    //   --init-script ${addPublishingGradleScriptPath} \
+    //   --init-script ${addPrefabReduceGradleScriptPath} \
+    //   ${
+    //     postinstallGradleScriptPath
+    //       ? { raw: '--init-script ' + postinstallGradleScriptPath }
+    //       : ''
+    //   } \
+    //   -PrnrepoArtifactId=${gradleProjectName} \
+    //   -PrnrepoPublishVersion=${libraryVersion} \
+    //   -PrnrepoClassifier=${classifier} \
+    //   -PrnrepoCpuInfo=${getCpuInfo()} \
+    //   -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
+    //   -PrnrepoLicenseName=${license} \
+    //   -PrnrepoLicenseUrl=https://opensource.org/license/${license}
+    // `.cwd(androidPath);
 
-    // verify that the .pom and .aar files are present aftre the publish command completes
-    const pomPath = join(
-      mavenLocalLibraryLocationPath,
-      `${gradleProjectName}-${libraryVersion}.pom`
-    );
-    if (!existsSync(pomPath)) {
-      throw new Error(`POM file not found at ${pomPath}`);
-    }
-    const aarPath = join(
-      mavenLocalLibraryLocationPath,
-      `${gradleProjectName}-${libraryVersion}-${classifier}.aar`
-    );
-    if (!existsSync(aarPath)) {
-      throw new Error(`AAR file not found at ${aarPath}`);
+    // // verify that the .pom and .aar files are present after the publish command completes
+    // const pomPath = join(
+    //   mavenLocalLibraryLocationPath,
+    //   `${gradleProjectName}-${libraryVersion}.pom`
+    // );
+    // if (!existsSync(pomPath)) {
+    //   throw new Error(`POM file not found at ${pomPath}`);
+    // }
+    // const aarPath = join(
+    //   mavenLocalLibraryLocationPath,
+    //   `${gradleProjectName}-${libraryVersion}-${classifier}.aar`
+    // );
+    // if (!existsSync(aarPath)) {
+    //   throw new Error(`AAR file not found at ${aarPath}`);
+    // }
+
+    // console.log('✓ Standard version published to Maven Local successfully');
+
+    // If library has codegen, build codegen version as well
+    if (shouldBuildCodegen) {
+      // Build debug to generate debug codegen static libraries
+      console.log('🔨 Building Android app in debug mode to generate debug codegen static libraries');
+      await $`./gradlew assembleDebug \
+        --no-daemon \
+        --init-script ${addPublishingGradleScriptPath} \
+        -PrnrepoCodegenName=${packageJson.codegenConfig.name}
+      `.cwd(androidPath);
+
+      // Clean .cxx folder between builds to avoid conflicts
+      const cxxPath = join(androidPath, 'app', '.cxx');
+      if (existsSync(cxxPath)) {
+        console.log('🧹 Cleaning .cxx folder between builds...');
+        await $`rm -rf ${cxxPath}`.cwd(androidPath);
+      }
+
+      // Build release to generate release codegen static libraries
+      console.log('🔨 Building Android app in release mode to generate release codegen static libraries');
+      await $`./gradlew assembleRelease \
+        --no-daemon \
+        --init-script ${addPublishingGradleScriptPath} \
+        -PrnrepoCodegenName=${packageJson.codegenConfig.name}
+      `.cwd(androidPath);
+
+      console.log('📦 Publishing codegen version...');
+      await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
+        --no-daemon \
+        --init-script ${addPublishingGradleScriptPath} \
+        --init-script ${addPrefabReduceGradleScriptPath} \
+        ${postinstallGradleScriptPath ? { raw: "--init-script " + postinstallGradleScriptPath} : ""} \
+        -PrnrepoArtifactId=${gradleProjectName} \
+        -PrnrepoPublishVersion=${libraryVersion} \
+        -PrnrepoClassifier=${classifier} \
+        -PrnrepoCpuInfo=${getCpuInfo()} \
+        -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
+        -PrnrepoLicenseName=${license} \
+        -PrnrepoLicenseUrl=https://opensource.org/license/${license} \
+        -PrnrepoCodegenName=${packageJson.codegenConfig.name}
+      `.cwd(androidPath);
+
+      // verify codegen version
+      const codegenAarPath = join(
+        mavenLocalLibraryLocationPath,
+        `${gradleProjectName}-${libraryVersion}-${classifier}-codegen.aar`
+      );
+      if (!existsSync(codegenAarPath)) {
+        throw new Error(`Codegen AAR file not found at ${codegenAarPath}`);
+      }
+      console.log('✓ Codegen version published successfully');
     }
 
-    console.log('✓ Published to Maven Local successfully');
   } catch (error) {
     console.error(`❌ Build failed:`, error);
     throw error;
