@@ -171,6 +171,13 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
         -PrnrepoCodegenName=${packageJson.codegenConfig.name}
       `.cwd(androidPath);
 
+      // Clean .cxx folder between builds to avoid conflicts
+      const cxxPath = join(androidPath, 'app', '.cxx');
+      if (existsSync(cxxPath)) {
+        console.log('🧹 Cleaning .cxx folder between builds...');
+        await $`rm -rf ${cxxPath}`.cwd(androidPath);
+      }
+
       // Build release to generate release codegen static libraries
       console.log('🔨 Building Android app in release mode to generate release codegen static libraries');
       await $`./gradlew assembleRelease \
