@@ -143,9 +143,10 @@ class PrebuildsPlugin : Plugin<Project> {
             // Configure pickFirsts for packages with native libraries that may have duplicates
             configurePickFirsts(project, extension.supportedPackages)
 
-            // Add dependency on generating codegen schema for each library that might need it
-            // This ensures the task runs even if we later discover headers are missing in the codegen prebuild
+            // Add dependency on generating codegen schema for each library that needs it
+            // Skip packages with hasCodegen=true since they use prebuilt codegen artifacts
             extension.supportedPackages
+                .filter { !it.hasCodegen }
                 .forEach { packageItem ->
                     val codegenTaskName = "generateCodegenArtifactsFromSchema"
                     project.evaluationDependsOn(":${packageItem.name}")

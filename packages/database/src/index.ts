@@ -33,8 +33,6 @@ export async function isBuildAlreadyScheduled(
   platform: Platform,
   workletsVersion?: string | null
 ): Promise<boolean> {
-  return Promise.resolve(false);
-
   const supabase = getSupabaseClient();
 
   let query = supabase
@@ -81,7 +79,6 @@ export async function createBuildRecord(
   githubRunUrl?: string,
   workletsVersion?: string | null
 ): Promise<void> {
-  return Promise.resolve();
   const supabase = getSupabaseClient();
 
   const { error } = await supabase.from('builds').upsert(
@@ -120,7 +117,6 @@ export async function updateBuildStatus(
     workletsVersion?: string | null;
   }
 ): Promise<void> {
-  return Promise.resolve();
   const supabase = getSupabaseClient();
 
   const updateData: {
@@ -166,7 +162,6 @@ export async function updateBuildStatus(
 }
 
 export async function getAllCompletedBuilds(): Promise<LibrariesData> {
-  return Promise.resolve({});
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase
@@ -181,7 +176,6 @@ export async function getAllCompletedBuilds(): Promise<LibrariesData> {
 }
 
 export async function getCompletedPackagesNames(): Promise<string[]> {
-  return Promise.resolve([]);
   const supabase = getSupabaseClient();
 
   const { data, error } = await supabase

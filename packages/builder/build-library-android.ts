@@ -80,16 +80,19 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   const hasCodegenConfig = !!packageJson.codegenConfig?.name;
   
+  console.log("FSSS")
   // Check if library has custom react-native.config.js file, which may override codegen settings
   const hasCustomCodegen = existsSync(join(packagePath, 'react-native.config.js'));
   
   // we don't want to build codegen version if custom codegen is present since e.g. with custom shadow nodes, additional headers should be linked
   const shouldBuildCodegen = hasCodegenConfig && !hasCustomCodegen;
+  console.log("FSSS2")
   
-  if (hasCodegenConfig && hasCustomCodegen) {
-    console.log(`⚠️ Library probably has custom codegen configuration in react-native.config.js, skipping codegen build`);
-    process.exit(1);
-  } else if (shouldBuildCodegen) {
+  if (!shouldBuildCodegen) {
+    throw new Error(
+      `⚠️ Library probably has custom codegen configuration in react-native.config.js, skipping codegen build`
+    );
+  } else {
     console.log(`✓ Library has codegen configuration: ${packageJson.codegenConfig.name}`);
   }
 

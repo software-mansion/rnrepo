@@ -74,7 +74,7 @@ def configureCodegenTasks(project) {
         }
     }
 
-    // Hook into mergeReleaseAssets instead of bundleReleaseAar to ensure files are copied before AGP scans assets
+    // Hook into mergeReleaseAssets to ensure files are copied before AGP scans assets
     def mergeAssetsTask = project.tasks.findByName('mergeReleaseAssets')
     if (mergeAssetsTask) {
         mergeAssetsTask.dependsOn(extractTask)

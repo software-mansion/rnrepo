@@ -63,7 +63,13 @@ export async function processLibrary(
             ? workletsMatchingVersions
             : [null]) {
             const workletsVersion = workletsVersionInfo?.version;
-            const alreadyScheduled = false;
+            const alreadyScheduled = await isBuildAlreadyScheduled(
+              libraryName,
+              pkgVersion,
+              rnVersion,
+              platform,
+              workletsVersion
+            );
             if (alreadyScheduled) {
               const platformPrefix =
                 platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
@@ -97,7 +103,7 @@ export async function processLibrary(
                 platform,
                 rnVersion,
                 workletsVersion,
-                'wolewicki/android-codegen'
+                'main'
               );
             } catch (error) {
               console.error(
@@ -110,24 +116,24 @@ export async function processLibrary(
             }
 
             // Create build record in Supabase (without run URL - will be updated later)
-            // try {
-            //   await createBuildRecord(
-            //     libraryName,
-            //     pkgVersion,
-            //     rnVersion,
-            //     platform,
-            //     undefined,
-            //     workletsVersion
-            //   );
-            // } catch (error) {
-            //   console.error(
-            //     `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${
-            //       workletsVersion ? ', worklets ' + workletsVersion : ''
-            //     }):`,
-            //     error
-            //   );
-            //   // Continue anyway - the record might have been created by another process
-            // }
+            try {
+              await createBuildRecord(
+                libraryName,
+                pkgVersion,
+                rnVersion,
+                platform,
+                undefined,
+                workletsVersion
+              );
+            } catch (error) {
+              console.error(
+                `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${
+                  workletsVersion ? ', worklets ' + workletsVersion : ''
+                }):`,
+                error
+              );
+              // Continue anyway - the record might have been created by another process
+            }
 
             scheduledCount++;
           }
