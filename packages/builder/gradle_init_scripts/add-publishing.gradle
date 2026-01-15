@@ -106,6 +106,8 @@ gradle.projectsEvaluated {
             def codegenName = codegenConfig.codegenName
             def packageHeadersTask = codegenConfig.packageHeadersTask
 
+            // Configure maven-publish publications
+            // components.release should now be available after singleVariant is configured
             try {
                 publishing {
                     publications {
@@ -128,7 +130,6 @@ gradle.projectsEvaluated {
                                     extension = 'aar'
                                 }
                             }
-
 
                             pom {
                                 withXml {
