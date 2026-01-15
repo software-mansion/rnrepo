@@ -139,14 +139,15 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
   # Overall stats
   prebuilt_count = cached_pods.count + downloaded_pods.count
   source_build_count = unavailable_pods.count + failed_pods.count + denied_pods.count
+  total_original_pods = rn_pods.count + denied_pods.count
 
   if prebuilt_count > 0
-    percentage = ((prebuilt_count.to_f / rn_pods.count) * 100).round(1)
-    CocoapodsRnrepo::Logger.log "#{prebuilt_count}/#{rn_pods.count} dependencies (#{percentage}%) using pre-built frameworks! 🎉"
+    percentage = ((prebuilt_count.to_f / total_original_pods) * 100).round(1)
+    CocoapodsRnrepo::Logger.log "#{prebuilt_count}/#{total_original_pods} dependencies (#{percentage}%) using pre-built frameworks! 🎉"
   end
 
   if source_build_count > 0
-    CocoapodsRnrepo::Logger.log "#{source_build_count}/#{rn_pods.count} dependencies will be built from source"
+    CocoapodsRnrepo::Logger.log "#{source_build_count}/#{total_original_pods} dependencies will be built from source"
   end
 
   # Store the list of successfully prebuilt pods (with package roots) for later use
