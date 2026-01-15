@@ -216,7 +216,9 @@ class PrebuildsPluginHelperMethodsTest {
         configFile.writeText(
             """
             {
-                "denyList": ["react-native-vector-icons", "react-native-image-picker"]
+                "denyList": {
+                    "android": ["react-native-vector-icons", "react-native-image-picker"]
+                }
             }
             """.trimIndent(),
         )
