@@ -41,7 +41,6 @@ async function main(): Promise<void> {
     );
 
     console.log(`🔍 Found ${newVersions.length} React Native versions published`);
-    newVersions.push('0.79.90-TESTING-DO-NOT-MERGE');     // add entry temporarily for future experimental versions
     // Add new versions to the current list
     if (newVersions.length > 0) {
         console.log(`   New versions: ${newVersions.join(', ')}`);
