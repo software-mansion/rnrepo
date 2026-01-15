@@ -35,8 +35,8 @@ async function main(): Promise<void> {
     ).then(versions => versions
       .map(v => v.version)
       .filter(v => !currentVersions.includes(v) && !v.includes('1000')
-      // ignore versions that have smaller pathch version than the latest known of that minor
-      && semver.patch(v) >= semver.patch(currentVersions.find(cv => semver.minor(cv) === semver.minor(v)) || '0.0.0')
+      // ignore versions that have smaller patch version than the latest known of that minor
+      && semver.patch(v) >= semver.patch(currentVersions.reverse().find(cv => semver.minor(cv) === semver.minor(v)) || '0.0.0')
       )
     );
 

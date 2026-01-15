@@ -29,7 +29,6 @@ jobs:
         run: bun install
 
       - name: 🔍 Check and update React Native versions
-        id: update-versions
         run: bun run packages/scheduler/src/update-react-native-versions.ts
 
       - name: 🔧 Configure Git
