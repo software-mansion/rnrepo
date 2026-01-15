@@ -98,7 +98,7 @@ class PrebuildsPlugin : Plugin<Project> {
             }
 
             // Configure pickFirsts for packages with native libraries that may have duplicates
-            configurePickFirsts(project, extension.supportedPackages)
+            configurePickFirsts(project, extension.projectPackages)
 
             // Add dependency on generating codegen schema for each library so that task is not dropped
             extension.supportedPackages.forEach { packageItem ->
@@ -195,14 +195,13 @@ class PrebuildsPlugin : Plugin<Project> {
      */
     private fun configurePickFirsts(
         project: Project,
-        supportedPackages: Set<PackageItem>,
+        projectPackages: Set<PackageItem>,
     ) {
         val prebuiltSoProvidersPackageAndLibName =
             mapOf(
                 "react-native-worklets" to "libworklets.so",
                 "react-native-nitro-modules" to "libNitroModules.so",
             )
-        val architectures = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
         val androidExtension = project.extensions.getByName("android") as? BaseExtension
         if (androidExtension == null) {
             logger.warn("Android extension not found in project ${project.name}, cannot configure pickFirsts.")
@@ -210,16 +209,16 @@ class PrebuildsPlugin : Plugin<Project> {
         }
 
         prebuiltSoProvidersPackageAndLibName.forEach { (prebuiltSoProvidersPackageName, nativeLibName) ->
-            val isPrebuiltSoProvidersPackageSupported = supportedPackages.any { it.name == prebuiltSoProvidersPackageName }
+            val isPrebuiltSoProvidersPackageSupported = projectPackages.any { it.name == prebuiltSoProvidersPackageName }
             if (!isPrebuiltSoProvidersPackageSupported) {
-                logger.info("Provider package '$prebuiltSoProvidersPackageName' is not supported, skipping pickFirsts configuration.")
+                logger.info("Provider package '$prebuiltSoProvidersPackageName' is not in the project, skipping pickFirsts configuration.")
                 return@forEach
             }
-            logger.info("Provider package '$prebuiltSoProvidersPackageName' is supported, configuring pickFirsts for '$nativeLibName'.")
-            architectures.forEach { arch ->
-                androidExtension.packagingOptions.jniLibs.pickFirsts
-                    .add("lib/$arch/$nativeLibName")
-            }
+            logger.info(
+                "Provider package '$prebuiltSoProvidersPackageName' is in the project, configuring pickFirsts for '$nativeLibName'.",
+            )
+            androidExtension.packagingOptions.jniLibs.pickFirsts
+                .add("lib/**/$nativeLibName")
         }
     }
 
