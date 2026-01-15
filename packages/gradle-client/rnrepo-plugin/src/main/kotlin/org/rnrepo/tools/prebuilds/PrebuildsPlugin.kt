@@ -106,6 +106,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     project.tasks.register("extractCodegenPrebuilts", ExtractPrebuiltsTask::class.java) {
                         it.codegenConfiguration.set(codegenConfig)
                         it.outputDir.set(project.layout.buildDirectory.dir("generated/rnrepo/prebuilts"))
+                        it.buildType.set(getBuildType(project))
                     }
 
                 // Hook extraction into build lifecycle before native build tasks

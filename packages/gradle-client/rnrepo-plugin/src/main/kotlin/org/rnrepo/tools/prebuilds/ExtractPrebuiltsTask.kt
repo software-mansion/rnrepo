@@ -4,6 +4,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
@@ -15,6 +16,9 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
 
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
+
+    @get:Input
+    abstract val buildType: Property<String>
 
     @TaskAction
     fun execute() {
@@ -44,22 +48,27 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
 
             if (metaFile.exists()) {
                 val codegenName = metaFile.readText().trim()
+                val currentBuildType = buildType.get()
 
-                // 3. Extract static libraries (.a files) for each ABI
+                // 3. Extract static libraries (.a files) for each ABI from the correct build variant
                 abis.forEach { abi ->
-                    val staticLib =
+                    // Try variant-specific path first (new format)
+                    val variantStaticLib =
                         project
                             .fileTree(extractionDir) {
-                                it.include("**/$abi/**/libreact_codegen_$codegenName.a")
+                                it.include("**/assets/$currentBuildType/$abi/**/libreact_codegen_$codegenName.a")
                             }.firstOrNull()
 
-                    if (staticLib != null) {
+                    if (variantStaticLib != null) {
                         val abiDest = File(outDir, abi)
                         abiDest.mkdirs()
                         project.copy {
-                            it.from(staticLib)
+                            it.from(variantStaticLib)
                             it.into(abiDest)
                         }
+                        project.logger.lifecycle("RNRepo: Extracted $currentBuildType codegen library for $abi from $moduleName")
+                    } else {
+                        project.logger.warn("RNRepo: No $currentBuildType codegen library found for $abi in $moduleName")
                     }
                 }
 

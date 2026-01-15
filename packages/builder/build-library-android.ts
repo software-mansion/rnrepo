@@ -80,13 +80,11 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   const hasCodegenConfig = !!packageJson.codegenConfig?.name;
   
-  console.log("FSSS")
   // Check if library has custom react-native.config.js file, which may override codegen settings
   const hasCustomCodegen = existsSync(join(packagePath, 'react-native.config.js'));
   
   // we don't want to build codegen version if custom codegen is present since e.g. with custom shadow nodes, additional headers should be linked
   const shouldBuildCodegen = hasCodegenConfig && !hasCustomCodegen;
-  console.log("FSSS2")
   
   if (!shouldBuildCodegen) {
     throw new Error(
@@ -165,9 +163,21 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
 
     // If library has codegen, build codegen version as well
     if (shouldBuildCodegen) {
-      // first build the app so we can get codegen artifacts generated
-      console.log('🔨 Building Android app to generate codegen static libraries');
-      await $`./gradlew assembleRelease --no-daemon`.cwd(androidPath);
+      // Build debug to generate debug codegen static libraries
+      console.log('🔨 Building Android app in debug mode to generate debug codegen static libraries');
+      await $`./gradlew assembleDebug \
+        --no-daemon \
+        --init-script ${addPublishingGradleScriptPath} \
+        -PrnrepoCodegenName=${packageJson.codegenConfig.name}
+      `.cwd(androidPath);
+
+      // Build release to generate release codegen static libraries
+      console.log('🔨 Building Android app in release mode to generate release codegen static libraries');
+      await $`./gradlew assembleRelease \
+        --no-daemon \
+        --init-script ${addPublishingGradleScriptPath} \
+        -PrnrepoCodegenName=${packageJson.codegenConfig.name}
+      `.cwd(androidPath);
 
       console.log('📦 Publishing codegen version...');
       await $`./gradlew :${gradleProjectName}:publishToMavenLocal \

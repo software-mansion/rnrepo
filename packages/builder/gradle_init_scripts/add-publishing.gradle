@@ -23,34 +23,45 @@ allprojects { project ->
     }
 }
 
+def createExtractCodegenBinariesTask(libraryProject, codegenName, buildType) {
+    return libraryProject.tasks.register("extractCodegenBinaries${buildType.capitalize()}") {
+        onlyIf { codegenName != null }
+        doLast {
+            def appCxxDir = file("${libraryProject.rootProject.projectDir}/app/.cxx")
+            def archs = ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
+            def moduleFolder = "${codegenName}_autolinked_build"
+            archs.each { arch ->
+                // Find any .a file for this arch (will be whatever was just built)
+                def staticLib = fileTree(dir: appCxxDir, include: "**/$moduleFolder/**/libreact_codegen_${codegenName}.a")
+                    .find { it.path.contains(arch) }
+                if (staticLib) {
+                    def destDir = file("${libraryProject.projectDir}/src/main/assets/${buildType}/$arch")
+                    destDir.mkdirs()
+                    copy { from staticLib; into destDir }
+                    println "📦 Copied ${buildType} codegen library for $arch from ${staticLib.path}"
+                } else {
+                    println "⚠️  Warning: Codegen library not found for $arch in ${appCxxDir.absolutePath}"
+                }
+            }
+            // Metadata for the consumer (only for release to avoid duplication)
+            if (buildType == "release") {
+                def metaDir = file("${libraryProject.projectDir}/src/main/assets/meta")
+                metaDir.mkdirs()
+                file("${metaDir}/codegen_name.txt").text = codegenName
+            }
+        }
+    }
+}
+
 def configureCodegenTasks(project) {
     // Codegen name is passed from build-library-android.ts when building codegen version
     def codegenName = project.hasProperty('rnrepoCodegenName') 
         ? project.property('rnrepoCodegenName') 
         : null
 
-    // Task to extract static libs from .cxx to jniLibs
-    def extractTask = project.tasks.register("extractCodegenBinaries") {
-        onlyIf { codegenName != null }
-        doLast {
-            def appCxxDir = file("${rootProject.projectDir}/app/.cxx")
-            def archs = ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
-            def moduleFolder = "${codegenName}_autolinked_build"
-            archs.each { arch ->
-                def staticLib = fileTree(dir: appCxxDir, include: "**/$moduleFolder/**/libreact_codegen_${codegenName}.a")
-                    .find { it.path.contains(arch) }
-                if (staticLib) {
-                    def destDir = file("${project.projectDir}/src/main/assets/$arch")
-                    destDir.mkdirs()
-                    copy { from staticLib; into destDir }
-                }
-            }
-            // Metadata for the consumer
-            def metaDir = file("${project.projectDir}/src/main/assets/meta")
-            metaDir.mkdirs()
-            file("${metaDir}/codegen_name.txt").text = codegenName
-        }
-    }
+    // Create extract tasks for both debug and release
+    def extractDebugTask = createExtractCodegenBinariesTask(project, codegenName, "debug")
+    def extractReleaseTask = createExtractCodegenBinariesTask(project, codegenName, "release")
 
     // Task to package headers - must run after codegen generation
     def packageHeadersTask = project.tasks.register("packageCppHeaders") {
@@ -74,10 +85,26 @@ def configureCodegenTasks(project) {
         }
     }
 
-    // Hook into mergeReleaseAssets to ensure files are copied before AGP scans assets
+    // Hook extract tasks to app's assemble tasks
+    project.rootProject.subprojects.each { subproject ->
+        if (subproject.name == 'app') {
+            def assembleDebugTask = subproject.tasks.findByName('assembleDebug')
+            if (assembleDebugTask) {
+                assembleDebugTask.finalizedBy(extractDebugTask)
+                println "🔗 Linked extractCodegenBinariesDebug to app's assembleDebug"
+            }
+            
+            def assembleReleaseTask = subproject.tasks.findByName('assembleRelease')
+            if (assembleReleaseTask) {
+                assembleReleaseTask.finalizedBy(extractReleaseTask)
+                println "🔗 Linked extractCodegenBinariesRelease to app's assembleRelease"
+            }
+        }
+    }
+
+    // Hook into mergeReleaseAssets to ensure headers are copied before AGP scans assets
     def mergeAssetsTask = project.tasks.findByName('mergeReleaseAssets')
     if (mergeAssetsTask) {
-        mergeAssetsTask.dependsOn(extractTask)
         mergeAssetsTask.dependsOn(packageHeadersTask)
     }
 
