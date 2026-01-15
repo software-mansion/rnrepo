@@ -214,7 +214,9 @@ class PrebuildsPlugin : Plugin<Project> {
                 logger.info("Provider package '$prebuiltSoProvidersPackageName' is not in the project, skipping pickFirsts configuration.")
                 return@forEach
             }
-            logger.info("Provider package '$prebuiltSoProvidersPackageName' is in the project, configuring pickFirsts for '$nativeLibName'.")
+            logger.info(
+                "Provider package '$prebuiltSoProvidersPackageName' is in the project, configuring pickFirsts for '$nativeLibName'.",
+            )
             androidExtension.packagingOptions.jniLibs.pickFirsts
                 .add("lib/**/$nativeLibName")
         }
