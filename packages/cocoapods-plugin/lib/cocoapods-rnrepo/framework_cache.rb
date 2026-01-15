@@ -5,19 +5,9 @@ module CocoapodsRnrepo
     def self.fetch_framework(installer, pod_info, workspace_root)
       pod_name = pod_info[:name]
       version = pod_info[:version]
-      maven_url_debug = pod_info[:maven_url_debug]
-      maven_url_release = pod_info[:maven_url_release]
       source_path = pod_info[:source]
 
       Logger.log "Processing: #{pod_name} v#{version}".bold
-
-      # Skip if we don't have Maven URLs
-      unless maven_url_debug && maven_url_release
-        Logger.log "No Maven URLs available for #{pod_name}"
-        Logger.log "  Debug: npm_package_name=#{pod_info[:npm_package_name]}, version=#{version}, rn_version=#{pod_info[:rn_version]}"
-        Logger.log "Will build from source instead"
-        return { status: :unavailable, message: "No Maven URLs" }
-      end
 
       # Resolve the source path to get absolute package directory
       # source_path is relative like "../node_modules/react-native-svg"
@@ -43,6 +33,7 @@ module CocoapodsRnrepo
 
       npm_package_name = pod_info[:npm_package_name] || pod_name
       rn_version = pod_info[:rn_version]
+      worklets_version = pod_info[:worklets_version]
 
       # Sanitize package name for filename (remove @ and replace / with _)
       # Matches sanitizePackageName() in @rnrepo/config
@@ -55,14 +46,14 @@ module CocoapodsRnrepo
       unless debug_exists
         Logger.log "Downloading Debug configuration..."
         debug_result = download_and_extract_config(
-          maven_url_debug,
           cache_dir,
           debug_cache_dir,
           sanitized_name,
           version,
           rn_version,
           'debug',
-          pod_name
+          pod_name,
+          worklets_version
         )
         if debug_result[:status] == :downloaded || debug_result[:status] == :cached
           configs_available << 'Debug'
@@ -77,14 +68,14 @@ module CocoapodsRnrepo
       unless release_exists
         Logger.log "Downloading Release configuration..."
         release_result = download_and_extract_config(
-          maven_url_release,
           cache_dir,
           release_cache_dir,
           sanitized_name,
           version,
           rn_version,
           'release',
-          pod_name
+          pod_name,
+          worklets_version
         )
         if release_result[:status] == :downloaded || release_result[:status] == :cached
           configs_available << 'Release'
@@ -124,13 +115,24 @@ module CocoapodsRnrepo
     private
 
     # Download and extract a specific configuration (debug or release)
-    def self.download_and_extract_config(maven_url, cache_dir, config_cache_dir, sanitized_name, version, rn_version, config, pod_name)
-      # Filename format: npm-package-name-version-rnX.Y.Z-config.xcframework.zip
-      zip_filename = "#{sanitized_name}-#{version}-rn#{rn_version}-#{config}.xcframework.zip"
+    def self.download_and_extract_config(cache_dir, config_cache_dir, sanitized_name, version, rn_version, config, pod_name, worklets_version = nil)
+      # Filename format: npm-package-name-version-rnX.Y.Z[-workletsX.Y.Z]-config.xcframework.zip
+      worklets_suffix = worklets_version ? "-worklets#{worklets_version}" : ''
+      zip_filename = "#{sanitized_name}-#{version}-rn#{rn_version}#{worklets_suffix}-#{config}.xcframework.zip"
       zip_path = File.join(cache_dir, zip_filename)
 
-      Logger.log "Maven URL: #{maven_url}"
-      unless Downloader.download_file(maven_url, zip_path)
+      downloaded_file = Downloader.download_file(
+        {
+          package: pod_name,
+          sanitized_name: sanitized_name,
+          version: version,
+          rn_version: rn_version,
+          worklets_version: worklets_version,
+          configuration: config,
+          destination: zip_path
+        }
+      )
+      unless downloaded_file
         Logger.log "Not available on Maven repository"
         Logger.log "Will build from source instead"
         return { status: :unavailable, message: "Not available on Maven" }
@@ -141,7 +143,8 @@ module CocoapodsRnrepo
 
       # Extract the zip file to config-specific directory
       # The zip contains: FrameworkName.xcframework/ (may differ from pod name due to sanitization)
-      unless Downloader.unzip_file(zip_path, config_cache_dir)
+      # We extract to cache_dir, which should create: cache_dir/FrameworkName.xcframework/
+      unless Downloader.unzip_file(downloaded_file, config_cache_dir)
         Logger.log "Failed to extract pre-built framework for #{pod_name}"
         FileUtils.rm_f(zip_path)
         return { status: :failed, message: "Extraction failed" }
