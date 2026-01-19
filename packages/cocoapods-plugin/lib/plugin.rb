@@ -8,7 +8,7 @@ require_relative 'framework_cache'
 # 
 #require Pod::Executable.execute_command('node', ['-p',
 #  'require.resolve(
-#  "cocoapods-rnrepo/lib/plugin.rb",
+#  "@rnrepo/cocoapods-plugin/lib/plugin.rb",
 #  {paths: [process.argv[1]]},
 #)', __dir__]).strip
 #

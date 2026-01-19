@@ -3,7 +3,7 @@
   "title": "RNRepo CocoaPods plugin",
   "version": "0.0.1",
   "description": "RNRepo plugin for iOS CocoaPods-based setups",
-  "main": "lib/cocoapods_plugin.rb",
+  "main": "lib/plugin.rb",
   "scripts": {
     "build": "gem build cocoapods-rnrepo.gemspec",
     "prepublishOnly": "npm run build",
