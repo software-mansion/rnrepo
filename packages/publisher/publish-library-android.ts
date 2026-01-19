@@ -156,6 +156,7 @@ async function main() {
 
     // Sign and deploy AAR using gpg:sign-and-deploy-file (signs and deploys in one step)
     // The task uses MAVEN_GPG_KEY and MAVEN_GPG_PASSPHRASE environment variables to sign the artifact
+    let publishStatus = 'failed' as 'failed' | 'completed';
     try {
       await $`mvn gpg:sign-and-deploy-file \
           -Dfile=${aarFile} \
@@ -172,30 +173,10 @@ async function main() {
       console.log(
         `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
       );
+      publishStatus = 'completed';
     } catch (error) {
       console.error('❌ Failed to sign and deploy AAR:', error);
-      try {
-        const githubRunUrl =
-          run.html_url ||
-          `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
-
-        await updateBuildStatus(
-          libraryName,
-          libraryVersion,
-          reactNativeVersion,
-          'android' as Platform,
-          'failed',
-          {
-            githubRunUrl: githubRunUrl,
-            workletsVersion: workletsVersion || null,
-          }
-        );
-        console.log('✓ Database status updated to failed');
-      } catch (error) {
-        console.warn(`⚠️  Failed to update database status: ${error}`);
-        // Don't fail the publish if database update fails
-      }
-      throw error;
+      publishStatus = 'failed';
     }
 
     // Pull build duration from pom file
@@ -228,20 +209,20 @@ async function main() {
         libraryVersion,
         reactNativeVersion,
         'android' as Platform,
-        'completed',
+        publishStatus,
         {
           githubRunUrl: githubRunUrl,
           workletsVersion: workletsVersion || null,
           buildDurationSeconds: buildDurationSeconds || undefined,
         }
       );
-      console.log('✓ Database status updated to completed');
+      console.log('✓ Database status updated successfully');
     } catch (error) {
       console.warn(`⚠️  Failed to update database status: ${error}`);
       // Don't fail the publish if database update fails
     }
 
-    process.exit(0);
+    process.exit(publishStatus === 'completed' ? 0 : 1);
   } catch (error) {
     console.error('❌ Publish failed:', error);
     process.exit(1);
