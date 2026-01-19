@@ -186,12 +186,12 @@ class PrebuildsPlugin : Plugin<Project> {
 
     private fun checkAndWarnCommandContext(project: Project) {
         val taskNames = project.gradle.startParameter.taskNames
-        val allTasksFromApp = taskNames.all { it.startsWith(":app") || it.startsWith("app") }
+        val allTasksFromProject = taskNames.all { it.startsWith(":${project.name}") || it.startsWith(project.name) }
 
-        if (!allTasksFromApp) {
+        if (!allTasksFromProject) {
             logger.warn(
                 "Command was launched from root context (e.g., './gradlew assembleRelease'). " +
-                    "It should be launched from app module context (e.g., './gradlew :app:assembleRelease'). " +
+                    "It should be launched from ${project.name} module context (e.g., './gradlew :${project.name}:assembleRelease'). " +
                     "This may cause build issues.",
             )
         }
