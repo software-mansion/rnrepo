@@ -1,11 +1,19 @@
 require 'cocoapods'
-require 'cocoapods-rnrepo/logger'
-require 'cocoapods-rnrepo/pod_extractor'
-require 'cocoapods-rnrepo/downloader'
-require 'cocoapods-rnrepo/framework_cache'
+require_relative 'logger'
+require_relative 'pod_extractor'
+require_relative 'downloader'
+require_relative 'framework_cache'
 
-# Hook into CocoaPods pre-install phase to download frameworks
-Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_context|
+# ONLY ADD TO PODFILE:
+# 
+#require Pod::Executable.execute_command('node', ['-p',
+#  'require.resolve(
+#  "cocoapods-rnrepo/lib/cocoapods-rnrepo/plugin.rb",
+#  {paths: [process.argv[1]]},
+#)', __dir__]).strip
+#
+
+def rnrepo_pre_install(installer_context)
   CocoapodsRnrepo::Logger.log "🚀 Scanning for React Native dependencies to replace with pre-builds..."
 
   # Get the ios directory (where Podfile is located)
@@ -31,7 +39,7 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
 
   if rn_pods.empty?
     CocoapodsRnrepo::Logger.log "No React Native pods found in node_modules"
-    next
+    return
   end
 
   CocoapodsRnrepo::Logger.log "Found #{rn_pods.count} React Native pod(s) to process"
@@ -124,6 +132,7 @@ module Pod
     # Hook into resolve_dependencies to modify specs BEFORE project generation
     old_method = instance_method(:resolve_dependencies)
     define_method(:resolve_dependencies) do
+      rnrepo_pre_install(installer_context=self)
       # Get the list of prebuilt pod info (hashes with :name, :package_root, etc.)
       prebuilt_pods = Pod::Installer.prebuilt_rnrepo_pods || []
 
@@ -284,14 +293,22 @@ module Pod
 
       CocoapodsRnrepo::Logger.log ""
     end
+    
+    # Register post_install hook inside the monkey patch
+    unless @rnrepo_post_install_registered
+      Pod::HooksManager.register('cocoapods-rnrepo', :post_install) do |installer_context|
+        rnrepo_post_install(installer_context)
+      end
+      @rnrepo_post_install_registered = true
+    end
   end
 end
 
 # Hook into CocoaPods post-install phase to add build scripts
-Pod::HooksManager.register('cocoapods-rnrepo', :post_install) do |installer_context|
+def rnrepo_post_install(installer_context)
   # Get the list of prebuilt pod info
   prebuilt_pods = Pod::Installer.prebuilt_rnrepo_pods || []
-  next if prebuilt_pods.empty?
+  return if prebuilt_pods.empty?
 
   CocoapodsRnrepo::Logger.log ""
   CocoapodsRnrepo::Logger.log "🔧 Adding build phase scripts for configuration selection..."
