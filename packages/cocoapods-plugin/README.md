@@ -21,7 +21,7 @@ Add the following line at the top of your `ios/Podfile`:
 ```ruby
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
-    "cocoapods-rnrepo/lib/cocoapods-rnrepo/plugin.rb",
+    "cocoapods-rnrepo/lib/plugin.rb",
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 ```
