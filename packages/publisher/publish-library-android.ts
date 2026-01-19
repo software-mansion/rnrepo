@@ -156,21 +156,47 @@ async function main() {
 
     // Sign and deploy AAR using gpg:sign-and-deploy-file (signs and deploys in one step)
     // The task uses MAVEN_GPG_KEY and MAVEN_GPG_PASSPHRASE environment variables to sign the artifact
-    await $`mvn gpg:sign-and-deploy-file \
-        -Dfile=${aarFile} \
-        -DgroupId=org.rnrepo.public \
-        -DartifactId=${mavenLibraryName} \
-        -Dversion=${libraryVersion} \
-        -Dpackaging=aar \
-        -Dclassifier=${classifier} \
-        -DgeneratePom=false \
-        -DrepositoryId=RNRepo \
-        -Durl=${MAVEN_REPOSITORY_URL}`;
-    console.log('✓ AAR signed and deployed successfully');
+    try {
+      await $`mvn gpg:sign-and-deploy-file \
+          -Dfile=${aarFile} \
+          -DgroupId=org.rnrepo.public \
+          -DartifactId=${mavenLibraryName} \
+          -Dversion=${libraryVersion} \
+          -Dpackaging=aar \
+          -Dclassifier=${classifier} \
+          -DgeneratePom=false \
+          -DrepositoryId=RNRepo \
+          -Durl=${MAVEN_REPOSITORY_URL}`;
+      console.log('✓ AAR signed and deployed successfully');
 
-    console.log(
-      `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
-    );
+      console.log(
+        `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
+      );
+    } catch (error) {
+      console.error('❌ Failed to sign and deploy AAR:', error);
+      try {
+        const githubRunUrl =
+          run.html_url ||
+          `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
+
+        await updateBuildStatus(
+          libraryName,
+          libraryVersion,
+          reactNativeVersion,
+          'android' as Platform,
+          'failed',
+          {
+            githubRunUrl: githubRunUrl,
+            workletsVersion: workletsVersion || null,
+          }
+        );
+        console.log('✓ Database status updated to failed');
+      } catch (error) {
+        console.warn(`⚠️  Failed to update database status: ${error}`);
+        // Don't fail the publish if database update fails
+      }
+      throw error;
+    }
 
     // Pull build duration from pom file
     let buildDurationSeconds: number | null = null;
