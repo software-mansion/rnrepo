@@ -21,7 +21,6 @@ jobs:
       id-token: write  # Required for OIDC
       contents: read
     env:
-      PACKAGE_NAME: PLACEHOLDER # Will be set later
       PLUGIN_DIR: packages/cocoapods-plugin
     defaults:
       run:
@@ -45,15 +44,6 @@ jobs:
       - name: 🏗 Update npm
         # Ensure npm 11.5.1 or later is installed
         run: npm install -g npm@latest
-
-      - name: 📦 Install dependencies
-        run: bun install
-
-      - name: 🔨 Build plugin
-        run: bun run build
-
-      - name: 🔨 Prepare package
-        run: bun run prepare
 
       - name: 🚀 Publish to npm
         run: npm publish --tag ${{ github.event.inputs.beta_or_latest }}
