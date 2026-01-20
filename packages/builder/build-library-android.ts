@@ -106,6 +106,12 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     'prefab-reduce.gradle'
   );
 
+  const codegenBuildGradleScriptPath = join(
+    __dirname,
+    'gradle_init_scripts',
+    'codegen-build.gradle'
+  );
+
   const mavenLocalLibraryLocationPath = join(
     process.env.HOME || process.env.USERPROFILE || '',
     '.m2',
@@ -163,26 +169,23 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
 
     // If library has codegen, build codegen version as well
     if (shouldBuildCodegen) {
-      // Build debug to generate debug codegen static libraries
       console.log('🔨 Building Android app in debug mode to generate debug codegen static libraries');
       await $`./gradlew assembleDebug \
         --no-daemon \
         --init-script ${addPublishingGradleScriptPath} \
+        --init-script ${codegenBuildGradleScriptPath} \
         -PrnrepoCodegenName=${packageJson.codegenConfig.name}
       `.cwd(androidPath);
 
       // Clean .cxx folder between builds to avoid conflicts
-      const cxxPath = join(androidPath, 'app', '.cxx');
-      if (existsSync(cxxPath)) {
-        console.log('🧹 Cleaning .cxx folder between builds...');
-        await $`rm -rf ${cxxPath}`.cwd(androidPath);
-      }
+      console.log(`🧹 Cleaning .cxx and build folders between builds...`);
+      await $`rm -rf ./app/.cxx ./app/build`.cwd(androidPath);
 
-      // Build release to generate release codegen static libraries
       console.log('🔨 Building Android app in release mode to generate release codegen static libraries');
       await $`./gradlew assembleRelease \
         --no-daemon \
         --init-script ${addPublishingGradleScriptPath} \
+        --init-script ${codegenBuildGradleScriptPath} \
         -PrnrepoCodegenName=${packageJson.codegenConfig.name}
       `.cwd(androidPath);
 
