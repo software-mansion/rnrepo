@@ -52,7 +52,7 @@ module CocoapodsRnrepo
       Logger.log "Downloading via gradle..."
 
       # Get the gem's root directory (parent of lib/)
-      gem_root = File.expand_path('../../..', __FILE__)
+      gem_root = File.expand_path('..', __FILE__)
       gem_gradle_file = File.join(gem_root, 'build.gradle.kts')
 
       unless File.exist?(gem_gradle_file)

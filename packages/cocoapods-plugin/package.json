@@ -22,7 +22,6 @@
     "README.md",
     "Gemfile",
     "cocoapods-rnrepo.gemspec",
-    "build.gradle.kts",
     "Rakefile"
   ],
   "keywords": [
