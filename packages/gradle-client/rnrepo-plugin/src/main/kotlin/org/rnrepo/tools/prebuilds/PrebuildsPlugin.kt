@@ -186,7 +186,7 @@ class PrebuildsPlugin : Plugin<Project> {
      */
     private fun executeHttpRequest(
         urlString: String,
-        method: String = "GET"
+        method: String = "GET",
     ): Pair<Int, String?> {
         var connection: HttpURLConnection? = null
         try {
@@ -196,11 +196,12 @@ class PrebuildsPlugin : Plugin<Project> {
             connection.readTimeout = 5000
 
             val responseCode = connection.responseCode
-            val content = if (method == "GET" && responseCode == HttpURLConnection.HTTP_OK) {
-                connection.inputStream.bufferedReader().use { it.readText() }
-            } else {
-                null
-            }
+            val content =
+                if (method == "GET" && responseCode == HttpURLConnection.HTTP_OK) {
+                    connection.inputStream.bufferedReader().use { it.readText() }
+                } else {
+                    null
+                }
 
             return Pair(responseCode, content)
         } catch (e: Exception) {
@@ -213,13 +214,13 @@ class PrebuildsPlugin : Plugin<Project> {
 
     private fun checkForPluginUpdate() {
         try {
-            val (responseCode, xmlContent) = executeHttpRequest(
-                "https://packages.rnrepo.org/releases/org/rnrepo/tools/prebuilds-plugin/maven-metadata.xml",
-                "GET"
-            )
+            val (responseCode, xmlContent) =
+                executeHttpRequest(
+                    "https://packages.rnrepo.org/releases/org/rnrepo/tools/prebuilds-plugin/maven-metadata.xml",
+                    "GET",
+                )
 
             if (responseCode == HttpURLConnection.HTTP_OK && xmlContent != null) {
-
                 // Parse XML to get latest version
                 val latestVersionRegex = """<latest>([^<]+)</latest>""".toRegex()
                 val matchResult = latestVersionRegex.find(xmlContent)
@@ -239,7 +240,10 @@ class PrebuildsPlugin : Plugin<Project> {
         }
     }
 
-    private fun isNewerVersion(latest: String, current: String): Boolean {
+    private fun isNewerVersion(
+        latest: String,
+        current: String,
+    ): Boolean {
         val latestParts = latest.split(".").mapNotNull { it.toIntOrNull() }
         val currentParts = current.split(".").mapNotNull { it.toIntOrNull() }
 
