@@ -15,6 +15,7 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.file.Paths
+import kotlin.concurrent.thread
 
 data class PackageItem(
     val name: String,
@@ -213,30 +214,32 @@ class PrebuildsPlugin : Plugin<Project> {
     }
 
     private fun checkForPluginUpdate() {
-        try {
-            val (responseCode, xmlContent) =
-                executeHttpRequest(
-                    "https://packages.rnrepo.org/releases/org/rnrepo/tools/prebuilds-plugin/maven-metadata.xml",
-                    "GET",
-                )
+        thread(isDaemon = true, name = "RNRepo-UpdateCheck") {
+            try {
+                val (responseCode, xmlContent) =
+                    executeHttpRequest(
+                        "https://packages.rnrepo.org/releases/org/rnrepo/tools/prebuilds-plugin/maven-metadata.xml",
+                        "GET",
+                    )
 
-            if (responseCode == HttpURLConnection.HTTP_OK && xmlContent != null) {
-                // Parse XML to get latest version
-                val latestVersionRegex = """<latest>([^<]+)</latest>""".toRegex()
-                val matchResult = latestVersionRegex.find(xmlContent)
+                if (responseCode == HttpURLConnection.HTTP_OK && xmlContent != null) {
+                    // Parse XML to get latest version
+                    val latestVersionRegex = """<latest>([^<]+)</latest>""".toRegex()
+                    val matchResult = latestVersionRegex.find(xmlContent)
 
-                if (matchResult != null) {
-                    val latestVersion = matchResult.groupValues[1]
-                    val currentVersion = BuildConstants.PLUGIN_VERSION
+                    if (matchResult != null) {
+                        val latestVersion = matchResult.groupValues[1]
+                        val currentVersion = BuildConstants.PLUGIN_VERSION
 
-                    if (isNewerVersion(latestVersion, currentVersion)) {
-                        logger.warn("A newer version of RNRepo plugin is available: $latestVersion (current: $currentVersion)")
+                        if (isNewerVersion(latestVersion, currentVersion)) {
+                            logger.warn("A newer version of RNRepo plugin is available: $latestVersion (current: $currentVersion)")
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                // Silently fail - don't interrupt build if update check fails
+                logger.debug("Failed to check for plugin updates: ${e.message}")
             }
-        } catch (e: Exception) {
-            // Silently fail - don't interrupt build if update check fails
-            logger.debug("Failed to check for plugin updates: ${e.message}")
         }
     }
 
