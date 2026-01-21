@@ -82,6 +82,7 @@ class PrebuildsPlugin : Plugin<Project> {
         }
         if (shouldPluginExecute(project, extension)) {
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
+            checkForPluginUpdate()
 
             // Check what packages are in project and which are we supporting
             getProjectPackages(project.rootProject.allprojects, extension)
@@ -173,6 +174,53 @@ class PrebuildsPlugin : Plugin<Project> {
                 }
             }
         }
+    }
+
+    private fun checkForPluginUpdate() {
+        try {
+            val url = URL("https://packages.rnrepo.org/releases/org/rnrepo/tools/prebuilds-plugin/maven-metadata.xml")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val xmlContent = connection.inputStream.bufferedReader().use { it.readText() }
+
+                // Parse XML to get latest version
+                val latestVersionRegex = """<latest>([^<]+)</latest>""".toRegex()
+                val matchResult = latestVersionRegex.find(xmlContent)
+
+                if (matchResult != null) {
+                    val latestVersion = matchResult.groupValues[1]
+                    val currentVersion = BuildConstants.PLUGIN_VERSION
+
+                    if (isNewerVersion(latestVersion, currentVersion)) {
+                        logger.lifecycle("⚠️  A newer version of RNRepo plugin is available: $latestVersion (current: $currentVersion)")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Silently fail - don't interrupt build if update check fails
+            logger.info("Failed to check for plugin updates: ${e.message}")
+        }
+    }
+
+    private fun isNewerVersion(latest: String, current: String): Boolean {
+        val latestParts = latest.split(".").mapNotNull { it.toIntOrNull() }
+        val currentParts = current.split(".").mapNotNull { it.toIntOrNull() }
+
+        val maxLength = maxOf(latestParts.size, currentParts.size)
+
+        for (i in 0 until maxLength) {
+            val latestPart = latestParts.getOrNull(i) ?: 0
+            val currentPart = currentParts.getOrNull(i) ?: 0
+
+            if (latestPart > currentPart) return true
+            if (latestPart < currentPart) return false
+        }
+
+        return false
     }
 
     private fun getProperty(
