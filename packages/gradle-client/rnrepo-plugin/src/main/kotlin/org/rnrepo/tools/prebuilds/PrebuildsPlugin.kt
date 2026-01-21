@@ -182,6 +182,7 @@ class PrebuildsPlugin : Plugin<Project> {
      * @param urlString The URL to send the request to
      * @param method The HTTP method (GET, HEAD, etc.)
      * @return Pair of response code and content (null if method is HEAD or response is not OK)
+     *         Returns (-1, null) if an error occurs
      */
     private fun executeHttpRequest(
         urlString: String,
@@ -202,6 +203,9 @@ class PrebuildsPlugin : Plugin<Project> {
             }
 
             return Pair(responseCode, content)
+        } catch (e: Exception) {
+            logger.debug("HTTP request failed for $urlString: ${e.message}")
+            return Pair(-1, null)
         } finally {
             connection?.disconnect()
         }
