@@ -230,7 +230,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     val currentVersion = BuildConstants.PLUGIN_VERSION
 
                     if (isNewerVersion(latestVersion, currentVersion)) {
-                        logger.lifecycle("⚠️  A newer version of RNRepo plugin is available: $latestVersion (current: $currentVersion)")
+                        logger.warn("A newer version of RNRepo plugin is available: $latestVersion (current: $currentVersion)")
                     }
                 }
             }
