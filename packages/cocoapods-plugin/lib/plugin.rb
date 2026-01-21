@@ -1,4 +1,5 @@
 require 'cocoapods'
+require 'thread'
 require_relative 'logger'
 require_relative 'pod_extractor'
 require_relative 'downloader'
@@ -44,32 +45,41 @@ def rnrepo_pre_install(installer_context)
 
   CocoapodsRnrepo::Logger.log "Found #{rn_pods.count} React Native pod(s) to process"
 
-  # Track results
+  # Track results with thread-safe collections
+  results_mutex = Mutex.new
   cached_pods = []
   downloaded_pods = []
   unavailable_pods = []
   failed_pods = []
 
-  # Download and cache pre-built frameworks
-  rn_pods.each do |pod_info|
-    pod_info[:worklets_version] = pod_info[:name] == 'RNReanimated' ? worklets_version : nil
-    result = CocoapodsRnrepo::FrameworkCache.fetch_framework(
-      installer_context,
-      pod_info,
-      workspace_root
-    )
+  # Download and cache pre-built frameworks in parallel
+  threads = rn_pods.map do |pod_info|
+    Thread.new do
+      pod_info[:worklets_version] = pod_info[:name] == 'RNReanimated' ? worklets_version : nil
+      result = CocoapodsRnrepo::FrameworkCache.fetch_framework(
+        installer_context,
+        pod_info,
+        workspace_root
+      )
 
-    case result[:status]
-    when :cached
-      cached_pods << pod_info
-    when :downloaded
-      downloaded_pods << pod_info
-    when :unavailable
-      unavailable_pods << pod_info[:name]
-    when :failed
-      failed_pods << pod_info[:name]
+      # Thread-safe result collection
+      results_mutex.synchronize do
+        case result[:status]
+        when :cached
+          cached_pods << pod_info
+        when :downloaded
+          downloaded_pods << pod_info
+        when :unavailable
+          unavailable_pods << pod_info[:name]
+        when :failed
+          failed_pods << pod_info[:name]
+        end
+      end
     end
   end
+
+  # Wait for all threads to complete
+  threads.each(&:join)
 
   # Display summary
   CocoapodsRnrepo::Logger.log "Total React Native dependencies detected: #{rn_pods.count}"
