@@ -176,16 +176,45 @@ class PrebuildsPlugin : Plugin<Project> {
         }
     }
 
-    private fun checkForPluginUpdate() {
+    /**
+     * Executes an HTTP request to the specified URL.
+     *
+     * @param urlString The URL to send the request to
+     * @param method The HTTP method (GET, HEAD, etc.)
+     * @return Pair of response code and content (null if method is HEAD or response is not OK)
+     */
+    private fun executeHttpRequest(
+        urlString: String,
+        method: String = "GET"
+    ): Pair<Int, String?> {
+        var connection: HttpURLConnection? = null
         try {
-            val url = URL("https://packages.rnrepo.org/releases/org/rnrepo/tools/prebuilds-plugin/maven-metadata.xml")
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
+            connection = URL(urlString).openConnection() as HttpURLConnection
+            connection.requestMethod = method
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
 
-            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                val xmlContent = connection.inputStream.bufferedReader().use { it.readText() }
+            val responseCode = connection.responseCode
+            val content = if (method == "GET" && responseCode == HttpURLConnection.HTTP_OK) {
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } else {
+                null
+            }
+
+            return Pair(responseCode, content)
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    private fun checkForPluginUpdate() {
+        try {
+            val (responseCode, xmlContent) = executeHttpRequest(
+                "https://packages.rnrepo.org/releases/org/rnrepo/tools/prebuilds-plugin/maven-metadata.xml",
+                "GET"
+            )
+
+            if (responseCode == HttpURLConnection.HTTP_OK && xmlContent != null) {
 
                 // Parse XML to get latest version
                 val latestVersionRegex = """<latest>([^<]+)</latest>""".toRegex()
@@ -202,7 +231,7 @@ class PrebuildsPlugin : Plugin<Project> {
             }
         } catch (e: Exception) {
             // Silently fail - don't interrupt build if update check fails
-            logger.info("Failed to check for plugin updates: ${e.message}")
+            logger.debug("Failed to check for plugin updates: ${e.message}")
         }
     }
 
@@ -579,14 +608,10 @@ class PrebuildsPlugin : Plugin<Project> {
 
         return httpRepositories.parallelStream().anyMatch { repo ->
             val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/$artifactName"
-            var connection: HttpURLConnection? = null
             try {
-                connection = URL(urlString).openConnection() as HttpURLConnection
-                connection.requestMethod = "HEAD"
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
                 logger.info("Checking availability of package ${packageItem.npmName} version ${packageItem.version} at $urlString")
-                val isAvailable = connection.responseCode == HttpURLConnection.HTTP_OK
+                val (responseCode, _) = executeHttpRequest(urlString, "HEAD")
+                val isAvailable = responseCode == HttpURLConnection.HTTP_OK
                 if (isAvailable) {
                     logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} found at ${repo.url}")
                 }
@@ -596,8 +621,6 @@ class PrebuildsPlugin : Plugin<Project> {
                     "Error checking package availability for ${packageItem.npmName} version ${packageItem.version} at ${repo.url}: ${e.message}",
                 )
                 false
-            } finally {
-                connection?.disconnect()
             }
         }
     }
