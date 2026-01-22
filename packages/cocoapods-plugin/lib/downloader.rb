@@ -24,7 +24,28 @@ module CocoapodsRnrepo
     end
 
     def self.use_gradle?
-      return ENV['RNREPO_IOS_USE_GRADLE'] == 'true' && self.gradle_installed?
+      return ENV['RNREPO_IOS_USE_GRADLE'] && self.gradle_installed?
+    end
+
+    # Check if artifact exists in gradle cache
+    # Looks for files in ~/.gradle/caches/modules-2/files-2.1/org.rnrepo.public/{package}/{version}/{hash}/filename
+    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
+    # Returns: cached file path if found, nil otherwise
+    def self.check_gradle_cache(artifact_spec)
+      gradle_cache_base = File.expand_path('~/.gradle/caches/modules-2/files-2.1/org.rnrepo.public')
+      package_cache_dir = File.join(gradle_cache_base, artifact_spec[:sanitized_name], artifact_spec[:version])
+
+      return nil unless Dir.exist?(package_cache_dir)
+
+      # Construct exact filename
+      worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
+      expected_filename = "#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
+
+      # Look for exact filename in any hash subdirectory
+      Dir.glob(File.join(package_cache_dir, '*', expected_filename)).first
+    rescue => e
+      Logger.log "Error checking gradle cache: #{e.message}"
+      nil
     end
 
     # Download from local test files (development/testing only)
@@ -148,6 +169,12 @@ module CocoapodsRnrepo
     # Tries multiple strategies: local test files, gradle, http
     # Returns: destination path if successful, nil on failure
     def self.download_file(artifact_spec)
+      cached_gradle_path = check_gradle_cache(artifact_spec)
+      if cached_gradle_path
+        Logger.log "Using cached file from Gradle cache: #{cached_gradle_path}"
+        return cached_gradle_path
+      end
+
       Logger.log "Preparing to download: #{artifact_spec[:package]}@#{artifact_spec[:version]}"
 
       # Try local test files first (development/testing)
