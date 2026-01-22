@@ -42,6 +42,9 @@
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "0.3.2"
       }
     ]
   },
