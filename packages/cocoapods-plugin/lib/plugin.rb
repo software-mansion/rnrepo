@@ -38,6 +38,11 @@ def rnrepo_pre_install(installer_context)
     end
   end
 
+  # Add worklets version to reanimated pod info
+  if (pod = rn_pods.find { |p| p[:name] == 'RNReanimated' })
+    pod[:worklets_version] = worklets_version
+  end
+
   if rn_pods.empty?
     CocoapodsRnrepo::Logger.log "No React Native pods found in node_modules"
     return
@@ -52,10 +57,25 @@ def rnrepo_pre_install(installer_context)
   unavailable_pods = []
   failed_pods = []
 
+  # Download via gradle if possible to populate cache first
+  CocoapodsRnrepo::Downloader.download_via_gradle_batch(
+    rn_pods.flat_map do |pod|
+      ['debug', 'release'].map do |config|
+        {
+          package: pod[:npm_package_name],
+          sanitized_name: pod[:npm_package_name].gsub(/^@/, '').gsub('/', '_'),
+          version: pod[:version],
+          rn_version: pod[:rn_version],
+          worklets_version: pod[:worklets_version],
+          configuration: config
+        }
+      end
+    end
+  )
+
   # Download and cache pre-built frameworks in parallel
   threads = rn_pods.map do |pod_info|
     Thread.new do
-      pod_info[:worklets_version] = pod_info[:name] == 'RNReanimated' ? worklets_version : nil
       result = CocoapodsRnrepo::FrameworkCache.fetch_framework(
         installer_context,
         pod_info,

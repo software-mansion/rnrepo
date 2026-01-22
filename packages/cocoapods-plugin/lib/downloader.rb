@@ -70,11 +70,13 @@ module CocoapodsRnrepo
       nil
     end
 
-    # Download file via gradle task
-    # Requires: artifact_spec hash with: :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
-    # Returns: destination path if successful, nil on failure
-    def self.download_via_gradle(artifact_spec)
-      Logger.log "Downloading via gradle..."
+    # Download multiple files via gradle task in a single invocation
+    # Requires: array of artifact_spec hashes, each with: :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
+    # Returns: hash mapping artifact specs to their downloaded paths, or nil on failure
+    def self.download_via_gradle_batch(artifact_specs)
+      return nil unless self.use_gradle?
+      return nil if artifact_specs.empty?
+      Logger.log "Downloading #{artifact_specs.length} artifact(s) via gradle in a single invocation..."
 
       # Get the gem's root directory (parent of lib/)
       gem_root = File.expand_path('..', __FILE__)
@@ -86,6 +88,18 @@ module CocoapodsRnrepo
       end
 
       begin
+        # Build JSON with artifact specifications as a single string argument
+        require 'json'
+        artifacts_json = artifact_specs.map do |spec|
+          {
+            package: spec[:sanitized_name],
+            version: spec[:version],
+            rnVersion: spec[:rn_version],
+            configuration: spec[:configuration],
+            workletsVersion: spec[:worklets_version]
+          }
+        end.to_json
+
         gradle_args = [
           @@gradle_executable,
           '-I', gem_gradle_file,
@@ -93,23 +107,16 @@ module CocoapodsRnrepo
           '--project-cache-dir=' + File.join(Dir.pwd, 'rnrepo', 'gradle_project_cache'),
           '--no-daemon',
           '--no-build-cache',
-          'downloadArtifact',
-          '-Dpackage=' + artifact_spec[:sanitized_name],
-          '-Dversion=' + artifact_spec[:version],
-          '-DrnVersion=' + artifact_spec[:rn_version],
-          '-Dconfiguration=' + artifact_spec[:configuration],
+          'downloadArtifacts',
+          "-Dartifacts=#{artifacts_json}",
           '-Durl=' + @@repo_url
         ]
 
-        if artifact_spec[:worklets_version]
-          gradle_args << '-DworkletsVersion=' + artifact_spec[:worklets_version]
-        end
-        
         stdout, stderr, status = Open3.capture3(*gradle_args)
 
         if status.success?
-          Logger.log "Gradle download completed successfully"
-          return self.find_path_in_gradle_output(stdout)
+          Logger.log "Gradle batch download completed successfully"
+          return self.parse_batch_output(stdout, artifact_specs)
         else
           Logger.log "Gradle execution failed: #{stderr}"
           return nil
@@ -120,14 +127,29 @@ module CocoapodsRnrepo
       end
     end
 
-    def self.find_path_in_gradle_output(output)
+    def self.parse_batch_output(output, artifact_specs)
+      result = {}
       prefix = "DOWNLOADED_FILE:"
+      paths = []
+      
       output.lines.each do |line|
         if line.start_with?(prefix)
-          return line.sub(prefix, '').strip
+          paths << line.sub(prefix, '').strip
         end
       end
-      nil
+
+      # Map paths back to artifact based on name and version
+      artifact_specs.each do |spec|
+        expected_filename_part = "#{spec[:sanitized_name]}-#{spec[:version]}"
+        matched_path = paths.find { |p| p.include?(expected_filename_part) }
+        if matched_path
+          result[spec] = matched_path
+        else
+          Logger.log "No downloaded file found in output for #{expected_filename_part}"
+        end
+      end
+
+      result
     end
 
 
@@ -135,6 +157,13 @@ module CocoapodsRnrepo
     # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination, :worklets_version (optional)
     # Returns: destination path if successful, nil on failure
     def self.download_via_http(artifact_spec)
+      required_keys = [:sanitized_name, :version, :rn_version, :configuration, :destination]
+      missing_keys = required_keys.select { |key| !artifact_spec.key?(key) }
+      unless missing_keys.empty?
+        Logger.log "Missing required artifact_spec keys: #{missing_keys.join(', ')}"
+        return nil
+      end
+
       worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
       url = "#{@@repo_url}/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
       Logger.log "Downloading from #{url}..."
@@ -181,8 +210,7 @@ module CocoapodsRnrepo
       result = download_from_local_test(artifact_spec)
       return result if result
 
-      # Try gradle if available, then fall back to HTTP
-      (download_via_gradle(artifact_spec) if use_gradle?) || download_via_http(artifact_spec)
+      download_via_http(artifact_spec)
     end
 
     # Unzip file to destination directory

@@ -40,36 +40,61 @@ allprojects {
         }
     }
 
-    // Task that accepts string arguments and downloads zip from Maven
-    // Run: gradle downloadArtifact -Dpackage='<pkg>' -Dversion='<version>' -DrnVersion='<rn-version>' -Dconfiguration='<release|debug>' [-DworkletsVersion='<version>'] [-Durl='<rnrepo-url>']
-    tasks.register("downloadArtifact") {
+    // Task that downloads multiple artifacts in a single invocation
+    // Run: gradle downloadArtifacts -Dartifacts='[{"package":"pkg","version":"v","rnVersion":"rn","configuration":"cfg","workletsVersion":"w"}]' [-Durl='<rnrepo-url>']
+    tasks.register("downloadArtifacts") {
         doLast {
-            val packageName = getArgument("package")
-            val version = getArgument("version")
-            val rnVersion = getArgument("rnVersion")
-            val configuration = getArgument("configuration")
-            val workletsVersion = System.getProperty("workletsVersion") ?: project.findProperty("workletsVersion") as? String
-            
-            val workletsSuffix = if (!workletsVersion.isNullOrEmpty()) "-worklets$workletsVersion" else ""
-            val fullNotation = "org.rnrepo.public:$packageName:$version:rn$rnVersion$workletsSuffix-$configuration"
-            
-            if (!checkLibOnMaven(packageName, version, fullNotation)) {
-                logger.warn("[📦 RNRepo] Artifact $fullNotation not found on Maven repository.")
+            val artifactsJson = System.getProperty("artifacts") 
+                ?: project.findProperty("artifacts") as? String
+                ?: throw GradleException("Argument 'artifacts' not provided. Use: gradle downloadArtifacts -Dartifacts='[{\"package\":\"...\"}]'")
+
+            // Parse JSON
+            val parser = groovy.json.JsonSlurper()
+            val artifactsList = parser.parseText(artifactsJson) as List<Map<String, Any>>
+
+            if (artifactsList.isEmpty()) {
+                logger.warn("[📦 RNRepo] No artifacts to download")
                 return@doLast
             }
 
-            logger.info("[📦 RNRepo] Downloading $packageName version $version with RN version $rnVersion")
+            val artifacts = mutableListOf<String>()
+            for (artifact in artifactsList) {
+                val packageName = artifact["package"] as String
+                val version = artifact["version"] as String
+                val rnVersion = artifact["rnVersion"] as String
+                val configuration = artifact["configuration"] as String
+                val workletsVersion = artifact["workletsVersion"] as? String
+
+                val workletsSuffix = if (!workletsVersion.isNullOrEmpty()) "-worklets$workletsVersion" else ""
+                val fullNotation = "org.rnrepo.public:$packageName:$version:rn$rnVersion$workletsSuffix-$configuration"
+                
+                if (checkLibOnMaven(packageName, version, fullNotation)) {
+                    artifacts.add(fullNotation)
+                    logger.info("[📦 RNRepo] Will download: $fullNotation")
+                } else {
+                    logger.warn("[📦 RNRepo] Artifact $fullNotation not found on Maven repository.")
+                }
+            }
+
+            if (artifacts.isEmpty()) {
+                logger.warn("[📦 RNRepo] No artifacts found after validation")
+                return@doLast
+            }
+
             dependencies {
-                add("zipDownload", "$fullNotation.xcframework@zip")
+                artifacts.forEach { notation ->
+                    logger.info("[📦 RNRepo] Adding dependency: $notation")
+                    add("zipDownload", "$notation.xcframework@zip")
+                }
             }
             
             val resolvedFiles = configurations["zipDownload"].resolve()
             if (resolvedFiles.isEmpty()) {
-                throw GradleException("No artifacts found for dependency: $fullNotation")
+                throw GradleException("No artifacts found for dependencies")
             }
             
             resolvedFiles.forEach { file ->
-                logger.info("[📦 RNRepo] $fullNotation downloaded to: ${file.absolutePath}")
+                logger.info("[📦 RNRepo] Downloaded to: ${file.absolutePath}")
                 // Output the file path for external scripts to consume
                 println("DOWNLOADED_FILE:${file.absolutePath}")
             }
