@@ -23,6 +23,10 @@ module CocoapodsRnrepo
       false
     end
 
+    def self.use_gradle?
+      return ENV['RNREPO_IOS_USE_GRADLE'] == 'true' && self.gradle_installed?
+    end
+
     # Download from local test files (development/testing only)
     # Looks for files in RNREPO_BUILDS_FOLDER environment variable
     # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination, :worklets_version (optional)
@@ -151,7 +155,7 @@ module CocoapodsRnrepo
       return result if result
 
       # Try gradle if available, then fall back to HTTP
-      (download_via_gradle(artifact_spec) if gradle_installed?) || download_via_http(artifact_spec)
+      (download_via_gradle(artifact_spec) if use_gradle?) || download_via_http(artifact_spec)
     end
 
     # Unzip file to destination directory
