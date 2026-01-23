@@ -157,25 +157,26 @@ async function main() {
     // Sign and deploy AAR using gpg:sign-and-deploy-file (signs and deploys in one step)
     // The task uses MAVEN_GPG_KEY and MAVEN_GPG_PASSPHRASE environment variables to sign the artifact
     let publishStatus = 'failed' as 'failed' | 'completed';
-    try {
-      await $`mvn gpg:sign-and-deploy-file \
-          -Dfile=${aarFile} \
-          -DgroupId=org.rnrepo.public \
-          -DartifactId=${mavenLibraryName} \
-          -Dversion=${libraryVersion} \
-          -Dpackaging=aar \
-          -Dclassifier=${classifier} \
-          -DgeneratePom=false \
-          -DrepositoryId=RNRepo \
-          -Durl=${MAVEN_REPOSITORY_URL}`;
+    const result = await $`mvn gpg:sign-and-deploy-file \
+        -Dfile=${aarFile} \
+        -DgroupId=org.rnrepo.public \
+        -DartifactId=${mavenLibraryName} \
+        -Dversion=${libraryVersion} \
+        -Dpackaging=aar \
+        -Dclassifier=${classifier} \
+        -DgeneratePom=false \
+        -DrepositoryId=RNRepo \
+        -Durl=${MAVEN_REPOSITORY_URL}`.nothrow();
+
+    if (result.exitCode === 0) {
       console.log('✓ AAR signed and deployed successfully');
 
       console.log(
         `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
       );
       publishStatus = 'completed';
-    } catch (error) {
-      console.error('❌ Failed to sign and deploy AAR:', error);
+    } else {
+      console.error('❌ Failed to sign and deploy AAR:', result.stderr.toString());
       publishStatus = 'failed';
     }
 
