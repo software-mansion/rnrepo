@@ -523,5 +523,13 @@
         "publishedAfterDate": "2025-01-01"
       }
     ]
+  },
+  "react-native-theoplayer": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
   }
 }
