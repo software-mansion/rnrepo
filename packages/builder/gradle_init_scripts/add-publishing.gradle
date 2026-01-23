@@ -68,19 +68,40 @@ def configureCodegenTasks(project) {
         onlyIf { codegenName != null }
         dependsOn 'generateCodegenArtifactsFromSchema'
         doLast {
-            def headersSourceDir = file("${project.buildDir}/generated/source/codegen/jni")
             def headersDestDir = file("${project.projectDir}/src/main/assets/headers")
-            
-            if (headersSourceDir.exists()) {
-                headersDestDir.mkdirs()
-                copy {
-                    from headersSourceDir
-                    into headersDestDir
-                    include "**/*.h"
+            headersDestDir.mkdirs()
+
+            def headerSources = [
+                // Codegen generated headers
+                file("${project.buildDir}/generated/source/codegen/jni"),
+                
+                // JNI headers specific to Android
+                file("${project.projectDir}/src/main/jni"),
+                
+                // Common locations for Shared C++ (relative to 'android' folder)
+                file("${project.projectDir}/../cpp"),
+                file("${project.projectDir}/../common/cpp"),
+                file("${project.projectDir}/../Common/cpp"),
+                file("${project.projectDir}/../shared")
+            ]
+
+            headerSources.each { source ->
+                if (source.exists()) {
+                    println "🔍 Collecting headers from: ${source.absolutePath}"
+                    project.copy {
+                        from source
+                        into headersDestDir
+                        include "**/*.h"
+                        // Preserve folder structure relative to 'source'
+                    }
                 }
-                println "📦 Packaged codegen headers to assets/headers"
+            }
+
+            // Failsafe: Check if anything was copied
+            if (headersDestDir.list()?.length > 0) {
+                println "📦 Successfully packaged all headers to assets/headers"
             } else {
-                println "⚠️  Warning: Headers source directory not found at ${headersSourceDir}"
+                println "❌ Error: No headers found in any of the source directories!"
             }
         }
     }

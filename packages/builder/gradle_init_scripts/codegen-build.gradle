@@ -9,8 +9,8 @@ allprojects { project ->
                         externalNativeBuild {
                             cmake {
                                 def currentArgs = arguments ?: []
-                                currentArgs += "-DCMAKE_BUILD_TYPE=Debug"
-                                currentArgs += "-DCMAKE_CXX_FLAGS=-g0"
+                                // currentArgs += "-DCMAKE_BUILD_TYPE=Debug"
+                                currentArgs += "-DCMAKE_CXX_FLAGS=-g1"
                                 arguments = currentArgs
                             }
                         }
@@ -19,8 +19,8 @@ allprojects { project ->
                         externalNativeBuild {
                             cmake {
                                 def currentArgs = arguments ?: []
-                                currentArgs += "-DCMAKE_BUILD_TYPE=Release"
-                                currentArgs += "-DCMAKE_CXX_FLAGS=-DNDEBUG -g0"
+                                // currentArgs += "-DCMAKE_BUILD_TYPE=Release"
+                                currentArgs += "-DCMAKE_CXX_FLAGS=-g1"
                                 arguments = currentArgs
                             }
                         }
