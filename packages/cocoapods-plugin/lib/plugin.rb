@@ -1,5 +1,4 @@
 require 'cocoapods'
-require 'thread'
 require 'json'
 require_relative 'logger'
 require_relative 'pod_extractor'
@@ -7,12 +6,12 @@ require_relative 'downloader'
 require_relative 'framework_cache'
 
 # ONLY ADD TO PODFILE:
-# 
-#require Pod::Executable.execute_command('node', ['-p',
+#
+# require Pod::Executable.execute_command('node', ['-p',
 #  'require.resolve(
 #  "@rnrepo/cocoapods-plugin/lib/plugin.rb",
 #  {paths: [process.argv[1]]},
-#)', __dir__]).strip
+# )', __dir__]).strip
 #
 
 # Helper method to load and parse rnrepo.config.json
@@ -60,9 +59,7 @@ def rnrepo_pre_install(installer_context)
   # Log what we found
   rn_pods.each do |pod_info|
     CocoapodsRnrepo::Logger.log "  Found: #{pod_info[:name]} v#{pod_info[:version] || 'unknown'}"
-    if pod_info[:name] == 'RNWorklets'
-      worklets_version = pod_info[:version]
-    end
+    worklets_version = pod_info[:version] if pod_info[:name] == 'RNWorklets'
   end
 
   # Add worklets version to reanimated pod info
