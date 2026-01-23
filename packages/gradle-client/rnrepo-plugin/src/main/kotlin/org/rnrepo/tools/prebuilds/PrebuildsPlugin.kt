@@ -421,8 +421,10 @@ class PrebuildsPlugin : Plugin<Project> {
             @Suppress("UNCHECKED_CAST")
             val json = JsonSlurper().parse(configFile) as Map<String, Any>
 
+            // Check for both 'denyList' and 'denylist' (case-insensitive variants)
             @Suppress("UNCHECKED_CAST")
-            val denyList = json["denyList"] as? List<String>
+            val denyListData = (json["denyList"] ?: json["denylist"]) as? Map<String, Any>
+            val denyList = denyListData?.get("android") as? List<String>
             if (denyList != null) {
                 logger.lifecycle("Loaded deny list from config: $denyList")
                 extension.denyList = denyList.map { toGradleName(it) }.toSet()
