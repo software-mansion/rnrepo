@@ -736,6 +736,20 @@ class PrebuildsPlugin : Plugin<Project> {
                     return false
                 }
             }
+            "expensify_react-native-live-markdown" -> {
+                val workletsItem = extension.projectPackages.find { it.name == "react-native-worklets" }
+                if (workletsItem != null) {
+                    logger.info(
+                        "react-native-live-markdown: Found react-native-worklets@${workletsItem.version} in project, adding to classifier.",
+                    )
+                    packageItem.classifier += "-worklets${workletsItem.version}"
+                } else {
+                    logger.info(
+                        "react-native-live-markdown: react-native-worklets not found in project, using react-native-live-markdown from sources.",
+                    )
+                    return false
+                }
+            }
         }
         return true
     }
