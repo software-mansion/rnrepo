@@ -1,10 +1,10 @@
 {
   "name": "@rnrepo/cocoapods-plugin",
+  "title": "RNRepo CocoaPods plugin",
   "version": "0.1.0",
   "description": "RNRepo plugin for iOS CocoaPods-based setups",
+  "main": "lib/plugin.rb",
   "scripts": {
-    "build": "gem build cocoapods-rnrepo.gemspec",
-    "gem-install": "gem uninstall cocoapods-rnrepo -x -I || true && gem build cocoapods-rnrepo.gemspec && gem install cocoapods-rnrepo-*.gem",
-    "uninstall": "gem uninstall cocoapods-rnrepo"
+    "build": ""
   }
 }
