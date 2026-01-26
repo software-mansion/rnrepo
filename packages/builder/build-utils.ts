@@ -70,7 +70,7 @@ export function extractAndVerifyLicense(
 
   // If not allowed, try to verify by MD5 hash
   const libraryJsonPath = join(__dirname, '..', '..', 'libraries.json');
-  if (libraryJsonPath && existsSync(libraryJsonPath)) {
+  if (existsSync(libraryJsonPath)) {
     const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
     const libConfig = libraryJson[libraryName];
 
@@ -91,6 +91,10 @@ export function extractAndVerifyLicense(
             `License file hash mismatch for ${libraryName}. Expected ${expectedHash}, got ${actualHash}`
           );
         }
+      } else {
+        throw new Error(
+          `License file ${libConfig.license.filepath} not found for ${libraryName}. Verify the library[license][filepath] configuration in libraries.json.`
+        );
       }
     }
   }
