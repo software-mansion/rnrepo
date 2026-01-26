@@ -5,13 +5,18 @@ require_relative 'pod_extractor'
 require_relative 'downloader'
 require_relative 'framework_cache'
 
-# ONLY ADD TO PODFILE:
+# ADD TO PODFILE BEGINING:
 #
 # require Pod::Executable.execute_command('node', ['-p',
 #  'require.resolve(
 #  "@rnrepo/cocoapods-plugin/lib/plugin.rb",
 #  {paths: [process.argv[1]]},
 # )', __dir__]).strip
+#
+# AND IN POST INSTALL: 
+# 
+# post_install do |installer|
+# +  rnrepo_post_install(installer)
 #
 
 # Helper method to load and parse rnrepo.config.json
@@ -350,14 +355,6 @@ module Pod
       end
 
       CocoapodsRnrepo::Logger.log ""
-    end
-    
-    # Register post_install hook inside the monkey patch
-    unless @rnrepo_post_install_registered
-      Pod::HooksManager.register('cocoapods-rnrepo', :post_install) do |installer_context|
-        rnrepo_post_install(installer_context)
-      end
-      @rnrepo_post_install_registered = true
     end
   end
 end
