@@ -8,12 +8,6 @@ This plugin integrates with CocoaPods to substitute local React Native dependenc
 
 ## Installation
 
-### Install package with npm
-
-```bash
-npm install @rnrepo/cocoapods-plugin
-```
-
 ### Add plugin to Podfile
 
 Add the following line at the top of your `ios/Podfile`:
