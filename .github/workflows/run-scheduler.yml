@@ -8,9 +8,9 @@ on:
         required: false
         type: number
         default: 1
-  schedule:
-    # Runs every 4 hours at minute 0 (6 times per day)
-    - cron: '0 */4 * * *'
+  # schedule:
+  #   # Runs every 4 hours at minute 0 (6 times per day)
+  #   - cron: '0 */4 * * *'
 
 jobs:
   run-scheduler:
