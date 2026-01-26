@@ -5,6 +5,6 @@
   "description": "RNRepo plugin for iOS CocoaPods-based setups",
   "main": "lib/plugin.rb",
   "scripts": {
-    "build": "gem build cocoapods-rnrepo.gemspec",
+    "build": "gem build cocoapods-rnrepo.gemspec"
   }
 }
