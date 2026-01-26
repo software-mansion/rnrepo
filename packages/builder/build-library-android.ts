@@ -151,16 +151,6 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     console.log('⚠️ Library has custom codegen configuration in react-native.config.js');
     await patchCMakeListsToStatic(packagePath);
   }
-  
-  // we don't want to build codegen version if custom codegen is present since e.g. with custom shadow nodes, additional headers should be linked
-  
-  if (!hasCodegenConfig) {
-    throw new Error(
-      `⚠️ Library does not have codegen configuration in package.json`
-    );
-  } else {
-    console.log(`✓ Library has codegen configuration: ${packageJson.codegenConfig.name}`);
-  }
 
   const addPublishingGradleScriptPath = join(
     __dirname,
@@ -282,6 +272,31 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
         throw new Error(`Codegen AAR file not found at ${codegenAarPath}`);
       }
       console.log('✓ Codegen version published successfully');
+    } else {
+      console.log('ℹ️ No codegen configuration found, building just standard AAR version');
+      await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
+        --no-daemon \
+        --init-script ${addPublishingGradleScriptPath} \
+        --init-script ${addPrefabReduceGradleScriptPath} \
+        ${postinstallGradleScriptPath ? { raw: "--init-script " + postinstallGradleScriptPath} : ""} \
+        -PrnrepoArtifactId=${gradleProjectName} \
+        -PrnrepoPublishVersion=${libraryVersion} \
+        -PrnrepoClassifier=${classifier} \
+        -PrnrepoCpuInfo=${getCpuInfo()} \
+        -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
+        -PrnrepoLicenseName=${license} \
+        -PrnrepoLicenseUrl=https://opensource.org/license/${license} \
+      `.cwd(androidPath);
+
+       // verify version
+      const aarPath = join(
+        mavenLocalLibraryLocationPath,
+        `${gradleProjectName}-${libraryVersion}-${classifier}.aar`
+      );
+      if (!existsSync(aarPath)) {
+        throw new Error(`AAR file not found at ${aarPath}`);
+      }
+      console.log('✓ Simple aar version published successfully');
     }
 
   } catch (error) {
