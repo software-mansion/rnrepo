@@ -11,12 +11,14 @@ export type AllowedLicense =
   | 'MIT'
   | 'Apache-2.0'
   | 'BSD-3-Clause'
+  | 'BSD-3-Clause-Clear'
   | 'BSD-2-Clause';
 
 export const ALLOWED_LICENSES: AllowedLicense[] = [
   'MIT',
   'Apache-2.0',
   'BSD-3-Clause',
+  'BSD-3-Clause-Clear',
   'BSD-2-Clause',
 ];
 
