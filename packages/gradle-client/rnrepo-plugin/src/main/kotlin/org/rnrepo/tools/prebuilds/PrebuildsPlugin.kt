@@ -673,13 +673,14 @@ class PrebuildsPlugin : Plugin<Project> {
         project: Project,
         supportedPackages: MutableSet<PackageItem>,
         unavailablePackages: MutableSet<PackageItem>,
+        projectPackages: Set<PackageItem>,
     ) {
         logger.info("${packageItem.npmName} is supported, checking if all packages depending on it are supported.")
         PACKAGES_WITH_CPP.get(packageItem.name)?.forEach { dependentPackagePattern ->
             val dependentPackagePatternRegex = dependentPackagePattern.toRegex()
             val isPackagePresentInProject =
                 project.rootProject.allprojects.any { subproject ->
-                    dependentPackagePatternRegex.matches(subproject.name)
+                    dependentPackagePatternRegex.matches(subproject.name) && subproject.name != packageItem.name
                 }
             if (!isPackagePresentInProject) {
                 logger.info(
@@ -687,15 +688,12 @@ class PrebuildsPlugin : Plugin<Project> {
                 )
                 return@forEach
             }
-            val isDependentPackageSupported =
-                supportedPackages.any { supportedPackage ->
-                    dependentPackagePatternRegex.matches(supportedPackage.name)
-                }
-            if (!isDependentPackageSupported) {
+            val allDependentPackageAreSupported =
+                projectPackages
+                    .filter { dependentPackagePatternRegex.matches(it.name) && it.name != packageItem.name }
+                    .filterNot { dep -> supportedPackages.any { it.name == dep.name } }
+            if (!allDependentPackageAreSupported.isEmpty()) {
                 unavailablePackages.add(packageItem)
-                logger.lifecycle(
-                    "A package depending on ${packageItem.npmName} matching pattern '$dependentPackagePattern' is not available as a prebuild, building ${packageItem.npmName} from sources.",
-                )
                 val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
                 val packagesToRemove =
                     supportedPackages.filter { supportedPackage ->
@@ -706,9 +704,11 @@ class PrebuildsPlugin : Plugin<Project> {
                 supportedPackages.removeAll(packagesToRemove)
                 unavailablePackages.addAll(packagesToRemove)
                 logger.lifecycle(
-                    "Removing packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages:${printList(
-                        packagesToRemove,
-                    )}",
+                    "Unavailable dependent packages found for ${packageItem.npmName} matching pattern '$dependentPackagePattern':" +
+                        "${printList(allDependentPackageAreSupported)}\n" +
+                        "Removing packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages:${printList(
+                            packagesToRemove,
+                        )}",
                 )
                 return
             }
@@ -818,7 +818,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.info(
                         "In debug builds, ${packageItem.npmName} requires all consumer packages to be supported; otherwise, it will not be applied.",
                     )
-                    checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages)
+                    checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages, extension.projectPackages)
                 }
             }
             checkIfPackageIsSupported(packageItem, project.repositories, extension, unavailablePackages, elseClosure)
