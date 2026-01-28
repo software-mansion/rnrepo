@@ -1,6 +1,5 @@
-name: Publish Expo Config Plugin to npm
-
-run-name: Publish @rnrepo/expo-config-plugin to npm
+name: Publish RNRepo Prebuilds Plugin to npm
+run-name: Publish @rnrepo/prebuilds-plugin to npm
 
 on:
   workflow_dispatch:
@@ -15,13 +14,13 @@ on:
           - 'latest'
 
 jobs:
-  publish-expo-config-plugin:
+  publish-prebuilds-plugin:
     runs-on: rnrepo-ubuntu-latest
     permissions:
       id-token: write  # Required for OIDC
       contents: read
     env:
-      PLUGIN_DIR: packages/expo-config-plugin
+      PLUGIN_DIR: packages/prebuilds-plugin
     defaults:
       run:
         working-directory: ${{ env.PLUGIN_DIR }}
@@ -29,6 +28,17 @@ jobs:
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+      
+      - name: 🗃️ Cache Bun and Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-bun-gradle-${{ hashFiles('**/bun.lock', '**/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-gradle-
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -42,17 +52,15 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: 🏗 Update npm
-        # Ensure npm 11.5.1 or later is installed
         run: npm install -g npm@latest
+      
+      - name: 🔨 Build RNRepo Gradle Plugin for Android
+        run: ./gradlew build --no-daemon
+        working-directory: ./packages/prebuilds-plugin/gradle-plugin
 
-      - name: 📦 Install dependencies
-        run: bun install
-
-      - name: 🔨 Build plugin
-        run: bun run build
-
-      - name: 🔨 Prepare package
-        run: bun run prepare
+      - name: ✅ Verify JAR version matches build.gradle
+        run: bun run ./.github/workflows/scripts/verify-plugin-version-before-publish.ts
+        working-directory: .
 
       - name: 🚀 Publish to npm
         run: npm publish --tag ${{ github.event.inputs.beta_or_latest }}
