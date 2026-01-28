@@ -74,12 +74,12 @@ export function extractAndVerifyLicense(
     const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
     const libConfig = libraryJson[libraryName];
 
-    if (libConfig?.license?.filepath && libConfig?.license?.hash_md5) {
-      const licenseFilePath = join(packageDir, libConfig.license.filepath);
+    if (libConfig?.license?.filePath && libConfig?.license?.fileMD5) {
+      const licenseFilePath = join(packageDir, libConfig.license.filePath);
 
       if (existsSync(licenseFilePath)) {
         const actualHash = calculateFileMd5(licenseFilePath);
-        const expectedHash = libConfig.license.hash_md5;
+        const expectedHash = libConfig.license.fileMD5;
 
         if (actualHash === expectedHash) {
           console.log(
@@ -93,7 +93,7 @@ export function extractAndVerifyLicense(
         }
       } else {
         throw new Error(
-          `License file ${libConfig.license.filepath} not found for ${libraryName}. Verify the library[license][filepath] configuration in libraries.json.`
+          `License file ${libConfig.license.filePath} not found for ${libraryName}. Verify the library[license][filePath] configuration in libraries.json.`
         );
       }
     }
