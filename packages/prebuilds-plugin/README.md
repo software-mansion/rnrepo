@@ -58,7 +58,7 @@ Add to the beginning of your `Podfile`:
 ```diff
 +require Pod::Executable.execute_command('node', ['-p',
 +  'require.resolve(
-+    "@rnrepo/prebuilds-plugin/lib/plugin.rb",
++    "@rnrepo/prebuilds-plugin/cocoapods-plugin/lib/plugin.rb",
 +    {paths: [process.argv[1]]},
 +  )', __dir__]).strip
 ```
