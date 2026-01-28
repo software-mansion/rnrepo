@@ -66,13 +66,9 @@ For standard React Native setups or when using Expo but managing your android fo
 
    ```diff
    buildscript {
-     repositories {
-       ...
-   +   maven { url "https://packages.rnrepo.org/releases" }
-     }
      dependencies {
        ...
-   +   classpath("org.rnrepo.tools:prebuilds-plugin:0.2.2")
+   +   classpath fileTree(dir: "../node_modules/@rnrepo/prebuilds-plugin/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
      }
    }
 

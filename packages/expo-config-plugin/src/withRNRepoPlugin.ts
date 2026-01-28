@@ -2,7 +2,7 @@ import { withProjectBuildGradle, withAppBuildGradle } from '@expo/config-plugins
 import type { ExpoConfig } from '@expo/config-types';
 
 const classpathRegex = /(classpath.*)/;
-const rnrepoClasspath = 'classpath("org.rnrepo.tools:prebuilds-plugin:0.2.2")';
+const rnrepoClasspath = 'classpath fileTree(dir: "../node_modules/@rnrepo/prebuilds-plugin/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])';
 const mavenCentralRepository = `mavenCentral()`;
 const mavenRepositoryBlock = `
     maven { url "https://packages.rnrepo.org/releases" }`;
@@ -41,18 +41,6 @@ function withClasspathDependency(config: ExpoConfig) {
   });
 }
 
-function withMavenRepository(config: ExpoConfig) {
-  return withProjectBuildGradle(config, (config) => {
-    if (!config.modResults.contents.includes(mavenRepositoryBlock)) {
-      config.modResults.contents = config.modResults.contents.replaceAll(
-        mavenCentralRepository,
-        `${mavenCentralRepository}${mavenRepositoryBlock}`
-      );
-    }
-    return config;
-  });
-}
-
 function withRnrepoPluginApplication(config: ExpoConfig) {
   return withAppBuildGradle(config, (config) => {
     if (!config.modResults.contents.includes(applyPluginrnrepo)) {
@@ -67,7 +55,6 @@ function withRnrepoPluginApplication(config: ExpoConfig) {
 
 export default function withRNRepoPlugin(config: ExpoConfig): ExpoConfig {
   config = withClasspathDependency(config);
-  config = withMavenRepository(config);
   config = withRnrepoPluginApplication(config);
   config = withAllProjectsMavenRepository(config);
   return config;

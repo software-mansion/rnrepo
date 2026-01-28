@@ -24,7 +24,32 @@ See the [@rnrepo/expo-config-plugin](https://www.npmjs.com/package/@rnrepo/expo-
 
 ### Android Configuration
 
-TODO
+Add the following to your project's `android/build.gradle` file:
+
+```diff
+buildscript {
+   dependencies {
+      ...
++     classpath fileTree(dir: "../node_modules/@rnrepo/prebuilds-plugin/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
+   }
+}
+
+apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+  repositories {
++    maven { url "https://packages.rnrepo.org/releases" }
+  }
+}
+
+```
+
+Then, apply the plugin in your `android/app/build.gradle` file:
+
+```diff
+apply plugin: "com.facebook.react"
++ apply plugin: "org.rnrepo.prebuilds-plugin"
+```
 
 ### iOS Configuration
 
