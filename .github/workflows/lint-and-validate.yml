@@ -44,11 +44,24 @@ jobs:
             json:
               - '*.json'
               - '.github/workflows/lint-and-validate.yml'
+            ruby:
+              - 'packages/cocoapods-plugin/**'
+              - '.github/workflows/lint-and-validate.yml'
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+
+      - name: 🏗 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+          bundler-cache: true
+          working-directory: packages/cocoapods-plugin
+
+      - name: 🏗 Install rubocop
+        run: gem install rubocop
 
       - name: 🗃️ Cache Bun and Gradle
         uses: actions/cache@v4
@@ -71,6 +84,10 @@ jobs:
       - name: 🔍 Lint typescript
         if: ${{ steps.filter.outputs.typescript == 'true' }}
         run: bun run lint-ts
+
+      - name: 🔍 Lint ruby
+        if: ${{ steps.filter.outputs.ruby == 'true' }}
+        run: bun run lint-ruby
 
       - name: ✅ Validate JSON files
         if: ${{ steps.filter.outputs.json == 'true' }}
