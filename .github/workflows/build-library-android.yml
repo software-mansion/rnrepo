@@ -54,17 +54,6 @@ jobs:
         with:
           bun-version: latest
 
-      - name: 🗃️ Cache Bun and Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-bun-gradle-${{ hashFiles('**/bun.lock', '**/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-gradle-
-
       - name: 📦 Install dependencies
         run: bun install
 
