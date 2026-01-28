@@ -54,7 +54,7 @@ This will make the plugin use the specified React Native root directory instead 
 #### Disabling the RNRepo plugin
 You can disable the RNRepo plugin execution by setting the `DISABLE_RNREPO` environment variable to any value:
    ```bash
-   DISABLE_RNREPO=true ./gradlew assembleDebug
+   DISABLE_RNREPO=true ./gradlew :app:assembleDebug
    ```
 
 ## Unittests

@@ -83,6 +83,9 @@ class PrebuildsPlugin : Plugin<Project> {
         if (shouldPluginExecute(project, extension)) {
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
 
+            // Warn if command was launched from root context instead of app context
+            checkAndWarnCommandContext(project)
+
             // Check what packages are in project and which are we supporting
             getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(extension)
@@ -180,6 +183,19 @@ class PrebuildsPlugin : Plugin<Project> {
         propertyName: String,
         defaultValue: String,
     ): String = System.getenv(propertyName) ?: (project.findProperty(propertyName) as? String) ?: defaultValue
+
+    private fun checkAndWarnCommandContext(project: Project) {
+        val taskNames = project.gradle.startParameter.taskNames
+        val allTasksFromProject = taskNames.all { it.startsWith(":${project.name}") || it.startsWith(project.name) }
+
+        if (!allTasksFromProject) {
+            logger.warn(
+                "Command was launched from root context (e.g., './gradlew assembleRelease'). " +
+                    "It should be launched from ${project.name} module context (e.g., './gradlew :${project.name}:assembleRelease'). " +
+                    "This may cause build issues.",
+            )
+        }
+    }
 
     private fun addDependency(
         project: Project,
