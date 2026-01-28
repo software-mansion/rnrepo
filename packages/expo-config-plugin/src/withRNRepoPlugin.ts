@@ -22,9 +22,11 @@ allprojects {
 // iOS
 const podfileRequire = `require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
-  "@rnrepo/cocoapods-plugin/lib/plugin.rb",
+  "@rnrepo/prebuilds-plugin/cocoapods-plugin/lib/plugin.rb",
   {paths: [process.argv[1]]},
 )', __dir__]).strip`;
+const postInstallRegex = /post_install do \|installer\|/;
+const postInstallRNRepo = `rnrepo_post_install(installer)`;
 
 function withAllProjectsMavenRepository(config: ExpoConfig) {
   return withProjectBuildGradle(config, (config) => {
@@ -82,8 +84,15 @@ function withRNRepoPodfile(config: ExpoConfig) {
       
       if (fs.existsSync(podfilePath)) {
         let podfileContent = fs.readFileSync(podfilePath, 'utf8');
-        if (!podfileContent.includes('@rnrepo/cocoapods-plugin/lib/plugin.rb')) {
+        if (!podfileContent.includes('@rnrepo/prebuilds-plugin/cocoapods-plugin/lib/plugin.rb')) {
           podfileContent = `${podfileRequire}\n\n${podfileContent}`;
+          fs.writeFileSync(podfilePath, podfileContent);
+        }
+        if (!podfileContent.includes('rnrepo_post_install')) {
+          podfileContent = podfileContent.replace(
+            postInstallRegex,
+            `post_install do |installer|\n  ${postInstallRNRepo}`
+          );
           fs.writeFileSync(podfilePath, podfileContent);
         }
       }
