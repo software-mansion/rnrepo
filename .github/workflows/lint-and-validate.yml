@@ -87,7 +87,6 @@ jobs:
 
       - name: 🔍 Lint ruby
         if: ${{ steps.filter.outputs.ruby == 'true' }}
-        working-directory: packages/cocoapods-plugin
         run: bun run lint-ruby
 
       - name: ✅ Validate JSON files
