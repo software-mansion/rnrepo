@@ -48,7 +48,7 @@ Then, apply the plugin in your `android/app/build.gradle` file:
 
 ```diff
 apply plugin: "com.facebook.react"
-+ apply plugin: "org.rnrepo.prebuilds-plugin"
++ apply plugin: "org.rnrepo.tools.prebuilds-plugin"
 ```
 
 ### iOS Configuration

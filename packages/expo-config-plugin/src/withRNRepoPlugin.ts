@@ -3,9 +3,6 @@ import type { ExpoConfig } from '@expo/config-types';
 
 const classpathRegex = /(classpath.*)/;
 const rnrepoClasspath = 'classpath fileTree(dir: "../node_modules/@rnrepo/prebuilds-plugin/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])';
-const mavenCentralRepository = `mavenCentral()`;
-const mavenRepositoryBlock = `
-    maven { url "https://packages.rnrepo.org/releases" }`;
 const applyPluginrnrepo = 'apply plugin: "org.rnrepo.tools.prebuilds-plugin"';
 const applyPluginFacebook = 'apply plugin: "com.facebook.react"';
 const applyPluginFacebookRootProject =

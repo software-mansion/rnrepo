@@ -60,6 +60,7 @@ jobs:
 
       - name: ✅ Verify JAR version matches build.gradle
         run: bun run ./.github/workflows/scripts/verify-plugin-version-before-publish.ts
+        working-directory: .
 
       - name: 🚀 Publish to npm
         run: npm publish --tag ${{ github.event.inputs.beta_or_latest }}
