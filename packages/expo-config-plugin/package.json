@@ -33,7 +33,8 @@
   "license": "ISC",
   "dependencies": {
     "@expo/config-plugins": "*",
-    "@expo/config-types": "*"
+    "@expo/config-types": "*",
+    "@rnrepo/prebuilds-plugin": "0.1.0-beta.0"
   },
   "devDependencies": {
     "expo-module-scripts": "^5.0.7"
