@@ -1,6 +1,6 @@
 # @rnrepo/expo-config-plugin
 
-Expo Config Plugin for automatically configuring RNRepo prebuilds in your React Native project.
+Expo Config Plugin for automatically configuring [RNRepo](https://rnrepo.org) prebuilds in your React Native project.
 
 ## Installation
 
@@ -54,8 +54,18 @@ DISABLE_RNREPO=true npx expo run:android
 
 ISC License
 
-## Development Guide
+## Support
 
-https://www.npmjs.com/package/expo-module-scripts?activeTab=readme
+For issues, questions, or feature requests, please visit:
 
-- Building: `bun run build`
+- 🐛 [Issue Tracker](https://github.com/software-mansion/rnrepo/issues)
+- 📖 [Website](https://rnrepo.org)
+- 📚 [Documentation](https://github.com/software-mansion/rnrepo/blob/main/README.md)
+- 🆘 [Troubleshooting Guide](https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md)
+
+
+## RNRepo is created by Software Mansion
+
+Since 2012 [Software Mansion](https://swmansion.com/) is a software agency with experience in building web and mobile apps. We are Core React Native Contributors and experts in dealing with all kinds of React Native issues. We can help you build your next dream product – [Hire us](https://swmansion.com/contact).
+
+
