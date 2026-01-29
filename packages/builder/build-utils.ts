@@ -155,7 +155,7 @@ export function extractAndVerifyLicense(
       )}. You can configure a custom license with MD5 hash verification in libraries.json.`
     );
   }
-  validateLicenseFieldFormat(licenseField, libraryName)
+  validateLicenseFieldFormat(licenseField, libraryName);
   validateLicenseFilePath(
     licenseField,
     licenseConfig.filePath,
