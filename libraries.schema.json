@@ -88,7 +88,7 @@
           },
           "type": {
             "type": "string",
-            "description": "License type/identifier"
+            "description": "An SPDX license identifier (e.g., MIT, Apache-2.0)"
           },
           "fileMD5": {
             "type": "string",
