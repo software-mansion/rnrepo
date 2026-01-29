@@ -61,11 +61,11 @@ export function extractAndVerifyLicense(
   );
   const packageJsonPath = join(packageDir, 'package.json');
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-  const licenseName = packageJson.license;
+  const licenseNameOrLicensePath = packageJson.license;
 
   // Check if license is in allowed list
-  if (ALLOWED_LICENSES.includes(licenseName as AllowedLicense)) {
-    return licenseName as AllowedLicense;
+  if (ALLOWED_LICENSES.includes(licenseNameOrLicensePath as AllowedLicense)) {
+    return licenseNameOrLicensePath as AllowedLicense;
   }
 
   // If not allowed, try to verify by MD5 hash
@@ -74,7 +74,17 @@ export function extractAndVerifyLicense(
     const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
     const libConfig = libraryJson[libraryName];
 
-    if (libConfig?.license?.filePath && libConfig?.license?.fileMD5) {
+    if (libConfig?.license?.filePath && libConfig?.license?.fileMD5 && libConfig?.license?.type) {
+      if (licenseNameOrLicensePath.startsWith('SEE LICENSE IN ') === false) {
+        throw new Error(
+          `License field for ${libraryName} must reference a license file with "SEE LICENSE IN <file>" to verify MD5 hash.`
+        );
+      }
+      if (libConfig?.license?.filePath != licenseNameOrLicensePath.replace("SEE LICENSE IN ", "")) {
+        throw new Error(
+          `License file path mismatch for ${libraryName}. Expected ${libConfig.license.filePath}, got ${licenseNameOrLicensePath.replace("SEE LICENSE IN ", "")}`
+        );
+      }
       const licenseFilePath = join(packageDir, libConfig.license.filePath);
 
       if (existsSync(licenseFilePath)) {
@@ -100,7 +110,7 @@ export function extractAndVerifyLicense(
   }
 
   throw new Error(
-    `License ${licenseName} is not allowed for ${libraryName}. Allowed licenses are: ${ALLOWED_LICENSES.join(
+    `License ${licenseNameOrLicensePath} is not allowed for ${libraryName}. Allowed licenses are: ${ALLOWED_LICENSES.join(
       ', '
     )}. You can configure a custom license with MD5 hash verification in libraries.json.`
   );
