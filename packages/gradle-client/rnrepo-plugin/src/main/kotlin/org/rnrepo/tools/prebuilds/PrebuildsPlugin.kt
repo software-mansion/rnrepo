@@ -812,11 +812,11 @@ class PrebuildsPlugin : Plugin<Project> {
         dependentList.parallelStream().forEach { packageItem ->
             logger.info("Handling ${packageItem.npmName} package after others.")
             val elseClosure: () -> Unit = {
-                if (getBuildType(project) == "release") {
+                if (getBuildType(project) == "release" && packageItem.name != "react-native-firebase_app") {
                     supportedPackages.add(packageItem)
                 } else {
                     logger.info(
-                        "In debug builds, ${packageItem.npmName} requires all consumer packages to be supported; otherwise, it will not be applied.",
+                        "${packageItem.npmName} has dependencies with C++ code, checking availability of dependent packages...",
                     )
                     checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages, extension.projectPackages)
                 }
