@@ -1,4 +1,5 @@
 import { $ } from 'bun';
+import { createHash } from 'crypto';
 import { existsSync, readFileSync } from 'fs';
 import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
@@ -40,28 +41,135 @@ export function getCpuInfo(): string {
 }
 
 /**
+ * Calculate MD5 hash of a file
+ */
+function calculateFileMd5(filePath: string): string {
+  const fileContent = readFileSync(filePath);
+  return createHash('md5').update(fileContent).digest('hex');
+}
+
+/**
+ * Validate that license field has "SEE LICENSE IN" format when using custom license
+ */
+function validateLicenseFieldFormat(
+  licenseField: string,
+  libraryName: string
+): void {
+  if (!licenseField.startsWith('SEE LICENSE IN ')) {
+    throw new Error(
+      `License field for ${libraryName} must reference a license file with "SEE LICENSE IN <file>" to verify MD5 hash. Got: ${licenseField}`
+    );
+  }
+}
+
+/**
+ * Validate that license file path matches between package.json and libraries.json config
+ */
+function validateLicenseFilePath(
+  licenseField: string,
+  configFilePath: string,
+  libraryName: string
+): void {
+  const extractedPath = licenseField.replace('SEE LICENSE IN ', '');
+  if (configFilePath !== extractedPath) {
+    throw new Error(
+      `License file path mismatch for ${libraryName}. Expected ${configFilePath}, got ${extractedPath}`
+    );
+  }
+}
+
+/**
+ * Verify license file exists and matches expected MD5 hash
+ */
+function verifyLicenseFileHash(
+  packageDir: string,
+  licenseFilePath: string,
+  expectedHash: string,
+  libraryName: string
+): void {
+  const fullLicenseFilePath = join(packageDir, licenseFilePath);
+
+  if (!existsSync(fullLicenseFilePath)) {
+    throw new Error(
+      `License file ${licenseFilePath} not found for ${libraryName}. Verify the library[license][filePath] configuration in libraries.json.`
+    );
+  }
+
+  const actualHash = calculateFileMd5(fullLicenseFilePath);
+  if (actualHash !== expectedHash) {
+    throw new Error(
+      `License file hash mismatch for ${libraryName}. Expected ${expectedHash}, got ${actualHash}`
+    );
+  }
+
+  console.log(`✓ License file verified by MD5 hash for ${libraryName}`);
+}
+
+/**
+ * Load and parse libraries.json license configuration for a given library
+ */
+function getLibraryLicenseConfig(libraryName: string): Record<string, string> | null {
+  const libraryJsonPath = join(__dirname, '..', '..', 'libraries.json');
+  if (!existsSync(libraryJsonPath)) {
+    return null;
+  }
+  const libraryJson = JSON.parse(readFileSync(libraryJsonPath, 'utf-8'));
+  const licenseObject = libraryJson?.[libraryName]?.license || null;
+  if (!licenseObject) return null;
+
+  if (licenseObject?.filePath && 
+    licenseObject?.fileMD5 && 
+    licenseObject?.type &&
+    ALLOWED_LICENSES.includes(licenseObject.type as AllowedLicense)
+  ) {
+    return licenseObject;
+  }
+
+  throw new Error(
+    `Invalid license configuration for ${libraryName} in libraries.json. Must include filePath, fileMD5, and valid type. Got: ${JSON.stringify(licenseObject)}`
+  );
+}
+
+/**
  * Extract and verify the library's license
+ * Checks against ALLOWED_LICENSES, or verifies MD5 hash if configured in libraries.json
  */
 export function extractAndVerifyLicense(
   appDir: string,
   libraryName: string
 ): AllowedLicense {
-  const packageJsonPath = join(
-    appDir,
-    'node_modules',
-    libraryName,
-    'package.json'
-  );
+  const packageDir = join(appDir, 'node_modules', libraryName);
+  const packageJsonPath = join(packageDir, 'package.json');
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-  const licenseName = packageJson.license;
-  if (!ALLOWED_LICENSES.includes(licenseName as AllowedLicense)) {
+  const licenseField = packageJson.license;
+
+  // Check if license is in allowed list
+  if (ALLOWED_LICENSES.includes(licenseField as AllowedLicense)) {
+    return licenseField as AllowedLicense;
+  }
+
+  // Try to verify by MD5 hash if configured in libraries.json
+  const licenseConfig = getLibraryLicenseConfig(libraryName);
+  if (!licenseConfig) {
     throw new Error(
-      `License ${licenseName} is not allowed. Allowed licenses are: ${ALLOWED_LICENSES.join(
+      `License ${licenseField} is not allowed for ${libraryName}. Allowed licenses are: ${ALLOWED_LICENSES.join(
         ', '
-      )}`
+      )}. You can configure a custom license with MD5 hash verification in libraries.json.`
     );
   }
-  return licenseName as AllowedLicense;
+  validateLicenseFieldFormat(licenseField, libraryName);
+  validateLicenseFilePath(
+    licenseField,
+    licenseConfig.filePath,
+    libraryName
+  );
+  verifyLicenseFileHash(
+    packageDir,
+    licenseConfig.filePath,
+    licenseConfig.fileMD5,
+    libraryName
+  );
+  return licenseConfig.type as AllowedLicense;
 }
 
 /**
