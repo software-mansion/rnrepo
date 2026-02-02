@@ -10,7 +10,7 @@
     "prepare": "npm run build && npm run verify"
   },
   "author": "Software Mansion",
-  "license": "MIT",
+  "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/software-mansion/rnrepo",
