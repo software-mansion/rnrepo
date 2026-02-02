@@ -78,6 +78,27 @@
         "type": "string",
         "description": "Path to pre-install script"
       },
+      "license": {
+        "type": "object",
+        "description": "Custom license configuration for non-standard licenses",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "description": "Path to the license file within the package (relative to package root)"
+          },
+          "type": {
+            "type": "string",
+            "description": "An SPDX license identifier (e.g., MIT, Apache-2.0)"
+          },
+          "fileMD5": {
+            "type": "string",
+            "description": "MD5 hash of the license file for verification",
+            "pattern": "^[a-f0-9]{32}$"
+          }
+        },
+        "required": ["filePath", "type", "fileMD5"],
+        "additionalProperties": false
+      },
       "android": {
         "anyOf": [
           {

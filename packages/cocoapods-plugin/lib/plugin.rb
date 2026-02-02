@@ -1,11 +1,51 @@
 require 'cocoapods'
-require 'cocoapods-rnrepo/logger'
-require 'cocoapods-rnrepo/pod_extractor'
-require 'cocoapods-rnrepo/downloader'
-require 'cocoapods-rnrepo/framework_cache'
+require 'json'
+require_relative 'logger'
+require_relative 'pod_extractor'
+require_relative 'downloader'
+require_relative 'framework_cache'
 
-# Hook into CocoaPods pre-install phase to download frameworks
-Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_context|
+# ADD TO PODFILE BEGINING:
+#
+# require Pod::Executable.execute_command('node', ['-p',
+#  'require.resolve(
+#  "@rnrepo/cocoapods-plugin/lib/plugin.rb",
+#  {paths: [process.argv[1]]},
+# )', __dir__]).strip
+#
+# AND IN POST INSTALL: 
+# 
+# post_install do |installer|
+# +  rnrepo_post_install(installer)
+#
+
+# Helper method to load and parse rnrepo.config.json
+def load_rnrepo_config(workspace_root)
+  config_path = File.join(workspace_root, '..', 'rnrepo.config.json')
+  CocoapodsRnrepo::Logger.log "Loading rnrepo.config.json from #{config_path}"
+  return {} unless File.exist?(config_path)
+
+  begin
+    JSON.parse(File.read(config_path))
+  rescue => e
+    CocoapodsRnrepo::Logger.log "⚠ Warning: Failed to parse rnrepo.config.json: #{e.message}"
+    {}
+  end
+end
+
+def get_ios_denylist(workspace_root)
+  config = load_rnrepo_config(workspace_root)
+  denylist_config = config['denyList'] || config['denylist'] || {}
+  denylist_config['ios'] || []
+end
+
+def rnrepo_pre_install(installer_context)
+  # Check if plugin is disabled via environment variable
+  if ENV['DISABLE_RNREPO']
+    CocoapodsRnrepo::Logger.log "⊘ RNREPO plugin is disabled (DISABLE_RNREPO is set)"
+    return
+  end
+
   CocoapodsRnrepo::Logger.log "🚀 Scanning for React Native dependencies to replace with pre-builds..."
 
   # Get the ios directory (where Podfile is located)
@@ -24,44 +64,67 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
   # Log what we found
   rn_pods.each do |pod_info|
     CocoapodsRnrepo::Logger.log "  Found: #{pod_info[:name]} v#{pod_info[:version] || 'unknown'}"
-    if pod_info[:name] == 'RNWorklets'
-      worklets_version = pod_info[:version]
-    end
+    worklets_version = pod_info[:version] if pod_info[:name] == 'RNWorklets'
+  end
+
+  # Add worklets version to reanimated pod info
+  if (pod = rn_pods.find { |p| p[:name] == 'RNReanimated' })
+    pod[:worklets_version] = worklets_version
   end
 
   if rn_pods.empty?
     CocoapodsRnrepo::Logger.log "No React Native pods found in node_modules"
-    next
+    return
   end
 
   CocoapodsRnrepo::Logger.log "Found #{rn_pods.count} React Native pod(s) to process"
 
-  # Track results
+  # Track results with thread-safe collections
+  results_mutex = Mutex.new
   cached_pods = []
   downloaded_pods = []
   unavailable_pods = []
   failed_pods = []
+  denied_pods = []
 
-  # Download and cache pre-built frameworks
-  rn_pods.each do |pod_info|
-    pod_info[:worklets_version] = pod_info[:name] == 'RNReanimated' ? worklets_version : nil
-    result = CocoapodsRnrepo::FrameworkCache.fetch_framework(
-      installer_context,
-      pod_info,
-      workspace_root
-    )
-
-    case result[:status]
-    when :cached
-      cached_pods << pod_info
-    when :downloaded
-      downloaded_pods << pod_info
-    when :unavailable
-      unavailable_pods << pod_info[:name]
-    when :failed
-      failed_pods << pod_info[:name]
+  # Handle denylist
+  ios_denylist = get_ios_denylist(workspace_root)
+  rn_pods = rn_pods.reject do |pod_info|
+    if ios_denylist.include?(pod_info[:npm_package_name])
+      denied_pods << pod_info[:name]
+      true
+    else
+      false
     end
   end
+
+  # Download and cache pre-built frameworks in parallel
+  threads = rn_pods.map do |pod_info|
+    Thread.new do
+      result = CocoapodsRnrepo::FrameworkCache.fetch_framework(
+        installer_context,
+        pod_info,
+        workspace_root
+      )
+
+      # Thread-safe result collection
+      results_mutex.synchronize do
+        case result[:status]
+        when :cached
+          cached_pods << pod_info
+        when :downloaded
+          downloaded_pods << pod_info
+        when :unavailable
+          unavailable_pods << pod_info[:name]
+        when :failed
+          failed_pods << pod_info[:name]
+        end
+      end
+    end
+  end
+
+  # Wait for all threads to complete
+  threads.each(&:join)
 
   # Display summary
   CocoapodsRnrepo::Logger.log "Total React Native dependencies detected: #{rn_pods.count}"
@@ -95,17 +158,25 @@ Pod::HooksManager.register('cocoapods-rnrepo', :pre_install) do |installer_conte
     end
   end
 
+  if denied_pods.any?
+    CocoapodsRnrepo::Logger.log "⊘ Denied from pre-builds (#{denied_pods.count}):"
+    denied_pods.each do |pod_name|
+      CocoapodsRnrepo::Logger.log "  • #{pod_name}"
+    end
+  end
+
   # Overall stats
   prebuilt_count = cached_pods.count + downloaded_pods.count
-  source_build_count = unavailable_pods.count + failed_pods.count
+  source_build_count = unavailable_pods.count + failed_pods.count + denied_pods.count
+  total_original_pods = rn_pods.count + denied_pods.count
 
   if prebuilt_count > 0
-    percentage = ((prebuilt_count.to_f / rn_pods.count) * 100).round(1)
-    CocoapodsRnrepo::Logger.log "#{prebuilt_count}/#{rn_pods.count} dependencies (#{percentage}%) using pre-built frameworks! 🎉"
+    percentage = ((prebuilt_count.to_f / total_original_pods) * 100).round(1)
+    CocoapodsRnrepo::Logger.log "#{prebuilt_count}/#{total_original_pods} dependencies (#{percentage}%) using pre-built frameworks! 🎉"
   end
 
   if source_build_count > 0
-    CocoapodsRnrepo::Logger.log "#{source_build_count}/#{rn_pods.count} dependencies will be built from source"
+    CocoapodsRnrepo::Logger.log "#{source_build_count}/#{total_original_pods} dependencies will be built from source"
   end
 
   # Store the list of successfully prebuilt pods (with package roots) for later use
@@ -124,6 +195,7 @@ module Pod
     # Hook into resolve_dependencies to modify specs BEFORE project generation
     old_method = instance_method(:resolve_dependencies)
     define_method(:resolve_dependencies) do
+      rnrepo_pre_install(installer_context=self)
       # Get the list of prebuilt pod info (hashes with :name, :package_root, etc.)
       prebuilt_pods = Pod::Installer.prebuilt_rnrepo_pods || []
 
@@ -287,11 +359,15 @@ module Pod
   end
 end
 
-# Hook into CocoaPods post-install phase to add build scripts
-Pod::HooksManager.register('cocoapods-rnrepo', :post_install) do |installer_context|
+def rnrepo_post_install(installer_context)
+  # Check if plugin is disabled via environment variable
+  if ENV['DISABLE_RNREPO']
+    return
+  end
+
   # Get the list of prebuilt pod info
   prebuilt_pods = Pod::Installer.prebuilt_rnrepo_pods || []
-  next if prebuilt_pods.empty?
+  return if prebuilt_pods.empty?
 
   CocoapodsRnrepo::Logger.log ""
   CocoapodsRnrepo::Logger.log "🔧 Adding build phase scripts for configuration selection..."
