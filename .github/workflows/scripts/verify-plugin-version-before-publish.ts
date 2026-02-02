@@ -124,7 +124,7 @@ function main(): void {
     '..',
     '..',
     'packages',
-    'prebuilds-plugin'
+    'build-tools'
   );
   const gradlePluginDir = join(prebuildsPluginDir, 'gradle-plugin');
   const buildGradlePath = join(gradlePluginDir, 'build.gradle');

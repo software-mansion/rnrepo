@@ -1,5 +1,5 @@
 {
-  "name": "@rnrepo/prebuilds-plugin",
+  "name": "@rnrepo/build-tools",
   "title": "RNRepo Prebuilds plugin",
   "version": "0.1.0",
   "description": "RNRepo plugin for handling prebuilt binaries of iOS and Android libraries",
@@ -14,7 +14,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/software-mansion/rnrepo",
-    "directory": "packages/prebuilds-plugin"
+    "directory": "packages/build-tools"
   },
   "homepage": "https://rnrepo.org/",
   "files": [

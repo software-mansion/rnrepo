@@ -1,5 +1,5 @@
 name: Publish RNRepo Prebuilds Plugin to npm
-run-name: Publish @rnrepo/prebuilds-plugin to npm
+run-name: Publish @rnrepo/build-tools to npm
 
 on:
   workflow_dispatch:
@@ -14,13 +14,13 @@ on:
           - 'latest'
 
 jobs:
-  publish-prebuilds-plugin:
+  publish-build-tools:
     runs-on: rnrepo-ubuntu-latest
     permissions:
       id-token: write  # Required for OIDC
       contents: read
     env:
-      PLUGIN_DIR: packages/prebuilds-plugin
+      PLUGIN_DIR: packages/build-tools
     defaults:
       run:
         working-directory: ${{ env.PLUGIN_DIR }}
@@ -56,7 +56,7 @@ jobs:
       
       - name: 🔨 Build RNRepo Gradle Plugin for Android
         run: ./gradlew build --no-daemon
-        working-directory: ./packages/prebuilds-plugin/gradle-plugin
+        working-directory: ./packages/build-tools/gradle-plugin
 
       - name: ✅ Verify JAR version matches build.gradle
         run: bun run ./.github/workflows/scripts/verify-plugin-version-before-publish.ts

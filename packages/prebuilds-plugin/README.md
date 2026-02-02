@@ -1,4 +1,4 @@
-# @rnrepo/prebuilds-plugin
+# @rnrepo/build-tools
 
 [RNRepo](https://rnrepo.org) plugin for handling prebuilt binaries of iOS and Android libraries in React Native projects.
 
@@ -11,11 +11,11 @@ This package includes both a **Gradle plugin** for Android and a **CocoaPods plu
 Install the package:
 
 ```bash
-npm install @rnrepo/prebuilds-plugin
+npm install @rnrepo/build-tools
 # or
-yarn add @rnrepo/prebuilds-plugin
+yarn add @rnrepo/build-tools
 # or
-bun add @rnrepo/prebuilds-plugin
+bun add @rnrepo/build-tools
 ```
 
 ### For Expo Managed Projects
@@ -33,7 +33,7 @@ buildscript {
 +     def rnrepoDir = new File(
 +       providers.exec {
 +         workingDir(rootDir)
-+         commandLine("node", "--print", "require.resolve('@rnrepo/prebuilds-plugin/package.json')")
++         commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
 +       }.standardOutput.asText.get().trim()
 +     ).getParentFile().absolutePath
 +     classpath fileTree(dir: "${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
@@ -64,7 +64,7 @@ Add to the beginning of your `Podfile`:
 ```diff
 +require Pod::Executable.execute_command('node', ['-p',
 +  'require.resolve(
-+    "@rnrepo/prebuilds-plugin/cocoapods-plugin/lib/plugin.rb",
++    "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
 +    {paths: [process.argv[1]]},
 +  )', __dir__]).strip
 ```

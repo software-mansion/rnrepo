@@ -13,7 +13,7 @@ This plugin integrates with CocoaPods to substitute local React Native dependenc
 Add the plugin to your React Native project's dependencies:
 
 ```bash
-npm install @rnrepo/prebuilds-plugin
+npm install @rnrepo/build-tools
 ```
 
 ### Add plugin to Podfile
@@ -23,7 +23,7 @@ Add the following line at the top of your `ios/Podfile`:
 ```diff
 +require Pod::Executable.execute_command('node', ['-p',
 +  'require.resolve(
-+    "@rnrepo/prebuilds-plugin/cocoapods-plugin/lib/plugin.rb",
++    "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
 +    {paths: [process.argv[1]]},
 +  )', __dir__]).strip
 ```

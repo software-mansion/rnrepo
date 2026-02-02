@@ -12,9 +12,9 @@
     "scheduler": "bun run packages/scheduler",
     "publisher": "bun run packages/publisher",
     "validate": "bun run packages/config/src/validate.ts",
-    "lint-gradle-client": "./packages/prebuilds-plugin/gradle-plugin/gradlew -p packages/prebuilds-plugin/gradle-plugin spotlessCheck -q --no-daemon",
+    "lint-gradle-client": "./packages/build-tools/gradle-plugin/gradlew -p packages/build-tools/gradle-plugin spotlessCheck -q --no-daemon",
     "lint-ts": "eslint . --ext .ts,.tsx",
-    "test-gradle-client": "./packages/prebuilds-plugin/gradle-plugin/gradlew -p packages/prebuilds-plugin/gradle-plugin test --info --no-daemon"
+    "test-gradle-client": "./packages/build-tools/gradle-plugin/gradlew -p packages/build-tools/gradle-plugin test --info --no-daemon"
   },
   "author": "",
   "license": "ISC",

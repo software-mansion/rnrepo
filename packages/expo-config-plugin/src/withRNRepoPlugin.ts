@@ -2,7 +2,7 @@ import { withProjectBuildGradle, withAppBuildGradle } from '@expo/config-plugins
 import type { ExpoConfig } from '@expo/config-types';
 
 const classpathRegex = /(classpath.*)/;
-const rnrepoClasspath = 'classpath fileTree(dir: "../node_modules/@rnrepo/prebuilds-plugin/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])';
+const rnrepoClasspath = 'classpath fileTree(dir: "../node_modules/@rnrepo/build-tools/gradle-plugin/build/libs", include: ["build-tools-*.jar"])';
 const applyPluginrnrepo = 'apply plugin: "org.rnrepo.tools.prebuilds-plugin"';
 const applyPluginFacebook = 'apply plugin: "com.facebook.react"';
 const applyPluginFacebookRootProject =

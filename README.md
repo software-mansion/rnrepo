@@ -71,7 +71,7 @@ For standard React Native setups or when using Expo but managing your android fo
    +   def rnrepoDir = new File(
    +     providers.exec {
    +       workingDir(rootDir)
-   +       commandLine("node", "--print", "require.resolve('@rnrepo/prebuilds-plugin/package.json')")
+   +       commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
    +     }.standardOutput.asText.get().trim()
    +   ).getParentFile().absolutePath
    +   classpath fileTree(dir: "${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
