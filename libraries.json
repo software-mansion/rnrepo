@@ -527,8 +527,7 @@
   "react-native-theoplayer": {
     "android": [
       {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
+        "versionMatcher": ">=10.9"
       }
     ]
   }
