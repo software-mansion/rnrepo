@@ -1,10 +1,43 @@
 # CocoaPods RNRepo Plugin
 
-A CocoaPods plugin that automatically replaces React Native local pods with pre-built xcframeworks from the rnrepo Maven repository.
+A CocoaPods plugin that automatically replaces React Native local pods with pre-built xcframeworks from the RNRepo Maven repository.
 
 ## Overview
 
 This plugin integrates with CocoaPods to substitute local React Native dependencies with pre-compiled xcframeworks, eliminating the need to build native modules from source during every `pod install`.
+
+## Installation
+
+### Install the npm package
+
+Add the plugin to your React Native project's dependencies:
+
+```bash
+npm install @rnrepo/build-tools
+```
+
+### Add plugin to Podfile
+
+Add the following line at the top of your `ios/Podfile`:
+
+```diff
++require Pod::Executable.execute_command('node', ['-p',
++  'require.resolve(
++    "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
++    {paths: [process.argv[1]]},
++  )', __dir__]).strip
+```
+
+### Add the post-install hook
+
+At the end of your `ios/Podfile`, add:
+
+```diff
+post_install do |installer|
++  rnrepo_post_install(installer)
+   ...
+end
+```
 
 ## How It Works
 
@@ -40,36 +73,3 @@ node_modules/
           │   └── {package-name}.xcframework/
           └── Current/  (symlink created at build time → Debug or Release)
 ```
-
-## Development
-
-To test it on a project that lives outside of RNRepo monorepo structure, you can build and install the gem locally and later import it in the Podfile:
-
-### Build and install gem locally
-
-```bash
-cd packages/cocoapods-plugin
-bun run gem-install
-```
-
-This will automatically uninstall any previous version, build the gem, and install it.
-
-### Update Podfile in your React Native project
-
-Add the following line at the start of the Podfile:
-
-```
-plugin 'cocoapods-rnrepo'
-```
-
-### Install pods in your RN project
-
-You may also want to remove the `Pods/` and the lockfile to avoid any issue (ultimately this step shouldn't be necessary):
-
-```bash
-cd ios/
-rm -rf Pods/ Podfile.lock
-pod install
-```
-
-The plugin runs in the install step and should replace available pre-built libraries in the `Pods.xcodeproj` to use `.xcframework` builds instead of building from source.
