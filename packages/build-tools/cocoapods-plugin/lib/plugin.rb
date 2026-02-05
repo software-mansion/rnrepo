@@ -234,7 +234,7 @@ module Pod
           release_cache_dir = File.join(cache_dir, 'Release')
           default_config = File.exist?(debug_cache_dir) ? 'Debug' : 'Release'
           FileUtils.cp_r(File.join(cache_dir, default_config), current_link)
-          CocoapodsRnrepo::Logger.log "  Created Current symlink -> #{default_config}"
+          CocoapodsRnrepo::Logger.log "  Copied to Current directory -> #{default_config}"
         end
 
         # Look for xcframeworks in Current (which is a symlink to Debug or Release)
@@ -358,6 +358,8 @@ def rnrepo_post_install(installer_context)
     return
   end
 
+  CocoapodsRnrepo::Logger.log "🔧 Adding build phase scripts for configuration selection..."
+
     script_content = <<~SCRIPT
       set -e
 
@@ -398,7 +400,10 @@ def rnrepo_post_install(installer_context)
     target_name = target.name
     
     # Only add build phase to targets that were prebuilt
-    next unless prebuilt_pod_names.include?(target_name)
+    matches_prebuilt_pod = prebuilt_pod_names.any? do |pod_name|
+      target_name.downcase.start_with?(pod_name.to_s.downcase)
+    end
+    next unless matches_prebuilt_pod
 
     # Remove any existing RNREPO build phase first
     target.build_phases.select { |phase| phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase) && phase.name == script_name }.each(&:remove_from_project)
