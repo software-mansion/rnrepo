@@ -6,8 +6,7 @@
   "scripts": {
     "build": "./gradle-plugin/gradlew build --no-daemon -p gradle-plugin",
     "verify": "bun run ./scripts/verify-plugin-version-before-publish.ts",
-    "prepublishOnly": "npm run build",
-    "prepare": "npm run verify"
+    "prepublishOnly": "npm run build && npm run verify"
   },
   "author": "Software Mansion",
   "license": "ISC",
