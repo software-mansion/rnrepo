@@ -5,9 +5,9 @@
   "description": "RNRepo plugin for handling prebuilt binaries of iOS and Android libraries",
   "scripts": {
     "build": "./gradle-plugin/gradlew build --no-daemon -p gradle-plugin",
-    "verify": "bun run ../../.github/workflows/scripts/verify-plugin-version-before-publish.ts",
-    "prepublishOnly": "npm run build && npm run verify",
-    "prepare": "npm run build && npm run verify"
+    "verify": "bun run ./scripts/verify-plugin-version-before-publish.ts",
+    "prepublishOnly": "npm run build",
+    "prepare": "npm run verify"
   },
   "author": "Software Mansion",
   "license": "ISC",
