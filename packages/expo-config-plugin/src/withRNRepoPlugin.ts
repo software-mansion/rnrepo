@@ -8,7 +8,7 @@ const classpathRegex = /(classpath.*)/;
 const rnrepoClasspathBlock = `def rnrepoDir = new File(
      providers.exec {
        workingDir(rootDir)
-       commandLine("node", "--print", "require.resolve('@rnrepo/prebuilds-plugin/package.json')")
+       commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
      }.standardOutput.asText.get().trim()
    ).getParentFile().absolutePath
    classpath fileTree(dir: "$\{rnrepoDir\}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
@@ -29,7 +29,7 @@ allprojects {
 // iOS
 const podfileRequire = `require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
-  "@rnrepo/prebuilds-plugin/cocoapods-plugin/lib/plugin.rb",
+  "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
   {paths: [process.argv[1]]},
 )', __dir__]).strip`;
 const postInstallRegex = /(post_install do \|installer\|)/;
@@ -79,7 +79,7 @@ function withRNRepoPodfile(config: ExpoConfig) {
       
       if (fs.existsSync(podfilePath)) {
         let podfileContent = fs.readFileSync(podfilePath, 'utf8');
-        if (!podfileContent.includes('@rnrepo/prebuilds-plugin/cocoapods-plugin/lib/plugin.rb')) {
+        if (!podfileContent.includes('@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb')) {
           podfileContent = `${podfileRequire}\n\n${podfileContent}`;
           fs.writeFileSync(podfilePath, podfileContent);
         }
