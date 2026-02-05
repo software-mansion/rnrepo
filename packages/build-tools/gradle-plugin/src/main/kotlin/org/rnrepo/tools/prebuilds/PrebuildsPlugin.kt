@@ -418,18 +418,30 @@ class PrebuildsPlugin : Plugin<Project> {
             return
         }
         try {
-            @Suppress("UNCHECKED_CAST")
-            val json = JsonSlurper().parse(configFile) as Map<String, Any>
+            val json = JsonSlurper().parse(configFile)
 
-            // Check for both 'denyList' and 'denylist' (case-insensitive variants)
-            @Suppress("UNCHECKED_CAST")
-            val denyListData = (json["denyList"] ?: json["denylist"]) as? Map<String, Any>
-            val denyList = denyListData?.get("android") as? List<String>
-            if (denyList != null) {
+            @if (json !is Map<*, *>) {
+                logger.info("Config file did not parse as a Map. Using empty deny list.")
+                return
+            }
+            // Get denyList or denylist (case variants)
+            val denyListData = json["denyList"] ?: json["denylist"]
+            if (denyListData == null) {
+                logger.info("No denyList key found in config file. Using empty deny list.")
+                return
+            }
+            if (denyListData !is Map<*, *>) {
+                logger.info("denyList is not a Map. Using empty deny list.")
+                return
+            }
+            // Get android list and convert items to strings safely
+            val androidList = denyListData["android"]
+            if (androidList is List<*>) {
+                val denyList = androidList.mapNotNull { it?.toString() }
                 logger.lifecycle("Loaded deny list from config: $denyList")
                 extension.denyList = denyList.map { toGradleName(it) }.toSet()
             } else {
-                logger.info("No denyList found in config file. Using empty deny list.")
+                logger.info("No 'android' list found in denyList. Using empty deny list.")
             }
         } catch (e: Exception) {
             logger.error("Error parsing $CONFIG_FILE_NAME: ${e.message}. Using empty deny list.")
