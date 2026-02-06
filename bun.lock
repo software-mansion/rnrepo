@@ -19,6 +19,10 @@
         "typescript-eslint": "^8.46.4",
       },
     },
+    "packages/build-tools": {
+      "name": "@rnrepo/build-tools",
+      "version": "0.1.0",
+    },
     "packages/builder": {
       "name": "@rnrepo/builder",
       "version": "0.1.0",
@@ -31,10 +35,6 @@
         "@types/node": "^24.0.4",
         "typescript": "^5.8.3",
       },
-    },
-    "packages/cocoapods-plugin": {
-      "name": "@rnrepo/cocoapods-plugin",
-      "version": "0.1.0",
     },
     "packages/config": {
       "name": "@rnrepo/config",
@@ -689,9 +689,9 @@
 
     "@react-native/virtualized-lists": ["@react-native/virtualized-lists@0.82.1", "", { "dependencies": { "invariant": "^2.2.4", "nullthrows": "^1.1.1" }, "peerDependencies": { "@types/react": "^19.1.1", "react": "*", "react-native": "*" }, "optionalPeers": ["@types/react"] }, "sha512-f5zpJg9gzh7JtCbsIwV+4kP3eI0QBuA93JGmwFRd4onQ3DnCjV2J5pYqdWtM95sjSKK1dyik59Gj01lLeKqs1Q=="],
 
-    "@rnrepo/builder": ["@rnrepo/builder@workspace:packages/builder"],
+    "@rnrepo/build-tools": ["@rnrepo/build-tools@workspace:packages/build-tools"],
 
-    "@rnrepo/cocoapods-plugin": ["@rnrepo/cocoapods-plugin@workspace:packages/cocoapods-plugin"],
+    "@rnrepo/builder": ["@rnrepo/builder@workspace:packages/builder"],
 
     "@rnrepo/config": ["@rnrepo/config@workspace:packages/config"],
 
