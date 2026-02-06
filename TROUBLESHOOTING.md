@@ -19,7 +19,9 @@ REACT_NATIVE_ROOT_DIR=/path/to/your/react-native-dir
 You can create a `rnrepo.config.json` file in your React-Native root directory to manage specific packages that should be excluded from automatic AAR management. The structure of the configuration file is as follows:
 ```json
 {
-  "denyList": ["library-name-1", "library-name-2"]
+  "denyList": {
+    "android": ["react-native-reanimated", "react-native-svg"],
+    "ios": ["react-native-reanimated", "react-native-screens"]
 }
 ```
 
