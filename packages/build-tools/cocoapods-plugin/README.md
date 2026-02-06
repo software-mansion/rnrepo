@@ -8,16 +8,35 @@ This plugin integrates with CocoaPods to substitute local React Native dependenc
 
 ## Installation
 
+### Install the npm package
+
+Add the plugin to your React Native project's dependencies:
+
+```bash
+npm install @rnrepo/build-tools
+```
+
 ### Add plugin to Podfile
 
 Add the following line at the top of your `ios/Podfile`:
 
-```ruby
-require Pod::Executable.execute_command('node', ['-p',
-  'require.resolve(
-    "@rnrepo/cocoapods-plugin/lib/plugin.rb",
-    {paths: [process.argv[1]]},
-  )', __dir__]).strip
+```diff
++require Pod::Executable.execute_command('node', ['-p',
++  'require.resolve(
++    "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
++    {paths: [process.argv[1]]},
++  )', __dir__]).strip
+```
+
+### Add the post-install hook
+
+At the end of your `ios/Podfile`, add:
+
+```diff
+post_install do |installer|
++  rnrepo_post_install(installer)
+   ...
+end
 ```
 
 ## How It Works

@@ -107,10 +107,7 @@ To opt out of using RNRepo for specific libraries (for example, if you have loca
 
 ```json
 {
-  "denyList": {
-    "android": ["library-name-1", "library-name-2"],
-    "ios": ["library-name-3", "library-name-4"]
-  }
+  "denyList": ["library-name-1", "library-name-2"]
 }
 ```
 

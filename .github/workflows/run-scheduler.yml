@@ -8,9 +8,9 @@ on:
         required: false
         type: number
         default: 1
-  # schedule:
-  #   # Runs every 4 hours at minute 0 (6 times per day)
-  #   - cron: '0 */4 * * *'
+  schedule:
+    # Runs every 4 hours at minute 0 (6 times per day)
+    - cron: '0 */4 * * *'
 
 jobs:
   run-scheduler:
@@ -27,6 +27,14 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+
+      - name: 🗃️ Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
       - name: 📦 Install dependencies
         run: bun install
