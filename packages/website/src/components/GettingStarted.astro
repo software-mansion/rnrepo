@@ -37,6 +37,7 @@ buildscript {
 +     }.standardOutput.asText.get().trim()
 +   ).getParentFile().absolutePath
 +   classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
+  }
 }
 
 allprojects {
