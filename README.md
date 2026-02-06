@@ -72,7 +72,7 @@ For standard React Native setups or when using Expo but managing your android fo
      }
      dependencies {
        ...
-   +   classpath("org.rnrepo.tools:prebuilds-plugin:0.2.3")
+   +   classpath("org.rnrepo.tools:prebuilds-plugin:0.2.2")
      }
    }
 
