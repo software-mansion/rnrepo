@@ -66,13 +66,15 @@ For standard React Native setups or when using Expo but managing your android fo
 
    ```diff
    buildscript {
-     repositories {
-       ...
-   +   maven { url "https://packages.rnrepo.org/releases" }
-     }
      dependencies {
        ...
-   +   classpath("org.rnrepo.tools:prebuilds-plugin:0.2.2")
+   +   def rnrepoDir = new File(
+   +     providers.exec {
+   +       workingDir(rootDir)
+   +       commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
+   +     }.standardOutput.asText.get().trim()
+   +   ).getParentFile().absolutePath
+   +   classpath fileTree(dir: "${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
      }
    }
 
@@ -107,7 +109,10 @@ To opt out of using RNRepo for specific libraries (for example, if you have loca
 
 ```json
 {
-  "denyList": ["library-name-1", "library-name-2"]
+  "denyList": {
+    "android": ["library-name-1", "library-name-2"],
+    "ios": ["library-name-3", "library-name-4"]
+  }
 }
 ```
 
