@@ -76,15 +76,20 @@ function withRNRepoPodfile(config: ExpoConfig) {
       
       if (fs.existsSync(podfilePath)) {
         let podfileContent = fs.readFileSync(podfilePath, 'utf8');
+        const originalPodfileContent = podfileContent;
+        
         if (!podfileContent.includes('@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb')) {
           podfileContent = `${podfileRequire}\n\n${podfileContent}`;
-          fs.writeFileSync(podfilePath, podfileContent);
         }
+        
         if (!podfileContent.includes('rnrepo_post_install')) {
           podfileContent = podfileContent.replace(
             postInstallRegex,
             `$1\n  ${postInstallRNRepo}`
           );
+        }
+        
+        if (podfileContent !== originalPodfileContent) {
           fs.writeFileSync(podfilePath, podfileContent);
         }
       }
