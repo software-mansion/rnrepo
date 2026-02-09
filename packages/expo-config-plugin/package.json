@@ -12,7 +12,7 @@
     "lint": "expo-module lint",
     "test": "expo-module test",
     "prepare": "expo-module prepare",
-    "prepublishOnly": "expo-module prepublishOnly",
+    "prepublishOnly": "expo-module test && expo-module prepublishOnly",
     "expo-module": "expo-module"
   },
   "homepage": "https://rnrepo.org/",
@@ -36,7 +36,9 @@
     "@expo/config-types": "*"
   },
   "devDependencies": {
-    "expo-module-scripts": "^5.0.7"
+    "expo-module-scripts": "^5.0.7",
+    "@types/jest": "^30.0.0",
+    "ts-jest": "^29.4.6"
   },
   "peerDependencies": {
     "expo": "^54",
