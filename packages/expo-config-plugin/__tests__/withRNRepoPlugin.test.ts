@@ -22,7 +22,7 @@ jest.mock('fs', () => ({
 const mockedFs = fs as jest.Mocked<typeof fs>;
 
 describe('withRNRepoPlugin', () => {
-  const mockConfig: any = {
+  const mockConfig = {
     name: 'test-app',
     slug: 'test-app',
     modResults: { contents: '' },
