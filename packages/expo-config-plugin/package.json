@@ -36,9 +36,7 @@
     "@expo/config-types": "*"
   },
   "devDependencies": {
-    "expo-module-scripts": "^5.0.7",
-    "@types/jest": "^30.0.0",
-    "ts-jest": "^29.4.6"
+    "expo-module-scripts": "^5.0.7"
   },
   "peerDependencies": {
     "expo": "^54",
