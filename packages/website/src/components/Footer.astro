@@ -5,7 +5,12 @@ import Logo from './Logo.astro';
 
 <footer class="bg-black pt-20 pb-10 border-t border-rnrGrey-80">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex flex-col items-center text-center mb-16">
+    <a
+      href="https://swmansion.com"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="flex flex-col items-center text-center mb-16 no-underline hover:opacity-80 transition-opacity"
+    >
       <div class="mb-8">
         <Logo name="swm" className="h-16 w-auto text-rnrGrey-0" />
       </div>
@@ -20,7 +25,7 @@ import Logo from './Logo.astro';
           and bringing to life the innovative ideas of our clients.
         </p>
       </div>
-    </div>
+    </a>
 
     {/* CTA Box */}
     <div
