@@ -91,11 +91,7 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
         <div class="flex-1">
           <p class="text-sm text-rnrGrey-30 leading-relaxed">
             RNRepo is currently in
-            <strong class="text-brandYellow-100">Beta</strong> and available for
-            <strong class="text-rnrGrey-0">Android only</strong>.
-          </p>
-          <p class="text-sm text-rnrGrey-30 leading-relaxed mt-1">
-            Please report any feedback or issues with your setup via our{' '}
+            <strong class="text-brandYellow-100">Beta</strong>, please report any feedback or issues with your setup via our{' '}
             <a
               href="https://github.com/software-mansion/rnrepo"
               target="_blank"
@@ -108,8 +104,8 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
     </div>
 
     <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-2xl mb-8">
-      To start using RNRepo, you need to configure your Android project to
-      include our Maven repository and use our Gradle plugin that will
+      To start using RNRepo, you need to configure your project to
+      include our build plugin that will
       automatically swap out dependencies on supported libraries with pre-built
       artifacts downloaded from our repository.
     </p>
@@ -150,8 +146,8 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
         class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
       >
         If you are using Expo Continuous Code Generation (CNG) setup (generating
-        your native android directory with expo prebuild command), you can use
-        our Expo config plugin to automatically configure Android's project to
+        your native directories with expo prebuild command), you can use
+        our Expo config plugin to automatically configure your project to
         use RNRepo.
       </p>
       <p

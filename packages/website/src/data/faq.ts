@@ -5,14 +5,9 @@ export interface FAQItem {
 
 export const faqItems: FAQItem[] = [
   {
-    question: 'What if I install RNRepo and run iOS build?',
-    answer:
-      'In the current version RNRepo only supports Android builds and does not interfere with the way iOS builds are performed. iOS builds will continue to build libraries from source as usual.',
-  },
-  {
     question: 'How do I verify that RNRepo is set up correctly?',
     answer:
-      'Check your Android build logs for entries with the "[📦 RNRepo]" tag. The plugin logs which libraries it detects in your project and specifically lists which ones are being substituted with pre-built artifacts from the repository. If you see these logs during your build, RNRepo is working correctly.',
+      'Check your build logs for entries with the "[📦 RNRepo]" tag. The plugin logs which libraries it detects in your project and specifically lists which ones are being substituted with pre-built artifacts from the repository. If you see these logs during your build, RNRepo is working correctly.',
   },
   {
     question: 'How do I opt out of RNRepo for specific libraries?',
