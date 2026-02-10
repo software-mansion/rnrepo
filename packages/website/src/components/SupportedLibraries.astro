@@ -63,6 +63,40 @@ const supportedLibraryNames = await getSupportedLibraryNames();
       class="rounded-lg border border-rnrGrey-80 bg-surface/40 px-4 py-6 mb-8"
     >
       <div class="flex flex-col gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-rnrGrey-0">
+              Platform
+            </h2>
+          </div>
+          <div
+            id="platform-switch"
+            class="inline-flex rounded-sm bg-rnrGrey-90 p-1 gap-1"
+          >
+            <button
+              id="platform-android"
+              data-platform="android"
+              class="platform-btn px-4 py-2 rounded-sm text-sm font-medium transition-colors bg-brandSeaBlue-100 text-rnrGrey-0"
+            >
+              Android
+            </button>
+            <button
+              id="platform-ios"
+              data-platform="ios"
+              class="platform-btn px-4 py-2 rounded-sm text-sm font-medium transition-colors text-rnrGrey-40 hover:text-rnrGrey-0"
+            >
+              iOS
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* React Native Versions Card */}
+    <div
+      class="rounded-lg border border-rnrGrey-80 bg-surface/40 px-4 py-6 mb-8"
+    >
+      <div class="flex flex-col gap-4">
         <div>
           <h2 class="text-lg font-semibold text-rnrGrey-0">
             React Native Version
@@ -210,8 +244,11 @@ const supportedLibraryNames = await getSupportedLibraryNames();
                     </a>
                   </div>
                   <div class="flex gap-2 versions-container min-w-0 items-center">
-                    <span class="platform-label inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-brandGreen-100/10 text-brandGreen-100 flex-shrink-0 w-fit">
+                    <span class="platform-label inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-brandGreen-100/10 text-brandGreen-100 flex-shrink-0 w-fit" data-platform="android">
                       Android
+                    </span>
+                    <span class="platform-label hidden inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-brandGreen-100/10 text-brandGreen-100 flex-shrink-0 w-fit" data-platform="ios">
+                      iOS
                     </span>
                   </div>
                   <div class="flex flex-wrap gap-2 versions-container min-w-0 items-center">
@@ -219,7 +256,7 @@ const supportedLibraryNames = await getSupportedLibraryNames();
                       <>
                         {libInfo.android_versions &&
                         libInfo.android_versions.length > 0 ? (
-                          <div class="android-versions-wrapper flex items-center gap-2 w-full min-w-0">
+                          <div class="android-versions-wrapper versions-display flex items-center gap-2 w-full min-w-0" data-platform="android">
                             <div class="android-versions-list flex flex-nowrap gap-2 overflow-hidden">
                               {libInfo.android_versions.map((ver) => (
                                 <span class="version-tag android-version inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 flex-shrink-0">
@@ -238,15 +275,45 @@ const supportedLibraryNames = await getSupportedLibraryNames();
                             </div>
                           </div>
                         ) : (
-                          <span class="android-empty text-xs text-rnrGrey-40 italic">
+                          <span class="android-empty text-xs text-rnrGrey-40 italic" data-platform="android">
+                            Not available for RN {version}
+                          </span>
+                        )}
+                        {libInfo.ios_versions &&
+                        libInfo.ios_versions.length > 0 ? (
+                          <div class="ios-versions-wrapper versions-display hidden flex items-center gap-2 w-full min-w-0" data-platform="ios">
+                            <div class="ios-versions-list flex flex-wrap gap-2">
+                              {libInfo.ios_versions.map((ver) => (
+                                <span class="version-tag ios-version inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-brandSeaBlue-100/10 text-brandSeaBlue-100 flex-shrink-0">
+                                  {ver}
+                                </span>
+                              ))}
+                              {libInfo.ios_versions &&
+                                libInfo.ios_versions.length > 3 && (
+                                  <button
+                                    class="expand-ios-btn inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium text-rnrGrey-40 hover:text-brandSeaBlue-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                                    aria-expanded="false"
+                                  >
+                                    {/* text is set client-side based on viewport */}
+                                  </button>
+                                )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span class="ios-empty text-xs text-rnrGrey-40 italic hidden" data-platform="ios">
                             Not available for RN {version}
                           </span>
                         )}
                       </>
                     ) : (
-                      <span class="text-xs text-rnrGrey-40 italic">
-                        Not available for RN {version}
-                      </span>
+                      <>
+                        <span class="text-xs text-rnrGrey-40 italic" data-platform="android">
+                          Not available for RN {version}
+                        </span>
+                        <span class="text-xs text-rnrGrey-40 italic hidden" data-platform="ios">
+                          Not available for RN {version}
+                        </span>
+                      </>
                     )}
                   </div>
                 </div>
@@ -321,8 +388,53 @@ const supportedLibraryNames = await getSupportedLibraryNames();
   const libraryRows = document.querySelectorAll<HTMLElement>('.library-row');
   const versionButtons =
     document.querySelectorAll<HTMLButtonElement>('.rn-version-btn');
+  const platformButtons =
+    document.querySelectorAll<HTMLButtonElement>('.platform-btn');
 
   let activeVersion: string | null = null;
+  let activePlatform: string = 'android';
+
+  function setPlatformButtonActive(
+    btn: HTMLButtonElement,
+    isActive: boolean
+  ): void {
+    btn.classList.remove(
+      'bg-brandSeaBlue-100',
+      'text-rnrGrey-0',
+      'text-rnrGrey-40',
+      'hover:text-rnrGrey-0'
+    );
+
+    if (isActive) {
+      btn.classList.add('bg-brandSeaBlue-100', 'text-rnrGrey-0');
+    } else {
+      btn.classList.add('text-rnrGrey-40', 'hover:text-rnrGrey-0');
+    }
+  }
+
+  // Set first platform button (Android) as active by default
+  platformButtons.forEach((btn) => {
+    const platform = btn.getAttribute('data-platform');
+    setPlatformButtonActive(btn, platform === 'android');
+  });
+
+  platformButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const platform = btn.getAttribute('data-platform');
+      if (!platform) return;
+
+      activePlatform = platform;
+
+      // Update button states
+      platformButtons.forEach((b) => {
+        const p = b.getAttribute('data-platform');
+        setPlatformButtonActive(b, p === platform);
+      });
+
+      // Update library display
+      updateLibraryDisplay();
+    });
+  });
 
   function setVersionButtonActive(
     btn: HTMLButtonElement,
@@ -392,18 +504,28 @@ const supportedLibraryNames = await getSupportedLibraryNames();
       if (!target) return;
 
       const expandBtn = target.closest(
-        '.expand-android-btn'
+        '.expand-android-btn, .expand-ios-btn'
       ) as HTMLButtonElement | null;
       if (!expandBtn) return;
 
       e.preventDefault();
-      const wrapper = expandBtn.closest('.android-versions-wrapper');
+      
+      const isAndroid = expandBtn.classList.contains('expand-android-btn');
+      const wrapper = isAndroid 
+        ? expandBtn.closest('.android-versions-wrapper')
+        : expandBtn.closest('.ios-versions-wrapper');
+      
       if (!wrapper) return;
 
       const isExpanded = expandBtn.getAttribute('aria-expanded') === 'true';
       expandBtn.setAttribute('aria-expanded', String(!isExpanded));
       wrapper.setAttribute('data-expanded', String(!isExpanded));
-      applyAndroidVersionsCollapse(wrapper);
+      
+      if (isAndroid) {
+        applyAndroidVersionsCollapse(wrapper);
+      } else {
+        applyIOSVersionsCollapse(wrapper);
+      }
     });
   }
 
@@ -544,15 +666,145 @@ const supportedLibraryNames = await getSupportedLibraryNames();
     list.style.visibility = previousVisibility;
   }
 
+  function applyIOSVersionsCollapse(wrapper: Element): void {
+    const list = wrapper.querySelector(
+      '.ios-versions-list'
+    ) as HTMLElement | null;
+    const versions = Array.from(
+      wrapper.querySelectorAll<HTMLElement>('.ios-version')
+    );
+    const expandBtn = wrapper.querySelector<HTMLButtonElement>(
+      '.expand-ios-btn'
+    );
+    if (!list || versions.length === 0) return;
+
+    const isExpanded =
+      wrapper.getAttribute('data-expanded') === 'true' ||
+      expandBtn?.getAttribute('aria-expanded') === 'true';
+
+    if (isExpanded) {
+      // Expanded: show everything
+      list.classList.remove('flex-nowrap', 'overflow-hidden');
+      list.classList.add('flex-wrap');
+      versions.forEach((v) => {
+        v.hidden = false;
+        v.classList.remove('ios-hidden');
+      });
+      if (expandBtn) {
+        expandBtn.hidden = false;
+        expandBtn.textContent = 'show less';
+        expandBtn.setAttribute('aria-expanded', 'true');
+      }
+      wrapper.setAttribute('data-expanded', 'true');
+      return;
+    }
+
+    // Collapsed: keep a single line and show only as many pills as fit in the
+    // available width next to the "+N more" button (so we never crop).
+    list.classList.remove('flex-wrap');
+    list.classList.add('flex-nowrap', 'overflow-hidden');
+
+    // Make everything visible for measurement without flashing.
+    const previousVisibility = list.style.visibility;
+    list.style.visibility = 'hidden';
+    versions.forEach((v) => {
+      v.hidden = false;
+      v.classList.remove('ios-hidden');
+    });
+
+    const listWidth = list.clientWidth;
+    const gap = getFlexGapPx(list);
+
+    // If everything fits without the button, hide it and show all pills.
+    let allFitWithoutButton = true;
+    let usedAll = 0;
+    for (let i = 0; i < versions.length; i++) {
+      const pillW = versions[i].offsetWidth;
+      usedAll = i === 0 ? pillW : usedAll + gap + pillW;
+      if (usedAll > listWidth - 1) {
+        allFitWithoutButton = false;
+        break;
+      }
+    }
+    if (expandBtn && allFitWithoutButton) {
+      expandBtn.hidden = true;
+      expandBtn.textContent = '';
+    }
+
+    let visibleCount = versions.length;
+
+    if (expandBtn && !allFitWithoutButton) {
+      expandBtn.hidden = false;
+
+      // Iterate a few times because the button label width depends on the hiddenCount.
+      // This converges quickly and maximizes visible pills.
+      let lastVisibleCount = -1;
+      let buttonW = 0;
+
+      for (let iter = 0; iter < 4; iter++) {
+        const hiddenGuess =
+          iter === 0
+            ? versions.length
+            : Math.max(0, versions.length - visibleCount);
+        expandBtn.textContent = `+${hiddenGuess} more`;
+        buttonW = expandBtn.offsetWidth;
+
+        let used = 0;
+        visibleCount = 0;
+
+        for (let i = 0; i < versions.length; i++) {
+          const pillW = versions[i].offsetWidth;
+          const nextUsed = visibleCount === 0 ? pillW : used + gap + pillW;
+          const totalWithButton = nextUsed + gap + buttonW;
+
+          if (totalWithButton <= listWidth - 1) {
+            used = nextUsed;
+            visibleCount++;
+            continue;
+          }
+          break;
+        }
+
+        if (visibleCount === lastVisibleCount) break;
+        lastVisibleCount = visibleCount;
+      }
+    }
+
+    const hiddenCount = Math.max(0, versions.length - visibleCount);
+
+    versions.forEach((v, idx) => {
+      const shouldHide = idx >= visibleCount;
+      v.hidden = shouldHide;
+      v.classList.toggle('ios-hidden', shouldHide);
+    });
+
+    if (expandBtn) {
+      if (hiddenCount > 0) {
+        expandBtn.hidden = false;
+        expandBtn.textContent = `+${hiddenCount} more`;
+        expandBtn.setAttribute('aria-expanded', 'false');
+      } else {
+        expandBtn.hidden = true;
+      }
+    }
+
+    wrapper.setAttribute('data-expanded', 'false');
+    list.style.visibility = previousVisibility;
+  }
+
   function setupAndroidVersionsCollapse(): void {
     const wrappers = document.querySelectorAll('.android-versions-wrapper');
     wrappers.forEach((w) => applyAndroidVersionsCollapse(w));
+
+    const iosWrappers = document.querySelectorAll('.ios-versions-wrapper');
+    iosWrappers.forEach((w) => applyIOSVersionsCollapse(w));
 
     let resizeTimer: number | null = null;
     window.addEventListener('resize', () => {
       if (resizeTimer) window.clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => {
         wrappers.forEach((w) => applyAndroidVersionsCollapse(w));
+        iosWrappers.forEach((w) => applyIOSVersionsCollapse(w));
       }, 100);
     });
   }
@@ -571,6 +823,30 @@ const supportedLibraryNames = await getSupportedLibraryNames();
       if (shouldShow) {
         row.style.display = '';
         visibleCount++;
+        
+        // Update platform labels to show only active platform
+        const platformLabels = row.querySelectorAll<HTMLElement>('.platform-label');
+        platformLabels.forEach((label) => {
+          const labelPlatform = label.getAttribute('data-platform');
+          if (labelPlatform === activePlatform) {
+            label.classList.remove('hidden');
+          } else {
+            label.classList.add('hidden');
+          }
+        });
+        
+        // Update version displays to show only active platform
+        const versionDisplays = row.querySelectorAll<HTMLElement>('.versions-display, [data-platform]');
+        versionDisplays.forEach((display) => {
+          const displayPlatform = display.getAttribute('data-platform');
+          if (displayPlatform === activePlatform) {
+            display.classList.remove('hidden');
+            display.style.display = '';
+          } else {
+            display.classList.add('hidden');
+            display.style.display = 'none';
+          }
+        });
       } else {
         row.style.display = 'none';
       }
@@ -587,10 +863,15 @@ const supportedLibraryNames = await getSupportedLibraryNames();
     }
 
     // Recalculate version wrapping for visible libraries
-    const visibleWrappers = document.querySelectorAll(
+    const visibleAndroidWrappers = document.querySelectorAll(
       '.library-row:not([style*="display: none"]) .android-versions-wrapper'
     );
-    visibleWrappers.forEach((w) => applyAndroidVersionsCollapse(w));
+    visibleAndroidWrappers.forEach((w) => applyAndroidVersionsCollapse(w));
+
+    const visibleIOSWrappers = document.querySelectorAll(
+      '.library-row:not([style*="display: none"]) .ios-versions-wrapper'
+    );
+    visibleIOSWrappers.forEach((w) => applyIOSVersionsCollapse(w));
   }
 
   // Handle version button clicks
