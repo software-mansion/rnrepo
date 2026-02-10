@@ -7,6 +7,37 @@ module CocoapodsRnrepo
   class Downloader
     @@repo_url = "https://packages.rnrepo.org/releases"
 
+    # Check if file exists on server using HEAD request
+    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
+    # Returns: true if file exists, false otherwise
+    def self.file_exists?(artifact_spec)
+      required_keys = [:sanitized_name, :version, :rn_version, :configuration]
+      missing_keys = required_keys.select { |key| !artifact_spec.key?(key) }
+      unless missing_keys.empty?
+        Logger.log "Missing required artifact_spec keys: #{missing_keys.join(', ')}"
+        return false
+      end
+
+      worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
+      url = "#{@@repo_url}/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
+
+      uri = URI.parse(url)
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = (uri.scheme == 'https')
+      http.read_timeout = 10
+      http.open_timeout = 10
+
+      request = Net::HTTP::Head.new(uri.request_uri)
+
+      begin
+        response = http.request(request)
+        return response.code.to_i == 200
+      rescue => e
+        Logger.log "Error checking file existence at #{url}: #{e.message}"
+        return false
+      end
+    end
+
     # Download file via HTTP request
     # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination, :worklets_version (optional)
     # Returns: destination path if successful, nil on failure
