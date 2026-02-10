@@ -6,10 +6,27 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-reanimated": {
     "android": [
+      {
+        "versionMatcher": "<4.2",
+        "withWorkletsVersion": ["0.5.1", "0.6.1"],
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.2",
+        "withWorkletsVersion": ["0.7.1"]
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "<4.2",
         "withWorkletsVersion": ["0.5.1", "0.6.1"],
@@ -27,10 +44,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "@react-native-community/netinfo": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -46,10 +75,25 @@
       {
         "versionMatcher": "0.3.2"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "0.3.2"
+      }
     ]
   },
   "@shopify/react-native-skia": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -62,10 +106,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-safe-area-context": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -78,10 +134,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-worklets": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -94,10 +162,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "@pusher/pusher-websocket-react-native": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -110,10 +190,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-android-location-enabler": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -126,10 +218,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-blob-util": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -142,10 +246,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "@react-native-clipboard/clipboard": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -158,10 +274,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-config": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -174,10 +302,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "@react-native-documents/picker": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -191,10 +331,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "@react-native-firebase/app": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -208,11 +360,23 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "@react-native-firebase/perf": {
     "postInstallScriptPath": "postInstallScripts/@react-native-firebase/perf/react-native-firebase_perf.ts",
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -224,10 +388,21 @@
       {
         "versionMatcher": "2.20.0"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "2.20.0"
+      }
     ]
   },
   "react-native-get-random-values": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -240,6 +415,12 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-haptic-feedback": {
@@ -248,10 +429,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-image-picker": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -265,10 +458,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-keyboard-controller": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -281,10 +486,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-localize": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -297,10 +514,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-pdf": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -313,10 +542,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-permissions": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -329,10 +570,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-plaid-link-sdk": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -345,10 +598,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-share": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -361,10 +626,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-svg": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -377,10 +654,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-webview": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -394,10 +683,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "@sentry/react-native": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -410,10 +711,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "@maplibre/maplibre-react-native": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -426,10 +739,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "@react-native-community/datetimepicker": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -442,10 +767,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-bootsplash": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -458,10 +795,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-email-link": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -474,10 +823,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-linear-gradient": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -490,10 +851,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-mmkv": {
     "android": [
+      {
+        "versionMatcher": "<4.0.0",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "<4.0.0",
         "publishedAfterDate": "2025-01-01"
@@ -506,10 +879,22 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-vector-icons": {
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
@@ -522,10 +907,21 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-theoplayer": {
     "android": [
+      {
+        "versionMatcher": ">=10.9"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": ">=10.9"
       }
