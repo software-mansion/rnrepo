@@ -7,25 +7,39 @@ module CocoapodsRnrepo
   class Downloader
     @@repo_url = "https://packages.rnrepo.org/releases"
 
-    # Check if file exists on server using HEAD request
-    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
-    # Returns: true if file exists, false otherwise
-    def self.file_exists?(artifact_spec)
-      required_keys = [:sanitized_name, :version, :rn_version, :configuration]
+    def self.validate_artifact_spec(artifact_spec, required_keys)
       missing_keys = required_keys.select { |key| !artifact_spec.key?(key) }
       unless missing_keys.empty?
         Logger.log "Missing required artifact_spec keys: #{missing_keys.join(', ')}"
         return false
       end
 
-      worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
-      url = "#{@@repo_url}/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
+      true
+    end
 
-      uri = URI.parse(url)
+    def self.build_artifact_url(artifact_spec)
+      worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
+      "#{@@repo_url}/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
+    end
+
+    def self.build_http_client(uri, read_timeout)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = (uri.scheme == 'https')
-      http.read_timeout = 10
+      http.read_timeout = read_timeout
       http.open_timeout = 10
+      http
+    end
+
+    # Check if file exists on server using HEAD request
+    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
+    # Returns: true if file exists, false otherwise
+    def self.file_exists?(artifact_spec)
+      required_keys = [:sanitized_name, :version, :rn_version, :configuration]
+      return false unless validate_artifact_spec(artifact_spec, required_keys)
+
+      url = build_artifact_url(artifact_spec)
+      uri = URI.parse(url)
+      http = build_http_client(uri, 10)
 
       request = Net::HTTP::Head.new(uri.request_uri)
 
@@ -45,21 +59,13 @@ module CocoapodsRnrepo
       Logger.log "Preparing to download: #{artifact_spec[:package]}@#{artifact_spec[:version]}"
 
       required_keys = [:sanitized_name, :version, :rn_version, :configuration, :destination]
-      missing_keys = required_keys.select { |key| !artifact_spec.key?(key) }
-      unless missing_keys.empty?
-        Logger.log "Missing required artifact_spec keys: #{missing_keys.join(', ')}"
-        return nil
-      end
+      return nil unless validate_artifact_spec(artifact_spec, required_keys)
 
-      worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
-      url = "#{@@repo_url}/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
+      url = build_artifact_url(artifact_spec)
       Logger.log "Downloading from #{url}..."
 
       uri = URI.parse(url)
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = (uri.scheme == 'https')
-      http.read_timeout = 60
-      http.open_timeout = 10
+      http = build_http_client(uri, 60)
 
       request = Net::HTTP::Get.new(uri.request_uri)
 
