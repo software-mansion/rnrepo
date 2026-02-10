@@ -40,38 +40,36 @@ module CocoapodsRnrepo
       sanitized_name = npm_package_name.gsub(/^@/, '').gsub('/', '_')
 
       # First, check if both configurations exist on the server before downloading
-      unless debug_exists && release_exists
-        Logger.log "Checking if both Debug and Release configurations are available on server..."
-        
-        debug_available = debug_exists || Downloader.file_exists?(
-          {
-            sanitized_name: sanitized_name,
-            version: version,
-            rn_version: rn_version,
-            worklets_version: worklets_version,
-            configuration: 'debug'
-          }
-        )
-        
-        release_available = release_exists || Downloader.file_exists?(
-          {
-            sanitized_name: sanitized_name,
-            version: version,
-            rn_version: rn_version,
-            worklets_version: worklets_version,
-            configuration: 'release'
-          }
-        )
-        
-        unless debug_available && release_available
-          Logger.log "Both Debug and Release configurations must be available"
-          Logger.log "Debug: #{debug_available ? '✓' : '✗'}, Release: #{release_available ? '✓' : '✗'}"
-          Logger.log "Will build from source instead"
-          return { status: :unavailable, message: "Both configurations not available" }
-        end
-        
-        Logger.log "Both configurations are available on server"
+      Logger.log "Checking if both Debug and Release configurations are available on server..."
+      
+      debug_available = debug_exists || Downloader.file_exists?(
+        {
+          sanitized_name: sanitized_name,
+          version: version,
+          rn_version: rn_version,
+          worklets_version: worklets_version,
+          configuration: 'debug'
+        }
+      )
+      
+      release_available = release_exists || Downloader.file_exists?(
+        {
+          sanitized_name: sanitized_name,
+          version: version,
+          rn_version: rn_version,
+          worklets_version: worklets_version,
+          configuration: 'release'
+        }
+      )
+      
+      unless debug_available && release_available
+        Logger.log "Both Debug and Release configurations must be available"
+        Logger.log "Debug: #{debug_available ? '✓' : '✗'}, Release: #{release_available ? '✓' : '✗'}"
+        Logger.log "Will build from source instead"
+        return { status: :unavailable, message: "Both configurations not available" }
       end
+      
+      Logger.log "Both configurations are available on server"
 
       # Download and extract Debug configuration
       unless debug_exists
@@ -89,7 +87,7 @@ module CocoapodsRnrepo
         unless debug_result[:status] == :downloaded
           Logger.log "Failed to download/extract Debug configuration"
           cleanup_cache_dir(cache_dir)
-          return { status: :unavailable, message: "Failed to obtain Debug configuration" }
+          return { status: :failed, message: "Failed to obtain Debug configuration" }
         end
       end
 
@@ -109,7 +107,7 @@ module CocoapodsRnrepo
         unless release_result[:status] == :downloaded
           Logger.log "Failed to download/extract Release configuration"
           cleanup_cache_dir(cache_dir)
-          return { status: :unavailable, message: "Failed to obtain Release configuration" }
+          return { status: :failed, message: "Failed to obtain Release configuration" }
         end
       end
 
