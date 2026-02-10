@@ -164,14 +164,10 @@ export async function runScheduler(limit?: number) {
   }
 
   // Fetch react-native and react-native-worklets versions once
-  const reactNativeAllVersions = await findMatchingVersionsFromNPM(
-    'react-native',
-    '*'
-  );
-  const workletsAllVersions = await findMatchingVersionsFromNPM(
-    'react-native-worklets',
-    '*'
-  );
+  const [reactNativeAllVersions, workletsAllVersions] = await Promise.all([
+    findMatchingVersionsFromNPM('react-native', '*'),
+    findMatchingVersionsFromNPM('react-native-worklets', '*'),
+  ]);
 
   for (const [libraryName, config] of Object.entries(librariesConfig)) {
     const count = await processLibrary(
