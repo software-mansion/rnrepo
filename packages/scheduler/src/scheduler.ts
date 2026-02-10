@@ -5,7 +5,7 @@ import {
   type PlatformConfigOptions,
 } from '@rnrepo/config';
 import type { Platform } from '@rnrepo/database';
-import { matchesVersionPattern, findMatchingVersionsFromNPM } from './npm';
+import { matchesVersionPattern, findMatchingVersionsFromNPM, type NpmVersionInfo } from './npm';
 import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
@@ -13,7 +13,9 @@ export async function processLibrary(
   libraryName: string,
   config: LibraryConfig,
   limit?: number,
-  currentCount: number = 0
+  currentCount: number = 0,
+  reactNativeAllVersions?: NpmVersionInfo[],
+  workletsAllVersions?: NpmVersionInfo[]
 ): Promise<number> {
   console.log(`\n📦 Processing: ${libraryName}`);
 
@@ -37,7 +39,9 @@ export async function processLibrary(
         configEntry.publishedAfterDate ?? config.publishedAfterDate;
       const workletsMatchingVersions = await findMatchingVersionsFromNPM(
         'react-native-worklets',
-        configEntry.withWorkletsVersion
+        configEntry.withWorkletsVersion,
+        undefined,
+        workletsAllVersions
       );
       const matchingVersions = await findMatchingVersionsFromNPM(
         libraryName,
@@ -47,7 +51,9 @@ export async function processLibrary(
       // If reactNativeMatcher is not set, accept any version
       const reactNativeMatchingVersions = await findMatchingVersionsFromNPM(
         'react-native',
-        reactNativeMatcher ?? '*'
+        reactNativeMatcher ?? '*',
+        undefined,
+        reactNativeAllVersions
       ).then(versions => versions.map(v => v.version));
 
       for (const pkgVersionInfo of matchingVersions) {
@@ -157,12 +163,24 @@ export async function runScheduler(limit?: number) {
     console.log(`\n📊 Scheduling limit set to: ${limit}`);
   }
 
+  // Fetch react-native and react-native-worklets versions once
+  const reactNativeAllVersions = await findMatchingVersionsFromNPM(
+    'react-native',
+    '*'
+  );
+  const workletsAllVersions = await findMatchingVersionsFromNPM(
+    'react-native-worklets',
+    '*'
+  );
+
   for (const [libraryName, config] of Object.entries(librariesConfig)) {
     const count = await processLibrary(
       libraryName,
       config,
       limit,
-      totalScheduled
+      totalScheduled,
+      reactNativeAllVersions,
+      workletsAllVersions
     );
     totalScheduled = count;
 

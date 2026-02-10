@@ -90,10 +90,11 @@ export async function fetchNpmPackageVersions(
 export async function findMatchingVersionsFromNPM(
   packageName: string,
   versionMatcher: string | string[] | undefined,
-  publishedAfterDate?: string
+  publishedAfterDate?: string,
+  cachedVersions?: NpmVersionInfo[]
 ): Promise<NpmVersionInfo[]> {
   if (!versionMatcher) return [];
-  const allVersions = await fetchNpmPackageVersions(packageName);
+  const allVersions = cachedVersions ?? await fetchNpmPackageVersions(packageName);
 
   let minPublishDate: Date | null = null;
   if (publishedAfterDate) {
