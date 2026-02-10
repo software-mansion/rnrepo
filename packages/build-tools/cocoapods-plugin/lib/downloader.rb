@@ -8,9 +8,9 @@ module CocoapodsRnrepo
     @@repo_url = "https://packages.rnrepo.org/releases"
 
     def self.validate_artifact_spec(artifact_spec, required_keys)
-      missing_keys = required_keys.select { |key| !artifact_spec.key?(key) }
+      missing_keys = required_keys.select { |key| !artifact_spec.key?(key) || artifact_spec[key].nil? }
       unless missing_keys.empty?
-        Logger.log "Missing required artifact_spec keys: #{missing_keys.join(', ')}"
+        Logger.log "Missing or empty required artifact_spec keys: #{missing_keys.join(', ')}"
         return false
       end
 
