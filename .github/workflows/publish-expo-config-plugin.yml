@@ -51,8 +51,7 @@ jobs:
       - name: 🔨 Build plugin
         run: bun run build
 
-      - name: 🔨 Prepare package
-        run: bun run prepare
-
       - name: 🚀 Publish to npm
         run: npm publish --tag ${{ github.event.inputs.beta_or_latest }}
+        env:
+          CI: true  # Runs tests without watcher

@@ -34,8 +34,12 @@ const postInstallRNRepo = `rnrepo_post_install(installer)`;
 
 function withAllProjectsMavenRepository(config: ExpoConfig) {
   return withProjectBuildGradle(config, (config) => {
-    if (!config.modResults.contents.includes(mavenAllProjectsBlock)) {
-      config.modResults.contents = config.modResults.contents.replace(
+    const currentContents = config.modResults.contents;
+    const normalizedNewBlock = mavenAllProjectsBlock.replace(/\s+/g, '');
+    const normalizedContents = currentContents.replace(/\s+/g, '');
+
+    if (!normalizedContents.includes(normalizedNewBlock)) {
+      config.modResults.contents = currentContents.replace(
         applyPluginFacebookRootProject,
         `${mavenAllProjectsBlock}\n\n${applyPluginFacebookRootProject}`
       );
@@ -46,8 +50,12 @@ function withAllProjectsMavenRepository(config: ExpoConfig) {
 
 function withClasspathDependency(config: ExpoConfig) {
   return withProjectBuildGradle(config, (config) => {
-    if (!config.modResults.contents.includes(rnrepoClasspathBlock)) {
-      config.modResults.contents = config.modResults.contents.replace(
+    const currentContents = config.modResults.contents;
+    const normalizedNewBlock = rnrepoClasspathBlock.replace(/\s+/g, '');
+    const normalizedContents = currentContents.replace(/\s+/g, '');
+
+    if (!normalizedContents.includes(normalizedNewBlock)) {
+      config.modResults.contents = currentContents.replace(
         classpathRegex,
         `$1\n${rnrepoClasspathBlock}`
       );
