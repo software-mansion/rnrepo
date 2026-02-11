@@ -24,7 +24,7 @@ interface NpmRegistryResponse {
 
 const packageVersionsCache = new Map<string, Promise<NpmVersionInfo[]>>();
 
-export async function packageVersionsCacheClear() {
+export function packageVersionsCacheClear(): void {
   packageVersionsCache.clear();
 }
 
