@@ -226,15 +226,13 @@ module Pod
         # Find the xcframework (name may differ from pod name due to sanitization)
         cache_dir = File.join(node_modules_path, '.rnrepo-cache')
 
-        # Create Current directory if it doesn't exist (defaults to Debug, will be updated at build time)
+        # Create Current directory
         current_link = File.join(cache_dir, 'Current')
         FileUtils.rm_f(current_link) if File.exist?(current_link)
         # Prefer Debug for development
         debug_cache_dir = File.join(cache_dir, 'Debug')
-        release_cache_dir = File.join(cache_dir, 'Release')
-        default_config = File.exist?(debug_cache_dir) ? 'Debug' : 'Release'
-        FileUtils.cp_r(File.join(cache_dir, default_config), current_link)
-        CocoapodsRnrepo::Logger.log "  Copied to Current directory -> #{default_config}"
+        FileUtils.cp_r(debug_cache_dir, current_link)
+        CocoapodsRnrepo::Logger.log "  Copied to Current directory from Debug"
 
         # Look for xcframeworks in Current (which is a copy of Debug or Release)
         xcframeworks = Dir.glob(File.join(current_link, "*.xcframework"))
@@ -305,7 +303,7 @@ module Pod
             spec.attributes_hash[platform] ||= {}
 
             # Use simple relative path from pod directory
-            xcframework_relative_path = '.rnrepo-cache/Current/' + xcframework_name
+            xcframework_relative_path = File.join('.rnrepo-cache', 'Current', xcframework_name)
 
             # Add static xcframework as vendored_frameworks
             # CocoaPods handles static xcframeworks automatically
