@@ -226,18 +226,15 @@ module Pod
         # Find the xcframework (name may differ from pod name due to sanitization)
         cache_dir = File.join(node_modules_path, '.rnrepo-cache')
 
-        # Create Current symlink if it doesn't exist (defaults to Debug, will be updated at build time)
+        # Create Current directory
         current_link = File.join(cache_dir, 'Current')
-        unless File.exist?(current_link)
-          # Prefer Debug for development
-          debug_cache_dir = File.join(cache_dir, 'Debug')
-          release_cache_dir = File.join(cache_dir, 'Release')
-          default_config = File.exist?(debug_cache_dir) ? 'Debug' : 'Release'
-          FileUtils.ln_s(default_config, current_link)
-          CocoapodsRnrepo::Logger.log "  Created Current symlink -> #{default_config}"
-        end
+        FileUtils.rm_f(current_link) if File.exist?(current_link)
+        # Prefer Debug for development
+        debug_cache_dir = File.join(cache_dir, 'Debug')
+        FileUtils.cp_r(debug_cache_dir, current_link)
+        CocoapodsRnrepo::Logger.log "  Copied to Current directory from Debug"
 
-        # Look for xcframeworks in Current (which is a symlink to Debug or Release)
+        # Look for xcframeworks in Current (which is a copy of Debug or Release)
         xcframeworks = Dir.glob(File.join(current_link, "*.xcframework"))
 
         if xcframeworks.empty?
@@ -305,15 +302,8 @@ module Pod
             # Initialize platform hash if needed
             spec.attributes_hash[platform] ||= {}
 
-            # Create a symlink at pod root pointing to the Current framework
-            # This allows CocoaPods to find it easily
-            pod_root_link = File.join(node_modules_path, xcframework_name)
-            unless File.exist?(pod_root_link)
-              FileUtils.ln_s(File.join('.rnrepo-cache', 'Current', xcframework_name), pod_root_link)
-            end
-
             # Use simple relative path from pod directory
-            xcframework_relative_path = xcframework_name
+            xcframework_relative_path = File.join('.rnrepo-cache', 'Current', xcframework_name)
 
             # Add static xcframework as vendored_frameworks
             # CocoaPods handles static xcframeworks automatically
@@ -365,39 +355,9 @@ def rnrepo_post_install(installer_context)
     return
   end
 
-  # Get the list of prebuilt pod info
-  prebuilt_pods = Pod::Installer.prebuilt_rnrepo_pods || []
-  return if prebuilt_pods.empty?
-
-  CocoapodsRnrepo::Logger.log ""
   CocoapodsRnrepo::Logger.log "🔧 Adding build phase scripts for configuration selection..."
 
-  # Add build phase script to each target that uses prebuilt frameworks
-  installer_context.pods_project.targets.each do |pod_target|
-    # Check if this target uses any prebuilt frameworks
-    # Target names in Xcode are like "react-native-svg" or "React-native-svg"
-    pod_name = prebuilt_pods.find { |pod_info| pod_target.name.start_with?(pod_info[:name]) }
-    next unless pod_name
-
-    pod_info = prebuilt_pods.find { |p| p[:name] == pod_name[:name] }
-    next unless pod_info
-
-    # Check if script phase already exists
-    script_name = "[RNREPO] Select Framework Configuration"
-    existing_phase = pod_target.shell_script_build_phases.find { |phase| phase.name == script_name }
-
-    if existing_phase
-      CocoapodsRnrepo::Logger.log "  Build phase already exists for #{pod_info[:name]}"
-      next
-    end
-
-    # Skip aggregate targets that don't have source build phases
-    next unless pod_target.respond_to?(:source_build_phase)
-
-    # Add a build phase script that runs before compilation
-    # This script creates a symlink from Current -> Debug or Release based on CONFIGURATION
-    script_phase = pod_target.new_shell_script_build_phase(script_name)
-    script_phase.shell_script = <<~SCRIPT
+    script_content = <<~SCRIPT
       set -e
 
       # Path to the cache directory (relative to the pod's source directory)
@@ -413,11 +373,15 @@ def rnrepo_post_install(installer_context)
         echo "warning: Unknown configuration '$CONFIGURATION', defaulting to Release"
         TARGET_DIR="Release"
       fi
+      echo "RNREPO: Switching to ${TARGET_DIR} configuration"
 
       # Remove existing Current link/directory if it exists
       if [ -L "${CURRENT_LINK}" ] || [ -e "${CURRENT_LINK}" ]; then
         rm -rf "${CURRENT_LINK}"
       fi
+
+      # Ensure the target directory is created (should exist, but just in case)
+      mkdir -p "${CACHE_DIR}/${TARGET_DIR}"
 
       # Create symlink to the appropriate configuration
       ln -sf "${TARGET_DIR}" "${CURRENT_LINK}"
@@ -425,15 +389,28 @@ def rnrepo_post_install(installer_context)
       echo "RNREPO: Selected ${TARGET_DIR} configuration for ${PODS_TARGET_SRCROOT}"
     SCRIPT
 
-    # Move the script phase to run before "Compile Sources" phase
-    compile_phase = pod_target.source_build_phase
-    if compile_phase
-      pod_target.build_phases.delete(script_phase)
-      compile_phase_index = pod_target.build_phases.index(compile_phase)
-      pod_target.build_phases.insert(compile_phase_index, script_phase)
+  # Get list of prebuilt pod names for filtering
+  prebuilt_pod_names = (Pod::Installer.prebuilt_rnrepo_pods || []).map { |pod| pod[:name] }
+  # Run order is alphabetical. This script must run before the '[CP] Copy XCFrameworks` script
+  script_name = '[AA RUN FIRST] RNREPO Build Start'
+  # Add build phase script ONLY to targets that have prebuilt frameworks
+  installer_context.pods_project.targets.each do |target|
+    target_name = target.name
+    
+    # Only add build phase to targets that were prebuilt
+    matches_prebuilt_pod = prebuilt_pod_names.any? do |pod_name|
+      target_name.downcase.start_with?(pod_name.to_s.downcase)
     end
+    next unless matches_prebuilt_pod
 
-    CocoapodsRnrepo::Logger.log "  Added build phase to #{pod_info[:name]}"
+    # Remove any existing RNREPO build phase first
+    target.build_phases.select { |phase| phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase) && phase.name == script_name }.each(&:remove_from_project)
+    
+    # Create shell script build phase
+    build_phase = target.new_shell_script_build_phase(script_name)
+    build_phase.shell_script = script_content
+    
+    CocoapodsRnrepo::Logger.log "  Added build phase to #{target_name}"
   end
 
   CocoapodsRnrepo::Logger.log "✓ Build phase scripts configured"
