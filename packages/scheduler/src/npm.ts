@@ -1,4 +1,3 @@
-import { clear } from 'node:console';
 import semver from 'semver';
 
 export interface NpmVersionInfo {
