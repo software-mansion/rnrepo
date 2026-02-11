@@ -1,3 +1,4 @@
+import { clear } from 'node:console';
 import semver from 'semver';
 
 export interface NpmVersionInfo {
@@ -20,6 +21,12 @@ interface NpmRegistryResponse {
       };
     };
   };
+}
+
+const packageVersionsCache = new Map<string, Promise<NpmVersionInfo[]>>();
+
+export async function packageVersionsCacheClear() {
+  packageVersionsCache.clear();
 }
 
 export function matchesVersionPattern(
@@ -49,37 +56,45 @@ export function matchesVersionPattern(
 export async function fetchNpmPackageVersions(
   packageName: string
 ): Promise<NpmVersionInfo[]> {
-  const registryUrl = `https://registry.npmjs.org/${packageName}`;
+  const cached = packageVersionsCache.get(packageName);
+  if (cached) return cached;
 
-  try {
-    const response = await fetch(registryUrl);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch ${packageName}: ${response.status} ${response.statusText}`
-      );
-    }
+  const promise = (async () => {
+    const registryUrl = `https://registry.npmjs.org/${packageName}`;
 
-    const data = (await response.json()) as NpmRegistryResponse;
-    const versions: NpmVersionInfo[] = [];
-
-    for (const [key, timeString] of Object.entries(data.time)) {
-      if (key === 'created' || key === 'modified') {
-        continue;
+    try {
+      const response = await fetch(registryUrl);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch ${packageName}: ${response.status} ${response.statusText}`
+        );
       }
 
-      if (semver.valid(key)) {
-        versions.push({
-          version: key,
-          publishDate: new Date(timeString),
-        });
-      }
-    }
+      const data = (await response.json()) as NpmRegistryResponse;
+      const versions: NpmVersionInfo[] = [];
 
-    return versions;
-  } catch (error) {
-    console.error(`Error fetching ${packageName}:`, error);
-    throw error;
-  }
+      for (const [key, timeString] of Object.entries(data.time)) {
+        if (key === 'created' || key === 'modified') {
+          continue;
+        }
+
+        if (semver.valid(key)) {
+          versions.push({
+            version: key,
+            publishDate: new Date(timeString),
+          });
+        }
+      }
+
+      return versions;
+    } catch (error) {
+      console.error(`Error fetching ${packageName}:`, error);
+      throw error;
+    }
+  })();
+
+  packageVersionsCache.set(packageName, promise);
+  return promise;
 }
 
 /**
@@ -90,11 +105,10 @@ export async function fetchNpmPackageVersions(
 export async function findMatchingVersionsFromNPM(
   packageName: string,
   versionMatcher: string | string[] | undefined,
-  publishedAfterDate?: string,
-  cachedVersions?: NpmVersionInfo[]
+  publishedAfterDate?: string
 ): Promise<NpmVersionInfo[]> {
   if (!versionMatcher) return [];
-  const allVersions = cachedVersions ?? await fetchNpmPackageVersions(packageName);
+  const allVersions = await fetchNpmPackageVersions(packageName);
 
   let minPublishDate: Date | null = null;
   if (publishedAfterDate) {
