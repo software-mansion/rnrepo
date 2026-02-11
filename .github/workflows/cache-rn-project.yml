@@ -12,25 +12,17 @@ on:
 
 jobs:
   cache-rn-project:
-    runs-on: rnrepo-builder-ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - rnrepo-builder-ubuntu-latest
+          - macos-latest
     timeout-minutes: 60
 
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
-
-      - name: ☕ Setup Java JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: 📱 Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: ✅ Accept Android Licenses
-        run: |
-          yes | sdkmanager --licenses || true
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -53,4 +45,4 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/rnrepo_build_app
-          key: rn-project-cache-android-${{ inputs.react_native_version }}
+          key: ${{ runner.os }}-rn-project-cache-${{ inputs.react_native_version }}
