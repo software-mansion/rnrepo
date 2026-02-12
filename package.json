@@ -14,6 +14,7 @@
     "validate": "bun run packages/config/src/validate.ts",
     "lint-gradle-client": "./packages/build-tools/gradle-plugin/gradlew -p packages/build-tools/gradle-plugin spotlessCheck -q --no-daemon",
     "lint-ts": "eslint . --ext .ts,.tsx",
+    "lint-ruby": "rubocop packages/build-tools/cocoapods-plugin",
     "test-gradle-client": "./packages/build-tools/gradle-plugin/gradlew -p packages/build-tools/gradle-plugin test --info --no-daemon"
   },
   "author": "",
