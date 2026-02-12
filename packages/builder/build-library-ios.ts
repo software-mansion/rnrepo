@@ -155,65 +155,64 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
   mkdirSync(buildDir, { recursive: true });
   mkdirSync(outputPath, { recursive: true });
 
+  const sdks: Array<'iphoneos' | 'iphonesimulator'> = ['iphoneos', 'iphonesimulator'];
+
   for (const configuration of buildConfigs) {
     try {
-      // TEMPORARILY DISABLED: Build for device (uncomment when needed for full XCFramework)
-      // await xcodebuild(
-      //   projectPath,
-      //   podName,
-      //   'iphoneos',
-      //   configuration,
-      //   buildDir,
-      //   derivedDataPath
-      // );
+      // Build for all SDKs
+      for (const sdk of sdks) {
+        await xcodebuild(
+          projectPath,
+          podName,
+          sdk,
+          configuration,
+          buildDir,
+          derivedDataPath
+        );
+      }
 
-      // Build for simulator (for faster testing)
-      // Building the app will build all pods including the one we want
-      await xcodebuild(
-        projectPath,
-        podName,
-        'iphonesimulator',
-        configuration,
-        buildDir,
-        derivedDataPath
-      );
-
-      // Find the built framework using glob
-      console.log('🔍 Locating built framework...');
+      // Find the built frameworks using glob
+      console.log('🔍 Locating built frameworks...');
 
       // CocoaPods may sanitize pod names to valid C identifiers (e.g., dashes → underscores)
       // So we glob for *.framework instead of assuming the sanitization logic
-      const podBuildDir = join(
-        buildDir,
-        `${configuration}-iphonesimulator`,
-        podName
-      );
+      const frameworkPaths = new Map<string, string>();
+      let frameworkFile = '';
 
-      const glob = new Glob('*.framework');
-      const frameworks = Array.from(
-        glob.scanSync({ cwd: podBuildDir, onlyFiles: false })
-      );
-
-      if (frameworks.length === 0) {
-        throw new Error(
-          `No framework found in ${podBuildDir}\n` +
-            `Pod name: ${podName}\n` +
-            `Expected to find *.framework`
+      for (const sdk of sdks) {
+        const sdkBuildDir = join(
+          buildDir,
+          `${configuration}-${sdk}`,
+          podName
         );
-      }
 
-      if (frameworks.length > 1) {
-        throw new Error(
-          `Multiple frameworks found in ${podBuildDir}: ${frameworks.join(
-            ', '
-          )}\n` + `Expected exactly one framework for pod: ${podName}`
+        const glob = new Glob('*.framework');
+        const frameworks = Array.from(
+          glob.scanSync({ cwd: sdkBuildDir, onlyFiles: false })
         );
+
+        if (frameworks.length === 0) {
+          throw new Error(
+            `No framework found in ${sdkBuildDir}\n` +
+              `Pod name: ${podName}\n` +
+              `Expected to find *.framework`
+          );
+        }
+
+        if (frameworks.length > 1) {
+          throw new Error(
+            `Multiple frameworks found in ${sdkBuildDir}: ${frameworks.join(
+              ', '
+            )}\n` + `Expected exactly one framework for pod: ${podName}`
+          );
+        }
+
+        frameworkFile = frameworks[0] as string; // e.g., "react_native_webview.framework"
+        const frameworkPath = join(sdkBuildDir, frameworkFile);
+        frameworkPaths.set(sdk, frameworkPath);
+
+        console.log(`✓ Found framework for ${sdk}: ${frameworkPath}`);
       }
-
-      const frameworkFile = frameworks[0] as string; // e.g., "react_native_webview.framework"
-      const simulatorFrameworkPath = join(podBuildDir, frameworkFile);
-
-      console.log(`✓ Found framework: ${frameworkFile}`);
 
       // Create XCFramework using the actual framework name from CocoaPods
       console.log('🔨 Creating XCFramework...');
@@ -225,19 +224,17 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
         rmSync(xcframeworkPath, { recursive: true, force: true });
       }
 
-      const args = ['-create-xcframework', '-framework', simulatorFrameworkPath];
+      const args = ['-create-xcframework'];
 
-      // Add simulator dSYM if present
-      const simulatorDsym = `${simulatorFrameworkPath}.dSYM`;
-      if (existsSync(simulatorDsym)) {
-        args.push('-debug-symbols', simulatorDsym);
-        console.log('   Including debug symbols (dSYM)');
+      // Add frameworks and debug symbols for all SDKs
+      for (const [sdk, frameworkPath] of frameworkPaths) {
+        args.push('-framework', frameworkPath);
+        const dsym = `${frameworkPath}.dSYM`;
+        if (existsSync(dsym)) {
+          args.push('-debug-symbols', dsym);
+          console.log(`   Including ${sdk} debug symbols (dSYM)`);
+        }
       }
-
-      // When device build is enabled, add it here:
-      // const deviceFrameworkPath = ...
-      // args.push('-framework', deviceFrameworkPath);
-      // if (existsSync(deviceDsym)) args.push('-debug-symbols', deviceDsym);
 
       args.push('-output', xcframeworkPath);
 

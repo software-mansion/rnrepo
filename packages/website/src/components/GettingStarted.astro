@@ -35,6 +35,7 @@ buildscript {
   dependencies {
     ...
 +   classpath("org.rnrepo.tools:prebuilds-plugin:0.2.2")
+  }
 }
 
 allprojects {
@@ -133,7 +134,7 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
         <label for="tab-expo" class="tab-label tab-label-expo">
           <span class="md:hidden">Expo Prebuild (CNG)</span>
           <span class="hidden md:inline"
-            >Expo Prebuild (Continous Code Generation – CNG)</span
+            >Expo Prebuild (Continuous Code Generation – CNG)</span
           >
         </label>
         <label for="tab-standard" class="tab-label tab-label-standard">
