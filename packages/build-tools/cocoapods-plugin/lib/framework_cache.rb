@@ -39,37 +39,8 @@ module CocoapodsRnrepo
       # Matches sanitizePackageName() in @rnrepo/config
       sanitized_name = npm_package_name.gsub(/^@/, '').gsub('/', '_')
 
-      # First, check if both configurations exist on the server before downloading
-      Logger.log "Checking if both Debug and Release configurations are available on server..."
-      
-      debug_available = debug_exists || Downloader.file_exists?(
-        {
-          sanitized_name: sanitized_name,
-          version: version,
-          rn_version: rn_version,
-          worklets_version: worklets_version,
-          configuration: 'debug'
-        }
-      )
-      
-      release_available = release_exists || Downloader.file_exists?(
-        {
-          sanitized_name: sanitized_name,
-          version: version,
-          rn_version: rn_version,
-          worklets_version: worklets_version,
-          configuration: 'release'
-        }
-      )
-      
-      unless debug_available && release_available
-        Logger.log "Both Debug and Release configurations must be available"
-        Logger.log "Debug: #{debug_available ? '✓' : '✗'}, Release: #{release_available ? '✓' : '✗'}"
-        Logger.log "Will build from source instead"
-        return { status: :unavailable, message: "Both configurations not available" }
-      end
-      
-      Logger.log "Both configurations are available on server"
+      # Track which configurations were successfully obtained
+      configs_available = []
 
       # Download and extract Debug configuration
       unless debug_exists
@@ -84,11 +55,13 @@ module CocoapodsRnrepo
           pod_name,
           worklets_version
         )
-        unless debug_result[:status] == :downloaded
-          Logger.log "Failed to download/extract Debug configuration"
-          cleanup_cache_dir(cache_dir)
-          return { status: :failed, message: "Failed to obtain Debug configuration" }
+        if debug_result[:status] == :downloaded || debug_result[:status] == :cached
+          configs_available << 'Debug'
+        else
+          Logger.log "⚠️  Debug configuration not available"
         end
+      else
+        configs_available << 'Debug'
       end
 
       # Download and extract Release configuration
@@ -104,11 +77,20 @@ module CocoapodsRnrepo
           pod_name,
           worklets_version
         )
-        unless release_result[:status] == :downloaded
-          Logger.log "Failed to download/extract Release configuration"
-          cleanup_cache_dir(cache_dir)
-          return { status: :failed, message: "Failed to obtain Release configuration" }
+        if release_result[:status] == :downloaded || release_result[:status] == :cached
+          configs_available << 'Release'
+        else
+          Logger.log "⚠️  Release configuration not available"
         end
+      else
+        configs_available << 'Release'
+      end
+
+      # Check if both configurations are available
+      if configs_available.length != 2
+        print_list = configs_available.any? ? configs_available.join(', ') : "none"
+        Logger.log "⚠️  Not all configurations are available. Available: #{print_list}"
+        return { status: :unavailable, message: "Missing configuration(s), found: #{print_list}" }
       end
 
       Logger.log "Successfully downloaded pre-built XCFrameworks (Debug & Release)!"
@@ -175,14 +157,6 @@ module CocoapodsRnrepo
       Logger.log "Cleaned up temporary zip file"
 
       return { status: :downloaded, message: "Downloaded #{config} configuration" }
-    end
-
-    # Clean up cache directory on failure
-    def self.cleanup_cache_dir(cache_dir)
-      Logger.log "Cleaning up cache directory: #{cache_dir}"
-      FileUtils.rm_rf(cache_dir) if Dir.exist?(cache_dir)
-      FileUtils.mkdir_p(cache_dir)
-      Logger.log "Cache directory cleaned"
     end
   end
 end

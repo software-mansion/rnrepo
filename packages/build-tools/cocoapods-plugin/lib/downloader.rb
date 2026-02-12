@@ -30,28 +30,6 @@ module CocoapodsRnrepo
       http
     end
 
-    # Check if file exists on server using HEAD request
-    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :worklets_version (optional)
-    # Returns: true if file exists, false otherwise
-    def self.file_exists?(artifact_spec)
-      required_keys = [:sanitized_name, :version, :rn_version, :configuration]
-      return false unless validate_artifact_spec(artifact_spec, required_keys)
-
-      url = build_artifact_url(artifact_spec)
-      uri = URI.parse(url)
-      http = build_http_client(uri, 10)
-
-      request = Net::HTTP::Head.new(uri.request_uri)
-
-      begin
-        response = http.request(request)
-        return response.code.to_i == 200
-      rescue => e
-        Logger.log "Error checking file existence at #{url}: #{e.message}"
-        return false
-      end
-    end
-
     # Download file via HTTP request
     # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination, :worklets_version (optional)
     # Returns: destination path if successful, nil on failure
