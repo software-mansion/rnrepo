@@ -86,29 +86,14 @@ module CocoapodsRnrepo
         configs_available << 'Release'
       end
 
-      # Check if at least one configuration is available
-      if configs_available.empty?
-        Logger.log "Neither Debug nor Release configuration is available"
-        return { status: :unavailable, message: "No configurations available" }
+      # Check if both configurations are available
+      if configs_available.length != 2
+        print_list = configs_available.any? ? configs_available.join(', ') : "none"
+        Logger.log "⚠️  Not all configurations are available. Available: #{print_list}"
+        return { status: :unavailable, message: "Missing configuration(s), found: #{print_list}" }
       end
 
-      # If only one configuration is available, use it for both build types
-      if configs_available.length == 1
-        available_config = configs_available.first
-        Logger.log "Only #{available_config} configuration available - will use it for both build types"
-
-        # Create symlink from the missing configuration to the available one
-        missing_dir = available_config == 'Debug' ? release_cache_dir : debug_cache_dir
-        available_dir = available_config == 'Debug' ? debug_cache_dir : release_cache_dir
-
-        unless File.exist?(missing_dir)
-          FileUtils.ln_s(File.basename(available_dir), missing_dir)
-          Logger.log "Created symlink: #{File.basename(missing_dir)} -> #{File.basename(available_dir)}"
-        end
-      end
-
-      config_message = configs_available.length == 2 ? "Debug & Release" : configs_available.first
-      Logger.log "Successfully downloaded pre-built XCFrameworks (#{config_message})!"
+      Logger.log "Successfully downloaded pre-built XCFrameworks (Debug & Release)!"
       return { status: :downloaded, message: "Downloaded and extracted successfully" }
     end
 
