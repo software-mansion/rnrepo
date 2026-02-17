@@ -66,7 +66,13 @@ def configureCodegenTasks(project) {
     // Task to package headers - must run after codegen generation
     def packageHeadersTask = project.tasks.register("packageCppHeaders") {
         onlyIf { codegenName != null }
-        dependsOn 'generateCodegenArtifactsFromSchema'
+        
+        // Only add dependency if generateCodegenArtifactsFromSchema task exists
+        def codegenTask = project.tasks.findByName('generateCodegenArtifactsFromSchema')
+        if (codegenTask != null) {
+            dependsOn(codegenTask)
+        }
+        
         doLast {
             def headersDestDir = file("${project.projectDir}/src/main/assets/headers")
             headersDestDir.mkdirs()
