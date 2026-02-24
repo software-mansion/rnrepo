@@ -3,6 +3,7 @@ import semver from 'semver';
 export interface NpmVersionInfo {
   version: string;
   publishDate: Date;
+  downloadsLastWeek?: number;
 }
 
 interface NpmRegistryResponse {
@@ -52,6 +53,24 @@ export function matchesVersionPattern(
   });
 }
 
+async function fetchDownloadsLastWeek(packageName: string): Promise<Map<string, number>> {
+  const registryUrl = `https://api.npmjs.org/versions/${packageName.replace('/', '%2f')}/last-week`;
+  try {
+    const response = await fetch(registryUrl);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch download stats for ${packageName}: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    return new Map<string, number>(Object.entries(data.downloads));
+  } catch (error) {
+    console.error(`Error fetching download stats for ${packageName}:`, error);
+    return new Map<string, number>();
+  }
+}
+
 export async function fetchNpmPackageVersions(
   packageName: string
 ): Promise<NpmVersionInfo[]> {
@@ -70,6 +89,7 @@ export async function fetchNpmPackageVersions(
       }
 
       const data = (await response.json()) as NpmRegistryResponse;
+      const downloadsLastWeekMap = await fetchDownloadsLastWeek(packageName);
       const versions: NpmVersionInfo[] = [];
 
       for (const [key, timeString] of Object.entries(data.time)) {
@@ -81,6 +101,7 @@ export async function fetchNpmPackageVersions(
           versions.push({
             version: key,
             publishDate: new Date(timeString),
+            downloadsLastWeek: downloadsLastWeekMap.get(key),
           });
         }
       }

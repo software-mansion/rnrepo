@@ -71,9 +71,24 @@ test('fetchNpmPackageVersions - extracts versions with publish dates', async () 
     'dist-tags': { latest: '2.1.0' },
   };
 
+  const mockDownloadsResponse = {
+    downloads: {
+      '1.0.0': 1000,
+      '2.0.0': 2000,
+      '2.1.0': 3000,
+    },
+  };
+
+  // First call: registry.npmjs.org (fetchNpmPackageVersions)
   mockFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => mockResponse,
+  } as Response);
+
+  // Second call: api.npmjs.org (fetchDownloadsLastWeek)
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => mockDownloadsResponse,
   } as Response);
 
   const versions = await fetchNpmPackageVersions('test-package');
@@ -88,11 +103,13 @@ test('fetchNpmPackageVersions - extracts versions with publish dates', async () 
   expect(v1?.publishDate.getTime()).toBe(
     new Date('2021-01-15T10:00:00.000Z').getTime()
   );
+  expect(v1?.downloadsLastWeek).toBe(1000);
 
   const v2 = versions.find((v) => v.version === '2.0.0');
   expect(v2?.publishDate.getTime()).toBe(
     new Date('2021-01-10T10:00:00.000Z').getTime()
   );
+  expect(v2?.downloadsLastWeek).toBe(2000);
 });
 
 test('fetchNpmPackageVersions - skips metadata fields and invalid semver', async () => {
@@ -108,9 +125,23 @@ test('fetchNpmPackageVersions - skips metadata fields and invalid semver', async
     'dist-tags': { latest: '2.0.0' },
   };
 
+  const mockDownloadsResponse = {
+    downloads: {
+      '1.0.0': 1000,
+      '2.0.0': 2000,
+    },
+  };
+
+  // First call: registry.npmjs.org (fetchNpmPackageVersions)
   mockFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => mockResponse,
+  } as Response);
+
+  // Second call: api.npmjs.org (fetchDownloadsLastWeek)
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => mockDownloadsResponse,
   } as Response);
 
   const versions = await fetchNpmPackageVersions('test-package');
@@ -143,6 +174,50 @@ test('fetchNpmPackageVersions - handles HTTP errors', async () => {
   }
 });
 
+test('fetchNpmPackageVersions - handles fetchDownloadsLastWeek errors gracefully', async () => {
+  // Suppress console.error for this test since we're testing error handling
+  const originalConsoleError = console.error;
+  console.error = () => {}; // Suppress error output
+
+  try {
+    const mockResponse = {
+      time: {
+        created: '2020-01-01T00:00:00.000Z',
+        modified: '2023-01-01T00:00:00.000Z',
+        '1.0.0': '2021-01-15T10:00:00.000Z',
+      },
+      versions: {
+        '1.0.0': { version: '1.0.0', dist: { tarball: 'url' } },
+      },
+      'dist-tags': { latest: '1.0.0' },
+    };
+
+    // First call: registry.npmjs.org succeeds
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockResponse,
+    } as Response);
+
+    // Second call: api.npmjs.org fails
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+    } as Response);
+
+    const versions = await fetchNpmPackageVersions('test-package');
+
+    // Should still return versions even if downloads fetch fails
+    expect(versions).toHaveLength(1);
+    expect(versions[0].version).toBe('1.0.0');
+    // downloadsLastWeek should be undefined due to the error
+    expect(versions[0].downloadsLastWeek).toBeUndefined();
+  } finally {
+    // Restore console.error
+    console.error = originalConsoleError;
+  }
+});
+
 test('findMatchingVersionsFromNPM - uses publish date not versions order', async () => {
   // Simulate npm returning versions in a different order than publish dates
   // versions object might have: 2.1.0, 2.0.0, 1.0.0
@@ -163,9 +238,24 @@ test('findMatchingVersionsFromNPM - uses publish date not versions order', async
     'dist-tags': { latest: '2.1.0' },
   };
 
+  const mockDownloadsResponse = {
+    downloads: {
+      '1.0.0': 1000,
+      '2.0.0': 2000,
+      '2.1.0': 3000,
+    },
+  };
+
+  // First call: registry.npmjs.org (fetchNpmPackageVersions)
   mockFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => mockNpmResponse,
+  } as Response);
+
+  // Second call: api.npmjs.org (fetchDownloadsLastWeek)
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => mockDownloadsResponse,
   } as Response);
 
   const result = await findMatchingVersionsFromNPM(
@@ -196,9 +286,24 @@ test('findMatchingVersionsFromNPM - filters out prerelease versions', async () =
     'dist-tags': { latest: '1.0.0' },
   };
 
+  const mockDownloadsResponse = {
+    downloads: {
+      '1.0.0': 1000,
+      '1.0.0-beta.1': 100,
+      '1.0.0-alpha.1': 50,
+    },
+  };
+
+  // First call: registry.npmjs.org (fetchNpmPackageVersions)
   mockFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => mockNpmResponse,
+  } as Response);
+
+  // Second call: api.npmjs.org (fetchDownloadsLastWeek)
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => mockDownloadsResponse,
   } as Response);
 
   const result = await findMatchingVersionsFromNPM('test-package', '*');
@@ -220,9 +325,24 @@ test('findMatchingVersionsFromNPM - filters by version matcher', async () => {
     'dist-tags': { latest: '3.0.0' },
   };
 
+  const mockDownloadsResponse = {
+    downloads: {
+      '1.0.0': 1000,
+      '2.0.0': 2000,
+      '3.0.0': 3000,
+    },
+  };
+
+  // First call: registry.npmjs.org (fetchNpmPackageVersions)
   mockFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => mockNpmResponse,
+  } as Response);
+
+  // Second call: api.npmjs.org (fetchDownloadsLastWeek)
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => mockDownloadsResponse,
   } as Response);
 
   const result = await findMatchingVersionsFromNPM('test-package', '2.*');
@@ -244,9 +364,24 @@ test('findMatchingVersionsFromNPM - filters by publishedAfterDate', async () => 
     'dist-tags': { latest: '3.0.0' },
   };
 
+  const mockDownloadsResponse = {
+    downloads: {
+      '1.0.0': 1000,
+      '2.0.0': 2000,
+      '3.0.0': 3000,
+    },
+  };
+
+  // First call: registry.npmjs.org (fetchNpmPackageVersions)
   mockFetch.mockResolvedValueOnce({
     ok: true,
     json: async () => mockNpmResponse,
+  } as Response);
+
+  // Second call: api.npmjs.org (fetchDownloadsLastWeek)
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => mockDownloadsResponse,
   } as Response);
 
   const result = await findMatchingVersionsFromNPM(
