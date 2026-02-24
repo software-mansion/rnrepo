@@ -9,6 +9,8 @@ import { matchesVersionPattern, findMatchingVersionsFromNPM } from './npm';
 import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
+const DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD = 10000;
+
 export async function processLibrary(
   libraryName: string,
   config: LibraryConfig,
@@ -35,6 +37,8 @@ export async function processLibrary(
         configEntry.reactNativeVersion ?? config.reactNativeVersion;
       const publishedAfterDate =
         configEntry.publishedAfterDate ?? config.publishedAfterDate;
+      const downloadsThreshold =
+        configEntry.downloadsThreshold ?? config.downloadsThreshold ?? DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD;
       const workletsMatchingVersions = await findMatchingVersionsFromNPM(
         'react-native-worklets',
         configEntry.withWorkletsVersion
@@ -42,7 +46,10 @@ export async function processLibrary(
       const matchingVersions = await findMatchingVersionsFromNPM(
         libraryName,
         pkgMatcher,
-        publishedAfterDate
+        {
+          publishedAfterDate,
+          downloadsThreshold
+        }
       );
       // If reactNativeMatcher is not set, accept any version
       const reactNativeMatchingVersions = await findMatchingVersionsFromNPM(

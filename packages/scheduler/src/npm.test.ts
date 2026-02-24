@@ -387,7 +387,10 @@ test('findMatchingVersionsFromNPM - filters by publishedAfterDate', async () => 
   const result = await findMatchingVersionsFromNPM(
     'test-package',
     '*',
-    '2021-01-10'
+    {
+      publishedAfterDate: '2021-01-10',
+      downloadsThreshold: 0, // No threshold for this test
+    }
   );
 
   expect(result).toHaveLength(2);

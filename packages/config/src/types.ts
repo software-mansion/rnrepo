@@ -3,6 +3,7 @@ export interface PlatformConfigOptions {
   reactNativeVersion?: string | string[];
   publishedAfterDate?: string;
   withWorkletsVersion?: string | string[];
+  downloadsThreshold?: number;
 }
 
 export type PlatformConfig =
@@ -13,6 +14,7 @@ export interface LibraryConfig {
   versionMatcher?: string | string[];
   reactNativeVersion?: string | string[];
   publishedAfterDate?: string;
+  downloadsThreshold?: number;
   android?: PlatformConfig;
   ios?: PlatformConfig;
 }

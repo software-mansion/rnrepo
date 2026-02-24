@@ -125,21 +125,24 @@ export async function fetchNpmPackageVersions(
 export async function findMatchingVersionsFromNPM(
   packageName: string,
   versionMatcher: string | string[] | undefined,
-  publishedAfterDate?: string
+  options?: {
+    publishedAfterDate?: string,
+    downloadsThreshold?: number,
+  }
 ): Promise<NpmVersionInfo[]> {
   if (!versionMatcher) return [];
   const allVersions = await fetchNpmPackageVersions(packageName);
 
   let minPublishDate: Date | null = null;
-  if (publishedAfterDate) {
-    const dateStr = publishedAfterDate.trim();
+  if (options?.publishedAfterDate) {
+    const dateStr = options.publishedAfterDate.trim();
     const dateParts = dateStr.split('-').map(Number);
     if (dateParts.length === 3) {
       minPublishDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
       minPublishDate.setHours(0, 0, 0, 0);
     } else {
       console.warn(
-        `Invalid publishedAfterDate format: ${publishedAfterDate}, expected YYYY-MM-DD`
+        `Invalid publishedAfterDate format: ${options.publishedAfterDate}, expected YYYY-MM-DD`
       );
     }
   }
@@ -155,5 +158,6 @@ export async function findMatchingVersionsFromNPM(
       }
       return true;
     })
+    .filter(v => (v.downloadsLastWeek ?? 0) >= (options?.downloadsThreshold ?? 0))
     .sort((a, b) => a.publishDate.getTime() - b.publishDate.getTime());
 }
