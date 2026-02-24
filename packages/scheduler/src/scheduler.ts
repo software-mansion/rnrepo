@@ -17,7 +17,7 @@ export async function processLibrary(
 ): Promise<number> {
   console.log(`\n📦 Processing: ${libraryName}`);
 
-  const platforms: Platform[] = ['android', 'ios'];
+  const platforms: Platform[] = ['android']; // TODO: add ios when CI runner will be available
   const rnVersions = reactNativeVersions as string[];
   let scheduledCount = currentCount;
 
