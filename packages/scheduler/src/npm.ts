@@ -64,26 +64,51 @@ async function fetchDownloadsLastWeek(packageName: string): Promise<Map<string, 
   }
 
   const promise = (async () => {
-
     const registryUrl = `https://api.npmjs.org/versions/${packageName.replace('/', '%2f')}/last-week`;
-    try {
-      const response = await fetch(registryUrl);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch download stats for ${packageName}: ${response.status} ${response.statusText}`
-        );
-      }
+    const maxAttempts = 3;
 
-      const data = await response.json();
-      return new Map<string, number>(Object.entries(data.downloads));
+    try {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const response = await fetch(registryUrl);
+        if (response.status === 429) {
+          await handleRateLimit(attempt, maxAttempts, response);
+          continue;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch download stats for ${packageName}: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const data = await response.json();
+        return new Map<string, number>(Object.entries(data.downloads));
+      }
     } catch (error) {
       console.error(`Error fetching download stats for ${packageName}:`, error);
       return new Map<string, number>();
     }
+
+    return new Map<string, number>();
   })();
 
   SchedulerCache.packageDownloadsLastWeekCache.set(packageName, promise);
   return promise;
+}
+
+async function handleRateLimit(
+  attempt: number,
+  maxAttempts: number,
+  response: Response,
+): Promise<void> {
+  const retryHeader = Number(response.headers.get('retry-after'));
+  const delayMs = (retryHeader > 0 ? retryHeader : 3*attempt) * 1000;
+
+  console.log(`Rate limited. Retrying after ${delayMs} ms...`);
+
+  if (attempt < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
 }
 
 export async function fetchNpmPackageVersions(
