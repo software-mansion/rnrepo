@@ -56,7 +56,7 @@ export async function processLibrary(
         'react-native',
         reactNativeMatcher ?? '*',
         {
-          downloadsThreshold: 10000
+          downloadsThreshold: DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD
         }
       ).then(versions => versions.map(v => v.version));
 

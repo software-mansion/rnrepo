@@ -28,7 +28,7 @@ const SchedulerCache = {
   packageDownloadsLastWeekCache: new Map<string, Promise<Map<string, number>>>(),
 };
 
-export function SchedulerCacheClear(): void {
+export function schedulerCacheClear(): void {
   for (const cache of Object.values(SchedulerCache)) {
     cache.clear();
   }
@@ -64,7 +64,7 @@ async function fetchDownloadsLastWeek(packageName: string): Promise<Map<string, 
   }
 
   const promise = (async () => {
-    const registryUrl = `https://api.npmjs.org/versions/${packageName.replace('/', '%2f')}/last-week`;
+    const registryUrl = `https://api.npmjs.org/versions/${encodeURIComponent(packageName)}/last-week`;
     const maxAttempts = 3;
 
     try {
@@ -102,7 +102,7 @@ async function handleRateLimit(
   response: Response,
 ): Promise<void> {
   const retryHeader = Number(response.headers.get('retry-after'));
-  const delayMs = (retryHeader > 0 ? retryHeader : 3*attempt) * 1000;
+  const delayMs = (retryHeader > 0 ? retryHeader : 3 * attempt) * 1000;
 
   console.log(`Rate limited. Retrying after ${delayMs} ms...`);
 

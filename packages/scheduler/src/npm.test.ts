@@ -3,7 +3,7 @@ import {
   matchesVersionPattern,
   findMatchingVersionsFromNPM,
   fetchNpmPackageVersions,
-  SchedulerCacheClear,
+  schedulerCacheClear,
 } from './npm';
 
 // Mock fetch globally
@@ -11,7 +11,7 @@ const originalFetch = globalThis.fetch;
 let mockFetch: ReturnType<typeof mock>;
 
 beforeEach(() => {
-  SchedulerCacheClear();
+  schedulerCacheClear();
   mockFetch = mock(() => {
     throw new Error('fetch not mocked');
   });
