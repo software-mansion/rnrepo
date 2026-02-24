@@ -29,7 +29,7 @@ on:
 
 jobs:
   build-library-ios:
-    runs-on: macos-latest
+    runs-on: macos-latest-xlarge
     timeout-minutes: 60
 
     steps:
