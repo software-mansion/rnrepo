@@ -54,7 +54,10 @@ export async function processLibrary(
       // If reactNativeMatcher is not set, accept any version
       const reactNativeMatchingVersions = await findMatchingVersionsFromNPM(
         'react-native',
-        reactNativeMatcher ?? '*'
+        reactNativeMatcher ?? '*',
+        {
+          downloadsThreshold: 10000
+        }
       ).then(versions => versions.map(v => v.version));
 
       for (const pkgVersionInfo of matchingVersions) {
