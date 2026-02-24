@@ -23,10 +23,15 @@ interface NpmRegistryResponse {
   };
 }
 
-const packageVersionsCache = new Map<string, Promise<NpmVersionInfo[]>>();
+const SchedulerCache = {
+  packageVersionsCache: new Map<string, Promise<NpmVersionInfo[]>>(),
+  packageDownloadsLastWeekCache: new Map<string, Promise<Map<string, number>>>(),
+};
 
-export function packageVersionsCacheClear(): void {
-  packageVersionsCache.clear();
+export function SchedulerCacheClear(): void {
+  for (const cache of Object.values(SchedulerCache)) {
+    cache.clear();
+  }
 }
 
 export function matchesVersionPattern(
@@ -54,27 +59,37 @@ export function matchesVersionPattern(
 }
 
 async function fetchDownloadsLastWeek(packageName: string): Promise<Map<string, number>> {
-  const registryUrl = `https://api.npmjs.org/versions/${packageName.replace('/', '%2f')}/last-week`;
-  try {
-    const response = await fetch(registryUrl);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch download stats for ${packageName}: ${response.status} ${response.statusText}`
-      );
-    }
-
-    const data = await response.json();
-    return new Map<string, number>(Object.entries(data.downloads));
-  } catch (error) {
-    console.error(`Error fetching download stats for ${packageName}:`, error);
-    return new Map<string, number>();
+  if (SchedulerCache.packageDownloadsLastWeekCache.has(packageName)) {
+    return SchedulerCache.packageDownloadsLastWeekCache.get(packageName)!;
   }
+
+  const promise = (async () => {
+
+    const registryUrl = `https://api.npmjs.org/versions/${packageName.replace('/', '%2f')}/last-week`;
+    try {
+      const response = await fetch(registryUrl);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch download stats for ${packageName}: ${response.status} ${response.statusText}`
+        );
+      }
+
+      const data = await response.json();
+      return new Map<string, number>(Object.entries(data.downloads));
+    } catch (error) {
+      console.error(`Error fetching download stats for ${packageName}:`, error);
+      return new Map<string, number>();
+    }
+  })();
+
+  SchedulerCache.packageDownloadsLastWeekCache.set(packageName, promise);
+  return promise;
 }
 
 export async function fetchNpmPackageVersions(
   packageName: string
 ): Promise<NpmVersionInfo[]> {
-  const cached = packageVersionsCache.get(packageName);
+  const cached = SchedulerCache.packageVersionsCache.get(packageName);
   if (cached) return cached;
 
   const promise = (async () => {
@@ -113,7 +128,7 @@ export async function fetchNpmPackageVersions(
     }
   })();
 
-  packageVersionsCache.set(packageName, promise);
+  SchedulerCache.packageVersionsCache.set(packageName, promise);
   return promise;
 }
 
