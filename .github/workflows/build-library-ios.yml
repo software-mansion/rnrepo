@@ -30,7 +30,7 @@ on:
 jobs:
   build-library-ios:
     runs-on: macos-latest-xlarge
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - name: 🏗 Checkout repository
