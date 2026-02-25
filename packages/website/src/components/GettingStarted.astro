@@ -70,6 +70,36 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
     theme: 'github-dark',
   }
 );
+
+const iOSPodfileRequire = `require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+  "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
+  {paths: [process.argv[1]]},
+)', __dir__]).strip`;
+
+const iOSPodfileRequireCopyText = `Pod::Executable.execute_command('node', ['-p', 'require.resolve("@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb", {paths: [process.argv[1]]})', __dir__]).strip`;
+
+const iOSPodfileRequireCodeHtml = await codeToHtml(iOSPodfileRequire, {
+  lang: 'ruby',
+  theme: 'github-dark',
+});
+
+const iOSPodfilePostInstall = `
+target 'YourProjectName' do
+  post_install do |installer|
+    ...
++   rnrepo_post_install(installer)
+end`;
+
+const iOSPodfilePostInstallCopyText = `rnrepo_post_install(installer)`;
+
+const iOSPodfilePostInstallCodeHtml = await codeToHtml(
+  iOSPodfilePostInstall,
+  {
+    lang: 'diff',
+    theme: 'github-dark',
+  }
+);
 ---
 
 <section id="setup" class="py-20 border-b border-rnrGrey-80">
@@ -91,11 +121,7 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
         <div class="flex-1">
           <p class="text-sm text-rnrGrey-30 leading-relaxed">
             RNRepo is currently in
-            <strong class="text-brandYellow-100">Beta</strong> and available for
-            <strong class="text-rnrGrey-0">Android only</strong>.
-          </p>
-          <p class="text-sm text-rnrGrey-30 leading-relaxed mt-1">
-            Please report any feedback or issues with your setup via our{' '}
+            <strong class="text-brandYellow-100">Beta</strong>, please report any feedback or issues with your setup via our{' '}
             <a
               href="https://github.com/software-mansion/rnrepo"
               target="_blank"
@@ -108,8 +134,8 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
     </div>
 
     <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-2xl mb-8">
-      To start using RNRepo, you need to configure your Android project to
-      include our Maven repository and use our Gradle plugin that will
+      To start using RNRepo, you need to configure your project to
+      include our build plugin that will
       automatically swap out dependencies on supported libraries with pre-built
       artifacts downloaded from our repository.
     </p>
@@ -125,9 +151,15 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
       />
       <input
         type="radio"
-        id="tab-standard"
+        id="tab-android"
         name="getting-started-tab"
-        class="tab-radio tab-radio-standard"
+        class="tab-radio tab-radio-android"
+      />
+      <input
+        type="radio"
+        id="tab-ios"
+        name="getting-started-tab"
+        class="tab-radio tab-radio-ios"
       />
       <div class="tab-container">
         <div class="sliding-background"></div>
@@ -137,10 +169,16 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
             >Expo Prebuild (Continuous Code Generation – CNG)</span
           >
         </label>
-        <label for="tab-standard" class="tab-label tab-label-standard">
-          <span class="md:hidden">Standard React Native</span>
+        <label for="tab-android" class="tab-label tab-label-android">
+          <span class="md:hidden">Android</span>
           <span class="hidden md:inline"
-            >Standard React Native / Other Expo Setups</span
+            >Non-CNG Android</span
+          >
+        </label>
+        <label for="tab-ios" class="tab-label tab-label-ios">
+          <span class="md:hidden">iOS</span>
+          <span class="hidden md:inline"
+            >Non-CNG iOS</span
           >
         </label>
       </div>
@@ -150,8 +188,8 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
         class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
       >
         If you are using Expo Continuous Code Generation (CNG) setup (generating
-        your native android directory with expo prebuild command), you can use
-        our Expo config plugin to automatically configure Android's project to
+        your native directories with expo prebuild command), you can use
+        our Expo config plugin to automatically configure your project to
         use RNRepo.
       </p>
       <p
@@ -329,6 +367,84 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
           <Fragment set:html={standardAppBuildGradleChangesCodeHtml} />
         </div>
       </div>
+
+      {/* iOS Setup - Step 1 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-ios text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        For iOS projects using CocoaPods, you need to edit your <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >Podfile</span
+        > to include RNRepo's CocoaPods plugin. Add the following require statement at the top of your Podfile (after other require statements):
+      </p>
+
+      {/* Code Block 1: Podfile - Require */}
+      <div
+        class="code-block-wrapper code-block-wrapper-ios border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        data-code={iOSPodfileRequire}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono">
+            ios/Podfile
+          </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={iOSPodfileRequireCopyText}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={iOSPodfileRequireCodeHtml} />
+        </div>
+      </div>
+
+      {/* iOS Setup - Step 2 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-ios text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        Next, add the RNRepo post-install hook in your Podfile's <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >post_install</span
+        > block:
+      </p>
+
+      {/* Code Block 2: Podfile - Post Install */}
+      <div
+        class="code-block-wrapper code-block-wrapper-ios border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        data-code={iOSPodfilePostInstall}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono">
+            ios/Podfile
+          </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={iOSPodfilePostInstallCopyText}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={iOSPodfilePostInstallCodeHtml} />
+        </div>
+      </div>
     </div>
 
     {/* Bottom CTA */}
@@ -378,7 +494,7 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 50%;
+    width: 33.33%;
     background-color: #38acdd;
     transition: transform 0.3s ease-in-out;
     z-index: 0;
@@ -387,7 +503,7 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
   .tab-label {
     position: relative;
     z-index: 10;
-    width: 50%;
+    width: 33.33%;
     height: 100%;
     display: flex;
     align-items: center;
@@ -421,16 +537,29 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
     display: block;
   }
 
-  /* When standard tab is checked */
-  .tab-radio-standard:checked ~ .tab-container .sliding-background {
+  /* When android tab is checked */
+  .tab-radio-android:checked ~ .tab-container .sliding-background {
     transform: translateX(100%);
   }
 
-  .tab-radio-standard:checked ~ .tab-container .tab-label-standard {
+  .tab-radio-android:checked ~ .tab-container .tab-label-android {
     color: black;
   }
 
-  .tab-radio-standard:checked ~ .code-block-wrapper-standard {
+  .tab-radio-android:checked ~ .code-block-wrapper-standard {
+    display: block;
+  }
+
+  /* When ios tab is checked */
+  .tab-radio-ios:checked ~ .tab-container .sliding-background {
+    transform: translateX(200%);
+  }
+
+  .tab-radio-ios:checked ~ .tab-container .tab-label-ios {
+    color: black;
+  }
+
+  .tab-radio-ios:checked ~ .code-block-wrapper-ios {
     display: block;
   }
 
