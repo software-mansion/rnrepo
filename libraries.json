@@ -17,24 +17,64 @@
   "react-native-reanimated": {
     "android": [
       {
-        "versionMatcher": "<4.2",
-        "withWorkletsVersion": ["0.5.1", "0.6.1"],
+        "versionMatcher": "<4.0",
+        "reactNativeVersion": "<=0.81",
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ">=4.2",
-        "withWorkletsVersion": ["0.7.1"]
+        "versionMatcher": "4.0",
+        "reactNativeVersion": ["0.78", "0.79", "0.80", "0.81"],
+        "withWorkletsVersion": ["0.4.1", "0.4.2"],
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "4.1",
+        "reactNativeVersion": ["0.78", "0.79", "0.80", "0.81", "0.82"],
+        "withWorkletsVersion": ["0.5", "0.6", "0.7"],
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ["4.2.0", "4.2.1"],
+        "reactNativeVersion": ["0.80", "0.81", "0.82", "0.83"],
+        "withWorkletsVersion": ["0.7"],
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.2.2",
+        "reactNativeVersion": ">=0.80",
+        "withWorkletsVersion": ["0.7"],
+        "publishedAfterDate": "2025-01-01"
       }
     ],
     "ios": [
       {
-        "versionMatcher": "<4.2",
-        "withWorkletsVersion": ["0.5.1", "0.6.1"],
+        "versionMatcher": "<4.0",
+        "reactNativeVersion": "<=0.81",
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ">=4.2",
-        "withWorkletsVersion": ["0.7.1"]
+        "versionMatcher": "4.0",
+        "reactNativeVersion": ["0.78", "0.79", "0.80", "0.81"],
+        "withWorkletsVersion": ["0.4.1", "0.4.2"],
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "4.1",
+        "reactNativeVersion": ["0.78", "0.79", "0.80", "0.81", "0.82"],
+        "withWorkletsVersion": ["0.5", "0.6", "0.7"],
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ["4.2.0", "4.2.1"],
+        "reactNativeVersion": ["0.80", "0.81", "0.82", "0.83"],
+        "withWorkletsVersion": ["0.7"],
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.2.2",
+        "reactNativeVersion": ">=0.80",
+        "withWorkletsVersion": ["0.7"],
+        "publishedAfterDate": "2025-01-01"
       }
     ]
   },
