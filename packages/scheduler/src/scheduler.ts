@@ -173,7 +173,7 @@ export async function runScheduler(limit?: number) {
   }
 
   for (const [libraryName, config] of Object.entries(librariesConfig)) {
-    if (libraryName != 'react-native-reanimated' && libraryName != 'react-native-gesture-handler') {
+    if (libraryName != 'react-native-reanimated') {
       continue;
     }
     const count = await processLibrary(
