@@ -274,11 +274,16 @@ async function buildLibrary() {
     // This is available as early as RN 0.74.0 so safe to use here
     console.log('📦 Running pod install with static frameworks...');
     const iosPath = join(appDir, 'ios');
+
+    // Use prebuilt React Native core for RN >= 0.81.1
+    // issue: https://github.com/expo/expo/issues/38990
+    const usePrebuiltRNVersion = reactNativeVersion >= '0.81.1' ? '1' : '0';
+    
     await $`pod install`.cwd(iosPath).env({
       ...process.env,
       USE_FRAMEWORKS: 'static',
-      USE_PREBUILT_REACT_NATIVE: '1', // Use prebuilt React Native to speed up builds
-      RCT_USE_RN_DEP: '1', // Use RN dependency management
+      USE_PREBUILT_REACT_NATIVE: usePrebuiltRNVersion, // Use prebuilt React Native to speed up builds(for RN >= 0.81.1)
+      RCT_USE_RN_DEP: usePrebuiltRNVersion, // Use RN dependency management
     });
     console.log('✓ Pod install completed with static frameworks');
 
