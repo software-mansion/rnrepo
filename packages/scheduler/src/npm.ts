@@ -3,6 +3,7 @@ import semver from 'semver';
 export interface NpmVersionInfo {
   version: string;
   publishDate: Date;
+  downloadsLastWeek?: number;
 }
 
 interface NpmRegistryResponse {
@@ -22,10 +23,15 @@ interface NpmRegistryResponse {
   };
 }
 
-const packageVersionsCache = new Map<string, Promise<NpmVersionInfo[]>>();
+const SchedulerCache = {
+  packageVersionsCache: new Map<string, Promise<NpmVersionInfo[]>>(),
+  packageDownloadsLastWeekCache: new Map<string, Promise<Map<string, number>>>(),
+};
 
-export function packageVersionsCacheClear(): void {
-  packageVersionsCache.clear();
+export function schedulerCacheClear(): void {
+  for (const cache of Object.values(SchedulerCache)) {
+    cache.clear();
+  }
 }
 
 export function matchesVersionPattern(
@@ -52,10 +58,63 @@ export function matchesVersionPattern(
   });
 }
 
+async function fetchDownloadsLastWeek(packageName: string): Promise<Map<string, number>> {
+  if (SchedulerCache.packageDownloadsLastWeekCache.has(packageName)) {
+    return SchedulerCache.packageDownloadsLastWeekCache.get(packageName)!;
+  }
+
+  const promise = (async () => {
+    const registryUrl = `https://api.npmjs.org/versions/${encodeURIComponent(packageName)}/last-week`;
+    const maxAttempts = 3;
+
+    try {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const response = await fetch(registryUrl);
+        if (response.status === 429) {
+          await handleRateLimit(attempt, maxAttempts, response);
+          continue;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch download stats for ${packageName}: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const data = await response.json();
+        return new Map<string, number>(Object.entries(data.downloads));
+      }
+    } catch (error) {
+      console.error(`Error fetching download stats for ${packageName}:`, error);
+      return new Map<string, number>();
+    }
+
+    return new Map<string, number>();
+  })();
+
+  SchedulerCache.packageDownloadsLastWeekCache.set(packageName, promise);
+  return promise;
+}
+
+async function handleRateLimit(
+  attempt: number,
+  maxAttempts: number,
+  response: Response,
+): Promise<void> {
+  const retryHeader = Number(response.headers.get('retry-after'));
+  const delayMs = (retryHeader > 0 ? retryHeader : 3 * attempt) * 1000;
+
+  console.log(`Rate limited. Retrying after ${delayMs} ms...`);
+
+  if (attempt < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+}
+
 export async function fetchNpmPackageVersions(
   packageName: string
 ): Promise<NpmVersionInfo[]> {
-  const cached = packageVersionsCache.get(packageName);
+  const cached = SchedulerCache.packageVersionsCache.get(packageName);
   if (cached) return cached;
 
   const promise = (async () => {
@@ -70,6 +129,7 @@ export async function fetchNpmPackageVersions(
       }
 
       const data = (await response.json()) as NpmRegistryResponse;
+      const downloadsLastWeekMap = await fetchDownloadsLastWeek(packageName);
       const versions: NpmVersionInfo[] = [];
 
       for (const [key, timeString] of Object.entries(data.time)) {
@@ -81,6 +141,7 @@ export async function fetchNpmPackageVersions(
           versions.push({
             version: key,
             publishDate: new Date(timeString),
+            downloadsLastWeek: downloadsLastWeekMap.get(key),
           });
         }
       }
@@ -92,7 +153,10 @@ export async function fetchNpmPackageVersions(
     }
   })();
 
-  packageVersionsCache.set(packageName, promise);
+  const result = await promise;
+  if (result.length > 0) {
+    SchedulerCache.packageVersionsCache.set(packageName, promise);
+  }
   return promise;
 }
 
@@ -104,21 +168,24 @@ export async function fetchNpmPackageVersions(
 export async function findMatchingVersionsFromNPM(
   packageName: string,
   versionMatcher: string | string[] | undefined,
-  publishedAfterDate?: string
+  options?: {
+    publishedAfterDate?: string,
+    weeklyDownloadsThreshold?: number,
+  }
 ): Promise<NpmVersionInfo[]> {
   if (!versionMatcher) return [];
   const allVersions = await fetchNpmPackageVersions(packageName);
 
   let minPublishDate: Date | null = null;
-  if (publishedAfterDate) {
-    const dateStr = publishedAfterDate.trim();
+  if (options?.publishedAfterDate) {
+    const dateStr = options.publishedAfterDate.trim();
     const dateParts = dateStr.split('-').map(Number);
     if (dateParts.length === 3) {
       minPublishDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
       minPublishDate.setHours(0, 0, 0, 0);
     } else {
       console.warn(
-        `Invalid publishedAfterDate format: ${publishedAfterDate}, expected YYYY-MM-DD`
+        `Invalid publishedAfterDate format: ${options.publishedAfterDate}, expected YYYY-MM-DD`
       );
     }
   }
@@ -134,5 +201,6 @@ export async function findMatchingVersionsFromNPM(
       }
       return true;
     })
+    .filter(v => (v.downloadsLastWeek ?? 0) >= (options?.weeklyDownloadsThreshold ?? 0))
     .sort((a, b) => a.publishDate.getTime() - b.publishDate.getTime());
 }

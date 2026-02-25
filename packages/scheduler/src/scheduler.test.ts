@@ -392,12 +392,18 @@ test('processLibrary - uses platform-specific publishedAfterDate', async () => {
   expect(mockFindMatchingVersionsFromNPM).toHaveBeenCalledWith(
     libraryName,
     '1.*',
-    '2024-02-01'
+    {
+      publishedAfterDate: '2024-02-01',
+      weeklyDownloadsThreshold: 10000,
+    }
   );
   expect(mockFindMatchingVersionsFromNPM).toHaveBeenCalledWith(
     libraryName,
     '1.*',
-    '2024-01-01'
+    {
+      publishedAfterDate: '2024-01-01',
+      weeklyDownloadsThreshold: 10000,
+    }
   );
 });
 
