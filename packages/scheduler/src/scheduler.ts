@@ -64,6 +64,9 @@ export async function processLibrary(
       for (const pkgVersionInfo of matchingVersions) {
         const pkgVersion = pkgVersionInfo.version;
 
+        if (semver.lt(pkgVersion, '4.2.0')) {
+          continue
+        }
         for (const rnVersion of rnVersions) {
           if (!matchesVersionPattern(rnVersion, reactNativeMatchingVersions)) {
             console.log(`   ❌ Skipping RN ${rnVersion} - does not match reactNativeVersion criteria`);
