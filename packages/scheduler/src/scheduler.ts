@@ -65,10 +65,6 @@ export async function processLibrary(
         const pkgVersion = pkgVersionInfo.version;
 
         for (const rnVersion of rnVersions) {
-          // build only >=0.81.4 rn versions
-          if (semver.lt(rnVersion, '0.81.4')) {
-            continue
-          }
           if (!matchesVersionPattern(rnVersion, reactNativeMatchingVersions)) {
             console.log(`   ❌ Skipping RN ${rnVersion} - does not match reactNativeVersion criteria`);
             continue;
