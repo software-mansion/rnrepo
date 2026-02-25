@@ -153,7 +153,10 @@ export async function fetchNpmPackageVersions(
     }
   })();
 
-  SchedulerCache.packageVersionsCache.set(packageName, promise);
+  const result = await promise;
+  if (result.length > 0) {
+    SchedulerCache.packageVersionsCache.set(packageName, promise);
+  }
   return promise;
 }
 
