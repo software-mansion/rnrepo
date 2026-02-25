@@ -20,7 +20,7 @@ export async function processLibrary(
 ): Promise<number> {
   console.log(`\n📦 Processing: ${libraryName}`);
 
-  const platforms: Platform[] = ['android', 'ios'];
+  const platforms: Platform[] = ['ios'];
   const rnVersions = reactNativeVersions as string[];
   let scheduledCount = currentCount;
 
