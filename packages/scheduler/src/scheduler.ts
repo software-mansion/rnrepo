@@ -11,6 +11,7 @@ import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
 const DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD = 10000;
 
+import semver from 'semver';
 export async function processLibrary(
   libraryName: string,
   config: LibraryConfig,
@@ -64,6 +65,10 @@ export async function processLibrary(
         const pkgVersion = pkgVersionInfo.version;
 
         for (const rnVersion of rnVersions) {
+          // build only >=0.81.4 rn versions
+          if (semver.lt(rnVersion, '0.81.4')) {
+            continue
+          }
           if (!matchesVersionPattern(rnVersion, reactNativeMatchingVersions)) {
             console.log(`   ❌ Skipping RN ${rnVersion} - does not match reactNativeVersion criteria`);
             continue;
@@ -168,7 +173,7 @@ export async function runScheduler(limit?: number) {
   }
 
   for (const [libraryName, config] of Object.entries(librariesConfig)) {
-    if (libraryName != 'react-native-worklets') {
+    if (libraryName != 'react-native-reanimated' && libraryName != 'react-native-gesture-handler') {
       continue;
     }
     const count = await processLibrary(
