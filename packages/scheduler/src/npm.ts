@@ -167,7 +167,7 @@ export async function findMatchingVersionsFromNPM(
   versionMatcher: string | string[] | undefined,
   options?: {
     publishedAfterDate?: string,
-    downloadsThreshold?: number,
+    weeklyDownloadsThreshold?: number,
   }
 ): Promise<NpmVersionInfo[]> {
   if (!versionMatcher) return [];
@@ -198,6 +198,6 @@ export async function findMatchingVersionsFromNPM(
       }
       return true;
     })
-    .filter(v => (v.downloadsLastWeek ?? 0) >= (options?.downloadsThreshold ?? 0))
+    .filter(v => (v.downloadsLastWeek ?? 0) >= (options?.weeklyDownloadsThreshold ?? 0))
     .sort((a, b) => a.publishDate.getTime() - b.publishDate.getTime());
 }

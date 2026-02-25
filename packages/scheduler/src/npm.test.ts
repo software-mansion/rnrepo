@@ -389,7 +389,7 @@ test('findMatchingVersionsFromNPM - filters by publishedAfterDate', async () => 
     '*',
     {
       publishedAfterDate: '2021-01-10',
-      downloadsThreshold: 0, // No threshold for this test
+      weeklyDownloadsThreshold: 0, // No threshold for this test
     }
   );
 

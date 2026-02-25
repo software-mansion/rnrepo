@@ -37,8 +37,8 @@ export async function processLibrary(
         configEntry.reactNativeVersion ?? config.reactNativeVersion;
       const publishedAfterDate =
         configEntry.publishedAfterDate ?? config.publishedAfterDate;
-      const downloadsThreshold =
-        configEntry.downloadsThreshold ?? config.downloadsThreshold ?? DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD;
+      const weeklyDownloadsThreshold =
+        configEntry.weeklyDownloadsThreshold ?? config.weeklyDownloadsThreshold ?? DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD;
       const workletsMatchingVersions = await findMatchingVersionsFromNPM(
         'react-native-worklets',
         configEntry.withWorkletsVersion
@@ -48,7 +48,7 @@ export async function processLibrary(
         pkgMatcher,
         {
           publishedAfterDate,
-          downloadsThreshold
+          weeklyDownloadsThreshold,
         }
       );
       // If reactNativeMatcher is not set, accept any version
@@ -56,7 +56,7 @@ export async function processLibrary(
         'react-native',
         reactNativeMatcher ?? '*',
         {
-          downloadsThreshold: DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD
+          weeklyDownloadsThreshold: DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD
         }
       ).then(versions => versions.map(v => v.version));
 
