@@ -64,9 +64,10 @@ export async function processLibrary(
       for (const pkgVersionInfo of matchingVersions) {
         const pkgVersion = pkgVersionInfo.version;
 
-        // if (semver.lt(pkgVersion, '4.2.0')) {
-        //   continue
-        // }
+        if (!['0.81.5', '0.79.7', '0.81.4', '0.83.1', '0.78.3'].includes(pkgVersion)) {
+          console.log(`   ❌ Skipping version ${pkgVersion} - not in the list of versions to schedule`);
+          continue;
+        }
         for (const rnVersion of rnVersions) {
           if (!matchesVersionPattern(rnVersion, reactNativeMatchingVersions)) {
             console.log(`   ❌ Skipping RN ${rnVersion} - does not match reactNativeVersion criteria`);
@@ -172,7 +173,13 @@ export async function runScheduler(limit?: number) {
   }
 
   for (const [libraryName, config] of Object.entries(librariesConfig)) {
-    if (libraryName != 'react-native-gesture-handler') {
+    if (!["@shopify/react-native-skia", 
+      "react-native-reanimated", 
+      "lottie-react-native", 
+      "react-native-clipboard_clipboard", 
+      "react-native-screens", 
+      "react-native-keyboard-controller", 
+      "react-native-safe-area-context"].includes(libraryName)) {
       continue;
     }
     const count = await processLibrary(
