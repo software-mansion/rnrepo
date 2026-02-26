@@ -812,8 +812,8 @@ class PrebuildsPlugin : Plugin<Project> {
         dependentList.parallelStream().forEach { packageItem ->
             logger.info("Handling ${packageItem.npmName} package after others.")
             val elseClosure: () -> Unit = {
-                // Firebase packages fails even in release builds, so we have to validate all Firebase packages regardless of build type.
-                if (getBuildType(project) == "release" && packageItem.name != "react-native-firebase_app") {
+                // Worklets and Reanimated works in release builds when worklets would not be substituted with aar.
+                if (getBuildType(project) == "release" && packageItem.name == "react-native-worklets") {
                     supportedPackages.add(packageItem)
                 } else {
                     logger.info(
