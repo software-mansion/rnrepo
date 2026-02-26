@@ -70,7 +70,7 @@ export async function processLibrary(
             continue;
           }
           if (!['0.81.5', '0.79.7', '0.81.4', '0.83.1', '0.78.3'].includes(rnVersion)) {
-            console.log(`   ❌ Skipping version ${rnVersion} - not in the list of RNversions to schedule`);
+            //console.log(`   ❌ Skipping version ${rnVersion} - not in the list of RNversions to schedule`);
             continue;
           }
 
@@ -173,13 +173,13 @@ export async function runScheduler(limit?: number) {
   }
 
   for (const [libraryName, config] of Object.entries(librariesConfig)) {
-    if (!["@shopify/react-native-skia", 
-      "react-native-reanimated", 
-      "lottie-react-native", 
-      "react-native-clipboard_clipboard", 
-      "react-native-screens", 
-      "react-native-keyboard-controller", 
-      "react-native-safe-area-context"].includes(libraryName)) {
+    if (!["@shopify/react-native-skia", "react-native-gesture-handler"].includes(libraryName)) {
+      // "react-native-reanimated", 
+      // "lottie-react-native", 
+      // "react-native-clipboard_clipboard", 
+      // "react-native-screens", 
+      // "react-native-keyboard-controller", 
+     // "react-native-safe-area-context") 
       continue;
     }
     const count = await processLibrary(
