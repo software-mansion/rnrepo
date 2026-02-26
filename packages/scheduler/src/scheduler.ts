@@ -64,9 +64,9 @@ export async function processLibrary(
       for (const pkgVersionInfo of matchingVersions) {
         const pkgVersion = pkgVersionInfo.version;
 
-        if (semver.lt(pkgVersion, '4.2.0')) {
-          continue
-        }
+        // if (semver.lt(pkgVersion, '4.2.0')) {
+        //   continue
+        // }
         for (const rnVersion of rnVersions) {
           if (!matchesVersionPattern(rnVersion, reactNativeMatchingVersions)) {
             console.log(`   ❌ Skipping RN ${rnVersion} - does not match reactNativeVersion criteria`);
@@ -172,7 +172,7 @@ export async function runScheduler(limit?: number) {
   }
 
   for (const [libraryName, config] of Object.entries(librariesConfig)) {
-    if (libraryName != 'react-native-reanimated') {
+    if (libraryName != 'react-native-gesture-handler') {
       continue;
     }
     const count = await processLibrary(
