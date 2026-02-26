@@ -64,13 +64,13 @@ export async function processLibrary(
       for (const pkgVersionInfo of matchingVersions) {
         const pkgVersion = pkgVersionInfo.version;
 
-        if (!['0.81.5', '0.79.7', '0.81.4', '0.83.1', '0.78.3'].includes(pkgVersion)) {
-          console.log(`   ❌ Skipping version ${pkgVersion} - not in the list of versions to schedule`);
-          continue;
-        }
         for (const rnVersion of rnVersions) {
           if (!matchesVersionPattern(rnVersion, reactNativeMatchingVersions)) {
             console.log(`   ❌ Skipping RN ${rnVersion} - does not match reactNativeVersion criteria`);
+            continue;
+          }
+          if (!['0.81.5', '0.79.7', '0.81.4', '0.83.1', '0.78.3'].includes(rnVersion)) {
+            console.log(`   ❌ Skipping version ${rnVersion} - not in the list of RNversions to schedule`);
             continue;
           }
 
