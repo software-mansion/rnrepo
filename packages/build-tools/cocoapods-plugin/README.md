@@ -73,3 +73,16 @@ node_modules/
           │   └── {package-name}.xcframework/
           └── Current/  (symlink created at build time → Debug or Release)
 ```
+
+### Lint
+
+To run the linter, use the following command:
+
+```bash
+# Install rubocop if you don't have it yet
+gem install rubocop
+# Run
+rubocop
+# Or with auto-correct
+rubocop -a
+```
