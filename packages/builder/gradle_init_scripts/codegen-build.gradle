@@ -1,0 +1,32 @@
+allprojects { project ->
+    project.afterEvaluate {
+        // we want to cut it in the main target since it builds the codegen artifacts
+        def isAndroidApp = project.plugins.hasPlugin("com.android.application")
+        if (isAndroidApp) {
+            project.android {
+                buildTypes {
+                    debug {
+                        externalNativeBuild {
+                            cmake {
+                                def currentArgs = arguments ?: []
+                                // currentArgs += "-DCMAKE_BUILD_TYPE=Debug"
+                                currentArgs += "-DCMAKE_CXX_FLAGS=-g1"
+                                arguments = currentArgs
+                            }
+                        }
+                    }
+                    release {
+                        externalNativeBuild {
+                            cmake {
+                                def currentArgs = arguments ?: []
+                                // currentArgs += "-DCMAKE_BUILD_TYPE=Release"
+                                currentArgs += "-DCMAKE_CXX_FLAGS=-g1"
+                                arguments = currentArgs
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

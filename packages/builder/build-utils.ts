@@ -262,6 +262,39 @@ export async function setupReactNativeProject(
     .cwd(workDir)
     .quiet();
 
+  // Simplify App.tsx to minimal View before installing dependencies
+  const appTsxPath = join(appDir, 'App.tsx');
+  if (existsSync(appTsxPath)) {
+    console.log('✓ Simplifying App.tsx...');
+    const { writeFileSync } = await import('fs');
+    const minimalApp = `import React from 'react';
+import { View } from 'react-native';
+
+function App(): React.JSX.Element {
+  return <View />;
+}
+
+export default App;
+`;
+    writeFileSync(appTsxPath, minimalApp);
+  }
+
+  // Remove react-native-safe-area-context from package.json before installing
+  const packageJsonPath = join(appDir, 'package.json');
+  if (existsSync(packageJsonPath)) {
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    if (packageJson.dependencies?.['react-native-safe-area-context']) {
+      console.log('🧹 Removing unnecessary react-native-safe-area-context from package.json...');
+      await $`npm uninstall react-native-safe-area-context`.cwd(appDir).quiet();
+    }
+  }
+
+  // check if there are patches to copy
+  if (existsSync(join(__dirname, 'patches'))) {
+    console.log(`✓ Copying patches...`);
+    await $`cp -r ./patches ${appDir}`.cwd(__dirname);
+  }
+
   // Perform any library-specific setup before installing
   await installSetup(appDir, libraryName, 'preInstall');
 
@@ -292,6 +325,12 @@ export async function setupReactNativeProject(
   // Install all dependencies
   console.log('📦 Installing all dependencies...');
   await $`npm install`.cwd(appDir).quiet();
+
+  // check if there is patches folder to apply
+  if (existsSync(join(appDir, 'patches'))) {
+    console.log('📦 Applying patches...');
+    await $`npx patch-package`.cwd(appDir);
+  }
 
   // Check if the react-native version is correctly set
   checkRnVersion(appDir, reactNativeVersion);

@@ -124,7 +124,7 @@ async function main() {
     const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
     const classifier = `rn${reactNativeVersion}${
       workletsVersion ? `-worklets${workletsVersion}` : ''
-    }`;
+    }-codegen`;
     const aarFile = join(
       artifactsBasePath,
       `${baseFileName}-${classifier}.aar`
