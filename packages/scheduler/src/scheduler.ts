@@ -11,7 +11,6 @@ import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
 const DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD = 10000;
 
-import semver from 'semver';
 export async function processLibrary(
   libraryName: string,
   config: LibraryConfig,
@@ -67,10 +66,6 @@ export async function processLibrary(
         for (const rnVersion of rnVersions) {
           if (!matchesVersionPattern(rnVersion, reactNativeMatchingVersions)) {
             console.log(`   ❌ Skipping RN ${rnVersion} - does not match reactNativeVersion criteria`);
-            continue;
-          }
-          if (!['0.81.5', '0.79.7', '0.81.4', '0.83.1', '0.78.3'].includes(rnVersion)) {
-            //console.log(`   ❌ Skipping version ${rnVersion} - not in the list of RNversions to schedule`);
             continue;
           }
 
@@ -173,15 +168,6 @@ export async function runScheduler(limit?: number) {
   }
 
   for (const [libraryName, config] of Object.entries(librariesConfig)) {
-    if (!["@shopify/react-native-skia", "react-native-gesture-handler"].includes(libraryName)) {
-      // "react-native-reanimated", 
-      // "lottie-react-native", 
-      // "react-native-clipboard_clipboard", 
-      // "react-native-screens", 
-      // "react-native-keyboard-controller", 
-     // "react-native-safe-area-context") 
-      continue;
-    }
     const count = await processLibrary(
       libraryName,
       config,
