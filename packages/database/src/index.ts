@@ -64,8 +64,47 @@ export async function isBuildAlreadyScheduled(
   }
 
   // If a record exists with retry=false, skip scheduling
-  // If no such record exists (either no record or record with retry=true), allow scheduling
-  return data !== null;
+  if (data !== null) {
+    return true;
+  }
+
+  // If no matching record found for the requested platform, also consider
+  // an existing Android build that has completed for the same params as
+  // reason to skip scheduling (avoid duplicate work).
+  try {
+    let androidQuery = supabase
+      .from('builds')
+      .select('id')
+      .eq('package_name', packageName)
+      .eq('version', version)
+      .eq('rn_version', rnVersion)
+      .eq('platform', 'android')
+      .eq('status', 'completed');
+
+    // Filter by worklets_version if provided, otherwise check for NULL
+    if (workletsVersion) {
+      androidQuery = androidQuery.eq('worklets_version', workletsVersion);
+    } else {
+      androidQuery = androidQuery.is('worklets_version', null);
+    }
+
+    const { data: androidData, error: androidError } = await androidQuery
+      .limit(1)
+      .maybeSingle();
+
+    if (androidError) {
+      console.error(
+        `Error checking Android completed build for ${packageName}@${version} (RN ${rnVersion}):`,
+        androidError
+      );
+      return false;
+    }
+
+    return androidData == null;
+  } catch (e) {
+    console.error('Unexpected error while checking Android completed build:', e);
+    return false;
+  }
 }
 
 /**
