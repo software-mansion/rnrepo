@@ -692,7 +692,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 projectPackages
                     .filter { dependentPackagePatternRegex.matches(it.name) && it.name != packageItem.name }
                     .filterNot { dep -> supportedPackages.any { it.name == dep.name } }
-            if (!allDependentPackageAreSupported.isEmpty()) {
+            if (allDependentPackageAreSupported.isNotEmpty()) {
                 unavailablePackages.add(packageItem)
                 val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
                 val packagesToRemove =
