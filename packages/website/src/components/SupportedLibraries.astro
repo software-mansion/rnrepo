@@ -197,23 +197,6 @@ const supportedLibraryNames = await getSupportedLibraryNames();
       />
     </div>
 
-    {/* Results Count */}
-    <div class="text-sm text-rnrGrey-40 mb-6">
-      Showing <span
-        id="library-count"
-        data-total={Object.values(libraries).reduce(
-          (acc, versionInfo) => acc + Object.keys(versionInfo).length,
-          0
-        )}
-        >{
-          Object.values(libraries).reduce(
-            (acc, versionInfo) => acc + Object.keys(versionInfo).length,
-            0
-          )
-        }</span
-      > of {supportedLibraryNames.length} libraries
-    </div>
-
     {/* Libraries Table/List */}
     <div class="overflow-hidden rounded-lg border border-rnrGrey-80">
       <div
