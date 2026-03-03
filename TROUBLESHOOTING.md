@@ -1,5 +1,31 @@
 # Troubleshooting for the RNRepo
 
+## Common Issues
+
+### Deny List Configuration
+You can create a `rnrepo.config.json` file in your React-Native root directory to manage specific packages that should be excluded from automatic AAR management. The structure of the configuration file is as follows:
+```json
+{
+  "denyList": {
+    "android": ["library-name-1", "library-name-2"],
+    "ios": ["library-name-3", "library-name-4"]
+  }
+}
+```
+
+### Disabling the RNRepo Plugin
+You can opt out of the RNRepo plugin using an environment variable `DISABLE_RNREPO`. If this variable is set to ANY value, the plugin will not execute. By default, if this variable is not set, it defaults to enabling the plugin execution.
+
+Android:
+```bash
+DISABLE_RNREPO=true ./gradlew :app:assembleDebug
+```
+
+iOS requires running pod install to disable the plugin:
+```bash
+DISABLE_RNREPO=true pod install
+```
+
 ## Android Gradle Plugin
 
 ### Setting React-Native Directory
@@ -15,17 +41,6 @@ Or you can set it in `gradle.properties` file:
 REACT_NATIVE_ROOT_DIR=/path/to/your/react-native-dir
 ```
 
-### Deny List Configuration
-You can create a `rnrepo.config.json` file in your React-Native root directory to manage specific packages that should be excluded from automatic AAR management. The structure of the configuration file is as follows:
-```json
-{
-  "denyList": {
-    "android": ["library-name-1", "library-name-2"],
-    "ios": ["library-name-3", "library-name-4"]
-  }
-}
-```
-
 ### Reload Cache
 You can force the RNRepo plugin to re-download all dependencies by running the following command:
 ```bash
@@ -37,13 +52,6 @@ RNRepo caches downloaded AAR files and metadata in the Gradle cache directory. I
 - `~/.gradle/caches/modules-2/files-2.1/org.rnrepo.public`
 - `~/.gradle/caches/modules-2/metadata-2.107/descriptors/org.rnrepo.tools`
 - `~/.gradle/caches/modules-2/files-2.1/org.rnrepo.tools`
-
-### Disabling the RNRepo Plugin
-You can opt out of the RNRepo plugin using an environment variable `DISABLE_RNREPO`. If this variable is set to ANY value, the plugin will not execute. By default, if this variable is not set, it defaults to "false", thereby enabling the plugin execution.
-
-```bash
-DISABLE_RNREPO=true ./gradlew :app:assembleDebug
-```
 
 ### Logging
 To get more detailed logs from the RNRepo plugin during the build process, you can run the following command:
