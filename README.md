@@ -107,7 +107,7 @@ and edit the following files to use RNRepo:
 
 #### iOS (CocoaPods)
 
-1. **Add the RNRepo script at the top of your `Podfile`:**
+**Include the RNRepo script at the top of your `ios/Podfile` and add the post-install hook:**
 
    ```diff
    + require Pod::Executable.execute_command('node', ['-p',
@@ -115,11 +115,9 @@ and edit the following files to use RNRepo:
    +   "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
    + {paths: [process.argv[1]]},
    + )', __dir__]).strip
-   ```
+  
+  ...
 
-2. **Add the RNRepo post-install hook in `Podfile`:**
-
-   ```diff
    target 'YourProjectName' do
      post_install do |installer|
        ...

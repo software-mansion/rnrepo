@@ -33,8 +33,7 @@ const cngConfigCodeHtml = await codeToHtml(cngConfigInstructions, {
   theme: 'github-dark',
 });
 
-const standardBuildGradleChange = `
-buildscript {
+const standardBuildGradleChange = `buildscript {
   dependencies {
     ...
 +   def rnrepoDir = new File(
@@ -53,7 +52,15 @@ allprojects {
 +   maven { url "https://packages.rnrepo.org/releases" }
   }
 }`;
-const standardBuildGradleChangesCopyText = `maven { url "https://packages.rnrepo.org/releases" }`;
+const standardBuildGradleChangesCopyText = `def rnrepoDir = new File(
+  providers.exec {
+    workingDir(rootDir)
+    commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
+  }.standardOutput.asText.get().trim()
+).getParentFile().absolutePath
+classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
+...
+maven { url "https://packages.rnrepo.org/releases" }`;
 
 const standardBuildGradleChangesCodeHtml = await codeToHtml(
   standardBuildGradleChange,
@@ -63,8 +70,7 @@ const standardBuildGradleChangesCodeHtml = await codeToHtml(
   }
 );
 
-const standardAppBuildGradleChange = `
-apply plugin: "com.android.application"
+const standardAppBuildGradleChange = `apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 + apply plugin: "org.rnrepo.tools.prebuilds-plugin"
@@ -80,35 +86,29 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
   }
 );
 
-const iOSPodfileRequire = `require Pod::Executable.execute_command('node', ['-p',
-  'require.resolve(
-  "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
-  {paths: [process.argv[1]]},
-)', __dir__]).strip`;
+const iOSPodfile = `+ require Pod::Executable.execute_command('node', ['-p',
++  'require.resolve(
++  "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
++  {paths: [process.argv[1]]},
++ )', __dir__]).strip
 
-const iOSPodfileRequireCopyText = `Pod::Executable.execute_command('node', ['-p', 'require.resolve("@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb", {paths: [process.argv[1]]})', __dir__]).strip`;
+...
 
-const iOSPodfileRequireCodeHtml = await codeToHtml(iOSPodfileRequire, {
-  lang: 'ruby',
-  theme: 'github-dark',
-});
-
-const iOSPodfilePostInstall = `
 target 'YourProjectName' do
   post_install do |installer|
     ...
 +   rnrepo_post_install(installer)
 end`;
 
-const iOSPodfilePostInstallCopyText = `rnrepo_post_install(installer)`;
+const iOSPodfileCopyText = `Pod::Executable.execute_command('node', ['-p', 'require.resolve("@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb", {paths: [process.argv[1]]})', __dir__]).strip \n...\ntarget 'YourProjectName' do
+  post_install do |installer|
+   rnrepo_post_install(installer)
+end`;
 
-const iOSPodfilePostInstallCodeHtml = await codeToHtml(
-  iOSPodfilePostInstall,
-  {
-    lang: 'diff',
-    theme: 'github-dark',
-  }
-);
+const iOSPodfileCodeHtml = await codeToHtml(iOSPodfile, {
+  lang: 'diff',
+  theme: 'github-dark',
+});
 ---
 
 <section id="setup" class="py-20 border-b border-rnrGrey-80">
@@ -261,7 +261,7 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
           <button
             class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
             type="button"
-            data-copy-text={cngConfigInstructions}
+            data-copy-text={cngConfigInstructionsCopyText}
           >
             <Icon
               name="copy"
@@ -400,17 +400,14 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
       <p
         class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
       >
-        On iOS, add the RNRepo script at the top of your <span
+        On iOS, include the RNRepo script at the top of your <span
           class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
-          >Podfile</span
-        > and invoke <span
-          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
-          >rnrepo_post_install</span
-        > in the post-install hook:
+          >ios/Podfile</span
+        > and add the post-install hook
       </p>
       <div
         class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-4"
-        data-code={iOSPodfileRequire}
+        data-code={iOSPodfile}
       >
         <div
           class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
@@ -419,7 +416,7 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
           <button
             class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
             type="button"
-            data-copy-text={iOSPodfileRequireCopyText}
+            data-copy-text={iOSPodfileCopyText}
           >
             <Icon
               name="copy"
@@ -430,34 +427,7 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
           </button>
         </div>
         <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
-          <Fragment set:html={iOSPodfileRequireCodeHtml} />
-        </div>
-      </div>
-      <div
-        class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
-        data-code={iOSPodfilePostInstall}
-      >
-        <div
-          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
-        >
-          <span class="text-xs text-rnrGrey-50 font-mono">
-            ios/Podfile
-          </span>
-          <button
-            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
-            type="button"
-            data-copy-text={iOSPodfilePostInstallCopyText}
-          >
-            <Icon
-              name="copy"
-              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
-            />
-            <span class="copy-text">Copy</span>
-            <span class="copied-text">Copied!</span>
-          </button>
-        </div>
-        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
-          <Fragment set:html={iOSPodfilePostInstallCodeHtml} />
+          <Fragment set:html={iOSPodfileCodeHtml} />
         </div>
       </div>
     </div>
