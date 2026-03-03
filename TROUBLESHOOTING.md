@@ -20,8 +20,8 @@ You can create a `rnrepo.config.json` file in your React-Native root directory t
 ```json
 {
   "denyList": {
-    "android": ["react-native-reanimated", "react-native-svg"],
-    "ios": ["react-native-reanimated", "react-native-screens"]
+    "android": ["library-name-1", "library-name-2"],
+    "ios": ["library-name-3", "library-name-4"]
   }
 }
 ```
