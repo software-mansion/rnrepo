@@ -11,6 +11,13 @@ const cngInstallCodeHtml = await codeToHtml(cngInstallInstructions, {
   theme: 'github-dark',
 });
 
+const buildToolsInstallInstructions = `npm install @rnrepo/build-tools`;
+const buildToolsInstallCopyText = `npm install @rnrepo/build-tools`;
+const buildToolsInstallCodeHtml = await codeToHtml(buildToolsInstallInstructions, {
+  lang: 'shell',
+  theme: 'github-dark',
+});
+
 const cngConfigInstructions = `{
     "expo" {
         ...
@@ -153,15 +160,9 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
       />
       <input
         type="radio"
-        id="tab-android"
+        id="tab-standard"
         name="getting-started-tab"
-        class="tab-radio tab-radio-android"
-      />
-      <input
-        type="radio"
-        id="tab-ios"
-        name="getting-started-tab"
-        class="tab-radio tab-radio-ios"
+        class="tab-radio tab-radio-standard"
       />
       <div class="tab-container">
         <div class="sliding-background"></div>
@@ -171,16 +172,10 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
             >Expo Prebuild (Continuous Code Generation – CNG)</span
           >
         </label>
-        <label for="tab-android" class="tab-label tab-label-android">
-          <span class="md:hidden">Android</span>
+        <label for="tab-standard" class="tab-label tab-label-standard">
+          <span class="md:hidden">Standard React Native</span>
           <span class="hidden md:inline"
-            >Non-CNG Android</span
-          >
-        </label>
-        <label for="tab-ios" class="tab-label tab-label-ios">
-          <span class="md:hidden">iOS</span>
-          <span class="hidden md:inline"
-            >Non-CNG iOS</span
+            >Standard React Native / Other Expo Setups</span
           >
         </label>
       </div>
@@ -286,9 +281,39 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
         class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
       >
         For standard React Native setups or when using Expo but managing your
-        android folder by hand, you need to edit the following gradle files to
-        us RNRepo.
+        native folders by hand, you need to install build-tools package:
       </p>
+      <div
+        class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-4"
+        data-code={buildToolsInstallInstructions}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono"> terminal </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={buildToolsInstallCopyText}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={buildToolsInstallCodeHtml} />
+        </div>
+      </div>
+            <p
+        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        And then edit the following files to use RNRepo:
+
+        <h3 class="code-block-wrapper code-block-wrapper-standard text-lg font-semibold text-rnrGrey-0 mb-2">Android</h3>
       <p
         class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
       >
@@ -370,27 +395,27 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
         </div>
       </div>
 
-      {/* iOS Setup - Step 1 */}
+      {/* Standard iOS Instructions */}
+      <h3 class="code-block-wrapper code-block-wrapper-standard text-lg font-semibold text-rnrGrey-0 mb-2">iOS</h3>
       <p
-        class="code-block-wrapper code-block-wrapper-ios text-rnrGrey-40 leading-relaxed mb-4"
+        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
       >
-        For iOS projects using CocoaPods, you need to edit your <span
+        On iOS, add the RNRepo script at the top of your <span
           class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
           >Podfile</span
-        > to include RNRepo's CocoaPods plugin. Add the following require statement at the top of your Podfile (after other require statements):
+        > and invoke <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >rnrepo_post_install</span
+        > in the post-install hook:
       </p>
-
-      {/* Code Block 1: Podfile - Require */}
       <div
-        class="code-block-wrapper code-block-wrapper-ios border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-4"
         data-code={iOSPodfileRequire}
       >
         <div
           class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
         >
-          <span class="text-xs text-rnrGrey-50 font-mono">
-            ios/Podfile
-          </span>
+          <span class="text-xs text-rnrGrey-50 font-mono"> ios/Podfile </span>
           <button
             class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
             type="button"
@@ -408,20 +433,8 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
           <Fragment set:html={iOSPodfileRequireCodeHtml} />
         </div>
       </div>
-
-      {/* iOS Setup - Step 2 */}
-      <p
-        class="code-block-wrapper code-block-wrapper-ios text-rnrGrey-40 leading-relaxed mb-4"
-      >
-        Next, add the RNRepo post-install hook in your Podfile's <span
-          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
-          >post_install</span
-        > block:
-      </p>
-
-      {/* Code Block 2: Podfile - Post Install */}
       <div
-        class="code-block-wrapper code-block-wrapper-ios border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
         data-code={iOSPodfilePostInstall}
       >
         <div
@@ -496,7 +509,7 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 33.33%;
+    width: 50%;
     background-color: #38acdd;
     transition: transform 0.3s ease-in-out;
     z-index: 0;
@@ -505,7 +518,7 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
   .tab-label {
     position: relative;
     z-index: 10;
-    width: 33.33%;
+    width: 50%;
     height: 100%;
     display: flex;
     align-items: center;
@@ -539,29 +552,16 @@ const iOSPodfilePostInstallCodeHtml = await codeToHtml(
     display: block;
   }
 
-  /* When android tab is checked */
-  .tab-radio-android:checked ~ .tab-container .sliding-background {
+  /* When standard tab is checked */
+  .tab-radio-standard:checked ~ .tab-container .sliding-background {
     transform: translateX(100%);
   }
 
-  .tab-radio-android:checked ~ .tab-container .tab-label-android {
+  .tab-radio-standard:checked ~ .tab-container .tab-label-standard {
     color: black;
   }
 
-  .tab-radio-android:checked ~ .code-block-wrapper-standard {
-    display: block;
-  }
-
-  /* When ios tab is checked */
-  .tab-radio-ios:checked ~ .tab-container .sliding-background {
-    transform: translateX(200%);
-  }
-
-  .tab-radio-ios:checked ~ .tab-container .tab-label-ios {
-    color: black;
-  }
-
-  .tab-radio-ios:checked ~ .code-block-wrapper-ios {
+  .tab-radio-standard:checked ~ .code-block-wrapper-standard {
     display: block;
   }
 

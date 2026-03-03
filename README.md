@@ -66,7 +66,7 @@ For standard React Native setups or when using Expo but managing your native fol
 npm install @rnrepo/build-tools@latest
 ```
 
-and edit the following gradle files to use RNRepo:
+and edit the following files to use RNRepo:
 
 #### Android (Gradle)
 
