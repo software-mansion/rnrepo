@@ -84,6 +84,7 @@ class PrebuildsPlugin : Plugin<Project> {
             logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
 
             // Check what packages are in project and which are we supporting
+            addRNRepoRepository(project)
             getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(extension)
             determineSupportedPackages(project, extension)
@@ -172,6 +173,12 @@ class PrebuildsPlugin : Plugin<Project> {
                     }
                 }
             }
+        }
+    }
+
+    private fun addRNRepoRepository(project: Project) {
+        project.repositories.maven { repo ->
+            repo.url = project.uri("https://packages.rnrepo.org/releases")
         }
     }
 
