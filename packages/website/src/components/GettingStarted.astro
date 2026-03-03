@@ -98,11 +98,13 @@ target 'YourProjectName' do
   post_install do |installer|
     ...
 +   rnrepo_post_install(installer)
+  end
 end`;
 
-const iOSPodfileCopyText = `Pod::Executable.execute_command('node', ['-p', 'require.resolve("@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb", {paths: [process.argv[1]]})', __dir__]).strip \n...\ntarget 'YourProjectName' do
+const iOSPodfileCopyText = `require Pod::Executable.execute_command('node', ['-p', 'require.resolve("@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb", {paths: [process.argv[1]]})', __dir__]).strip \n...\ntarget 'YourProjectName' do
   post_install do |installer|
    rnrepo_post_install(installer)
+  end
 end`;
 
 const iOSPodfileCodeHtml = await codeToHtml(iOSPodfile, {
@@ -312,7 +314,7 @@ const iOSPodfileCodeHtml = await codeToHtml(iOSPodfile, {
         class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
       >
         And then edit the following files to use RNRepo:
-
+      </p>
         <h3 class="code-block-wrapper code-block-wrapper-standard text-lg font-semibold text-rnrGrey-0 mb-2">Android</h3>
       <p
         class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"

@@ -122,6 +122,7 @@ and edit the following files to use RNRepo:
      post_install do |installer|
        ...
    +   rnrepo_post_install(installer)
+     end
    end
    ```
 
