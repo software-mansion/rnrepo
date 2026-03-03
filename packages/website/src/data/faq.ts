@@ -54,9 +54,4 @@ export const faqItems: FAQItem[] = [
     answer:
       "Unfortunately, not all libraries can be pre-built. Some libraries have build-time flags or link via C++ headers with other libraries. In these cases, the build is tied to a specific app's environment and cannot be published as a universal pre-built package. These libraries will automatically fall back to building from source.",
   },
-  {
-    question: 'Is iOS supported?',
-    answer:
-      'iOS support is currently in development. We\'re actively working on bringing the same build speed improvements to iOS. Follow <a href="https://x.com/swmansion" target="_blank" rel="noopener noreferrer" class="text-brandSeaBlue-100 hover:underline">Software Mansion on X</a> to stay updated on our progress and be the first to know when iOS support launches.',
-  },
 ];
