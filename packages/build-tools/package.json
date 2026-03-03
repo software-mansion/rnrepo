@@ -19,7 +19,7 @@
   "files": [
     "cocoapods-plugin/",
     "gradle-plugin/README.md",
-    "gradle-plugin/build/libs/prebuilds-plugin-0.2.2.jar",
+    "gradle-plugin/build/libs/prebuilds-plugin-0.3.0.jar",
     "README.md"
   ],
   "keywords": [
