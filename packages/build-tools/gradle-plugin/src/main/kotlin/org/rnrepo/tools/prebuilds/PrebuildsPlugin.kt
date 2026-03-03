@@ -812,15 +812,10 @@ class PrebuildsPlugin : Plugin<Project> {
         dependentList.parallelStream().forEach { packageItem ->
             logger.info("Handling ${packageItem.npmName} package after others.")
             val elseClosure: () -> Unit = {
-                // Worklets and Reanimated works in release builds when worklets would not be substituted with aar.
-                if (getBuildType(project) == "release" && packageItem.name == "react-native-worklets") {
-                    supportedPackages.add(packageItem)
-                } else {
-                    logger.info(
-                        "${packageItem.npmName} has dependencies with C++ code, checking availability of dependent packages...",
-                    )
-                    checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages, extension.projectPackages)
-                }
+                logger.info(
+                    "${packageItem.npmName} has dependencies with C++ code, checking availability of dependent packages...",
+                )
+                checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages, extension.projectPackages)
             }
             checkIfPackageIsSupported(packageItem, project.repositories, extension, unavailablePackages, elseClosure)
         }
