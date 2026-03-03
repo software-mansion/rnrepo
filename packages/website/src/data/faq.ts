@@ -5,14 +5,9 @@ export interface FAQItem {
 
 export const faqItems: FAQItem[] = [
   {
-    question: 'What if I install RNRepo and run iOS build?',
-    answer:
-      'In the current version RNRepo only supports Android builds and does not interfere with the way iOS builds are performed. iOS builds will continue to build libraries from source as usual.',
-  },
-  {
     question: 'How do I verify that RNRepo is set up correctly?',
     answer:
-      'Check your Android build logs for entries with the "[📦 RNRepo]" tag. The plugin logs which libraries it detects in your project and specifically lists which ones are being substituted with pre-built artifacts from the repository. If you see these logs during your build, RNRepo is working correctly.',
+      'Check your build logs for entries with the "[📦 RNRepo]" tag. The plugin logs which libraries it detects in your project and specifically lists which ones are being substituted with pre-built artifacts from the repository. If you see these logs during your build, RNRepo is working correctly.',
   },
   {
     question: 'How do I opt out of RNRepo for specific libraries?',
@@ -58,10 +53,5 @@ export const faqItems: FAQItem[] = [
     question: 'Can you just pre-build everything?',
     answer:
       "Unfortunately, not all libraries can be pre-built. Some libraries have build-time flags or link via C++ headers with other libraries. In these cases, the build is tied to a specific app's environment and cannot be published as a universal pre-built package. These libraries will automatically fall back to building from source.",
-  },
-  {
-    question: 'Is iOS supported?',
-    answer:
-      'iOS support is currently in development. We\'re actively working on bringing the same build speed improvements to iOS. Follow <a href="https://x.com/swmansion" target="_blank" rel="noopener noreferrer" class="text-brandSeaBlue-100 hover:underline">Software Mansion on X</a> to stay updated on our progress and be the first to know when iOS support launches.',
   },
 ];
