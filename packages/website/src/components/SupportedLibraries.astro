@@ -58,6 +58,27 @@ const supportedLibraryNames = await getSupportedLibraryNames();
       </p>
     </div>
 
+    {/* Beta Disclaimer */}
+    <div
+      class="mb-6 p-4 bg-brandYellow-100/10 border border-brandYellow-100/30 rounded-sm flex gap-3 items-center"
+    >
+      <div class="flex-shrink-0">
+        <Info class="w-5 h-5 text-brandYellow-100" />
+      </div>
+      <div class="flex-1">
+        <p class="text-sm text-rnrGrey-30 leading-relaxed">
+          RNRepo is currently in
+          <strong class="text-brandYellow-100">Beta</strong>, please report any feedback or issues with your setup via our{' '}
+          <a
+            href="https://github.com/software-mansion/rnrepo"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-brandSeaBlue-100 hover:underline">GitHub</a
+          >.
+        </p>
+      </div>
+    </div>
+
     {/* React Native Versions Card */}
     <div
       class="rounded-lg border border-rnrGrey-80 bg-surface/40 px-4 py-6 mb-8"
@@ -346,26 +367,6 @@ const supportedLibraryNames = await getSupportedLibraryNames();
 
     {/* Footer Section */}
     <div class="mt-10 text-center space-y-6">
-      {/* Beta Disclaimer */}
-      <div
-        class="mb-6 p-4 bg-brandYellow-100/10 border border-brandYellow-100/30 rounded-sm flex gap-3 items-center"
-      >
-        <div class="flex-shrink-0">
-          <Info class="w-5 h-5 text-brandYellow-100" />
-        </div>
-        <div class="flex-1">
-          <p class="text-sm text-rnrGrey-30 leading-relaxed">
-            RNRepo is currently in
-            <strong class="text-brandYellow-100">Beta</strong>, please report any feedback or issues with your setup via our{' '}
-            <a
-              href="https://github.com/software-mansion/rnrepo"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-brandSeaBlue-100 hover:underline">GitHub</a
-            >.
-          </p>
-        </div>
-      </div>
 
       <a
         href="https://github.com/software-mansion/rnrepo/issues/new?template=library_support_request.yml"
@@ -818,7 +819,35 @@ const supportedLibraryNames = await getSupportedLibraryNames();
       const libraryName = row.dataset.libraryName?.toLowerCase() || '';
       const matchesVersion = rnVersion === activeVersion;
       const matchesSearch = !searchQuery || libraryName.includes(searchQuery);
-      const shouldShow = matchesVersion && matchesSearch;
+      
+      // Check if library has versions for the active platform
+      let hasVersionsForPlatform = false;
+      if (activePlatform === 'android') {
+        const androidVersions = row.querySelector('.android-versions-wrapper');
+        const androidEmpty = row.querySelector('.android-empty');
+        hasVersionsForPlatform = !!(androidVersions && !androidVersions.querySelector('.android-hidden'));
+        if (androidEmpty) {
+          hasVersionsForPlatform = false;
+        }
+      } else {
+        const iosVersions = row.querySelector('.ios-versions-wrapper');
+        const iosEmpty = row.querySelector('.ios-empty');
+        hasVersionsForPlatform = !!(iosVersions && !iosVersions.querySelector('.ios-hidden'));
+        if (iosEmpty) {
+          hasVersionsForPlatform = false;
+        }
+      }
+      
+      // Check if the row contains any version tags for the active platform
+      if (activePlatform === 'android') {
+        const androidVersionTags = row.querySelectorAll('.android-version:not(.android-hidden)');
+        hasVersionsForPlatform = androidVersionTags.length > 0;
+      } else {
+        const iosVersionTags = row.querySelectorAll('.ios-version:not(.ios-hidden)');
+        hasVersionsForPlatform = iosVersionTags.length > 0;
+      }
+      
+      const shouldShow = matchesVersion && matchesSearch && hasVersionsForPlatform;
 
       if (shouldShow) {
         row.style.display = '';
