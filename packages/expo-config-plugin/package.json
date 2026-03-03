@@ -40,7 +40,7 @@
     "expo-module-scripts": "^5.0.7"
   },
   "peerDependencies": {
-    "expo": "^54",
+    "expo": "*",
     "react": "*",
     "react-native": "*"
   },
