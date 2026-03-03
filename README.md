@@ -70,7 +70,7 @@ and edit the following files to use RNRepo:
 
 #### Android (Gradle)
 
-1. **Add the RNRepo Maven repository and plugin to `android/build.gradle`:**
+1. **Add the RNRepo plugin to `android/build.gradle`:**
 
    ```diff
    buildscript {
@@ -85,13 +85,6 @@ and edit the following files to use RNRepo:
    +   classpath fileTree(dir: "${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
      }
    }
-
-   allprojects {
-     repositories {
-       ...
-   +   maven { url "https://packages.rnrepo.org/releases" }
-     }
-   }
    ```
 
 2. **Apply the plugin in `android/app/build.gradle`:**
@@ -102,8 +95,6 @@ and edit the following files to use RNRepo:
    apply plugin: "com.facebook.react"
    + apply plugin: "org.rnrepo.tools.prebuilds-plugin"
    ```
-
-   ⚠️ **Important:** The plugin must be applied **after** defining repositories. If you're using a non-standard project structure (not following the `rootProject/android/app` layout), ensure that the `repositories` block is defined before the plugin is applied, otherwise the plugin won't be able to find the RNRepo Maven repository and all packages will fall back to building from source.
 
 #### iOS (CocoaPods)
 

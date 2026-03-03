@@ -39,15 +39,6 @@ buildscript {
 +     classpath fileTree(dir: "${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
    }
 }
-
-apply plugin: "com.facebook.react.rootproject"
-
-allprojects {
-  repositories {
-+    maven { url "https://packages.rnrepo.org/releases" }
-  }
-}
-
 ```
 
 Then, apply the plugin in your `android/app/build.gradle` file:
