@@ -420,17 +420,24 @@ def rnrepo_post_install(installer_context)
   # So when worklets are prebuilt, we need to add the modulesmaps to ExpoModulesCore target.
   installer_context.pods_project.targets.each do |target|
     if target.name == 'ExpoModulesCore'
+
+      worklets_dependency = installer_context.podfile.target_definition_list
+        .map { |t| t.dependencies.find { |d| d.name == 'RNWorklets' } }
+        .compact.first
+      worklets_root = File.expand_path(worklets_dependency.external_source[:path])
+      if worklets_root == nil
+        CocoapodsRnrepo::Logger.log "RNWorklets not found in podfile, add react-native-worklets to denyList."
+      end
+
       target.build_configurations.each do |config|
         
         # --- HEADER SEARCH PATHS ---
         header_search_paths = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
-        header_search_paths += ' "$(SRCROOT)/../../node_modules/react-native-worklets/Common/cpp/**"'
+        header_search_paths += " #{worklets_root}/Common/cpp/**"
         config.build_settings['HEADER_SEARCH_PATHS'] = header_search_paths
 
         # --- CUSTOM COMPILER FLAGS (C/C++) ---
-        #module_map_flag = '-fmodule-map-file="$(SRCROOT)/../../node_modules/react-native-worklets/.rnrepo-cache/Debug/RNWorklets.xcframework/ios-arm64_x86_64-simulator/RNWorklets.framework/Modules/module.modulemap"'
         module_map_flag = '-fmodule-map-file="$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/RNWorklets.framework/Modules/module.modulemap"'
-        
         other_cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
         other_cflags += ' ' + module_map_flag
         config.build_settings['OTHER_CFLAGS'] = other_cflags
