@@ -421,12 +421,14 @@ def rnrepo_post_install(installer_context)
   installer_context.pods_project.targets.each do |target|
     if target.name == 'ExpoModulesCore'
 
+      # Find Worklets package in node_modules
       worklets_dependency = installer_context.podfile.target_definition_list
         .map { |t| t.dependencies.find { |d| d.name == 'RNWorklets' } }
         .compact.first
       worklets_root = File.expand_path(worklets_dependency.external_source[:path])
       if worklets_root == nil
         CocoapodsRnrepo::Logger.log "RNWorklets not found in podfile, add react-native-worklets to denyList."
+        raise "RNWorklets not found in podfile, add react-native-worklets to denyList."
       end
 
       target.build_configurations.each do |config|
