@@ -428,7 +428,8 @@ def rnrepo_post_install(installer_context)
         config.build_settings['HEADER_SEARCH_PATHS'] = header_search_paths
 
         # --- CUSTOM COMPILER FLAGS (C/C++) ---
-        module_map_flag = '-fmodule-map-file="$(SRCROOT)/../../node_modules/react-native-worklets/.rnrepo-cache/Debug/RNWorklets.xcframework/ios-arm64_x86_64-simulator/RNWorklets.framework/Modules/module.modulemap"'
+        #module_map_flag = '-fmodule-map-file="$(SRCROOT)/../../node_modules/react-native-worklets/.rnrepo-cache/Debug/RNWorklets.xcframework/ios-arm64_x86_64-simulator/RNWorklets.framework/Modules/module.modulemap"'
+        module_map_flag = '-fmodule-map-file="$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/RNWorklets.framework/Modules/module.modulemap"'
         
         other_cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
         other_cflags += ' ' + module_map_flag
