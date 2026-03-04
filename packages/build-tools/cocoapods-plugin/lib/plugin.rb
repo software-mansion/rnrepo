@@ -423,19 +423,11 @@ def rnrepo_post_install(installer_context)
       target.build_configurations.each do |config|
         
         # --- HEADER SEARCH PATHS ---
-        # Add new paths while preserving existing ones
         header_search_paths = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
         header_search_paths += ' "$(SRCROOT)/../../node_modules/react-native-worklets/Common/cpp/**"'
-        # header_search_paths += ' "$(SRCROOT)/../node_modules/react-native-worklets/Common/cpp/**"'
         config.build_settings['HEADER_SEARCH_PATHS'] = header_search_paths
 
-        # # --- USER HEADER SEARCH PATHS ---
-        # user_search_paths = config.build_settings['USER_HEADER_SEARCH_PATHS'] || ['$(inherited)']
-        # user_search_paths << '"$(SRCROOT)/../../node_modules/react-native-worklets/Common/cpp"'
-        # config.build_settings['USER_HEADER_SEARCH_PATHS'] = user_search_paths
-
         # --- CUSTOM COMPILER FLAGS (C/C++) ---
-        # Note: Consider making this path relative to $(SRCROOT) if possible
         module_map_flag = '-fmodule-map-file="$(SRCROOT)/../../node_modules/react-native-worklets/.rnrepo-cache/Debug/RNWorklets.xcframework/ios-arm64_x86_64-simulator/RNWorklets.framework/Modules/module.modulemap"'
         
         other_cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
