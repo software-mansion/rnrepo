@@ -163,3 +163,54 @@ This typically means that:
 
 #### Solution
 Ensure that your `build.gradle` applies the RNRepo plugin **after** defining the RNRepo maven repository. This ensures the RNRepo Maven repository is available to all subprojects, including your app module, before the RNRepo plugin attempts to check package availability.
+
+### How to check if the plugin works?
+
+Run `npm run android` and observe the terminal output and build folders. Compare your results with the table below:
+
+| Step | Basic Build | RNRepo Build |
+| :--- | :--- | :--- |
+| **Gradle Preparation** | No specific logs. | RNRepo logs the supported packages, e.g. <br> `[📦 RNRepo] Found the following supported prebuilt packages:`<br> `📦 react-native-safe-area-context@5.7.0` |
+| **Build Phase** | Gradle prints compilation tasks:<br>`> Task :react-native-safe-area-context:compileDebugKotlin` | **No compilation tasks** for substituted RN packages. |
+
+#### Filesystem Impact
+Check the `android/build` folder for a specific package (inside node_modules):
+
+* **Basic build:** Contains full compilation artifacts in directories like `generated`, `intermediates`, `kotlin`, `outputs`, and `tmp`.
+* **RNRepo build:** Shows **only** the `generated` directory (containing codegen artifacts).
+
+---
+
+## iOS CocoaPods Plugin
+
+### How to check if the plugin works?
+
+Run building commands and monitor the terminal output:
+
+| Step | Basic Build | RNRepo Build |
+| :--- | :--- | :--- |
+| **Pod Installation** | Standard CocoaPods output. | RNRepo logs:<br>`[📦 RNRepo] Total React Native dependencies detected: 1`<br>`[📦 RNRepo] ⬇ Downloaded from Maven...`<br>`[📦 RNRepo] • react-native-safe-area-context`<br>`[📦 RNRepo] Added build phase to <package-name>` |
+| **Build Phase** | Xcode compiles all source files:<br>`▸ Compiling RNCSafeAreaContext.mm`<br>`▸ Building library libreact-native-safe-area-context.a` | Xcode compiles **only** JSI glue code:<br>`▸ Compiling safeareacontextJSI-generated.cpp`<br>`▸ Compiling safeareacontext-generated.mm` |
+
+#### Filesystem Impact
+
+* **Basic build:**
+    * Copies headers to `Pods/Headers/Public` and `Pods/Headers/Private`.
+    * Copies the built library to `Xcode/DerivedData`, e.g.:
+        ```bash
+        ls ~/Library/Developer/Xcode/DerivedData/<project-name>-<hash>/Build/Products/Debug-iphonesimulator/react-native-safe-area-context
+        
+        Output:
+        libreact-native-safe-area-context.a
+        ```
+* **RNRepo build:**
+    * Copies only JSI glue code to `Pods/<pod-name>/<architecture>/<pod-name>.framework`.
+    * Keeps the prebuilt framework in `XCFrameworkIntermediates`, e.g.:
+        ```bash
+        ls ~/Library/Developer/Xcode/DerivedData/<project-name>-<hash>/Build/Products/Debug-iphonesimulator/XCFrameworkIntermediates/react-native-safe-area-context
+        
+        Output:
+        common    react_native_safe_area_context.framework    fabric
+        ```
+
+---
