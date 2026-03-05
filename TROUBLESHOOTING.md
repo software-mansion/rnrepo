@@ -185,7 +185,7 @@ Check the `android/build` folder for a specific package (inside node_modules):
 
 ### How to check if the plugin works?
 
-Run `pod install` and monitor the compiler output:
+Run building commands and monitor the terminal output:
 
 | Step | Basic Build | RNRepo Build |
 | :--- | :--- | :--- |
