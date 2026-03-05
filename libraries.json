@@ -731,5 +731,14 @@
         "versionMatcher": ">=10.9"
       }
     ]
+  },
+  "@react-native-firebase/firestore": {
+    "postInstallScriptPath": "postInstallScripts/@react-native-firebase/firestore/react-native-firebase_firestore.ts",
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
   }
 }
