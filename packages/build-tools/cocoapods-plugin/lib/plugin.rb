@@ -427,29 +427,24 @@ def rnrepo_post_install(installer_context)
         .compact.first
       worklets_root = File.expand_path(worklets_dependency.external_source[:path])
       if worklets_root == nil
-        CocoapodsRnrepo::Logger.log "RNWorklets not found in podfile, add react-native-worklets to denyList."
         raise "RNWorklets not found in podfile, add react-native-worklets to denyList."
       end
+      module_map = "-fmodule-map-file=\"$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/RNWorklets.framework/Modules/module.modulemap\""
 
       target.build_configurations.each do |config|
         
         # --- HEADER SEARCH PATHS ---
-        header_search_paths = config.build_settings['HEADER_SEARCH_PATHS'] || '$(inherited)'
-        header_search_paths += " #{worklets_root}/Common/cpp/**"
-        config.build_settings['HEADER_SEARCH_PATHS'] = header_search_paths
+        build_settings = config.build_settings
+        build_settings['HEADER_SEARCH_PATHS'] ||= '$(inherited)'
+        build_settings['HEADER_SEARCH_PATHS'] += " #{worklets_root}/Common/cpp/**"
 
         # --- CUSTOM COMPILER FLAGS (C/C++) ---
-        module_map_flag = '-fmodule-map-file="$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/RNWorklets.framework/Modules/module.modulemap"'
-        other_cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
-        other_cflags += ' ' + module_map_flag
-        config.build_settings['OTHER_CFLAGS'] = other_cflags
+        build_settings['OTHER_CFLAGS'] ||= '$(inherited)'
+        build_settings['OTHER_CFLAGS'] += " #{module_map}"
 
         # --- OTHER SWIFT FLAGS ---
-        other_swift_flags = config.build_settings['OTHER_SWIFT_FLAGS'] || '$(inherited)'
-        other_swift_flags +=  ' -Xcc'
-        other_swift_flags += ' ' + module_map_flag
-        config.build_settings['OTHER_SWIFT_FLAGS'] = other_swift_flags
-
+        build_settings['OTHER_SWIFT_FLAGS'] ||= '$(inherited)'
+        build_settings['OTHER_SWIFT_FLAGS'] += " -Xcc #{module_map}"
       end
     end
   end
