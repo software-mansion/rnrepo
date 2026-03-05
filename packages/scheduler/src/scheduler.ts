@@ -15,16 +15,25 @@ export async function processLibrary(
   libraryName: string,
   config: LibraryConfig,
   limit?: number,
-  currentCount: number = 0
-): Promise<number> {
+  currentCount: number = 0,
+  iosLimit?: number,
+  currentIosCount: number = 0
+): Promise<{ total: number; ios: number }> {
   console.log(`\n📦 Processing: ${libraryName}`);
 
   const platforms: Platform[] = ['android', 'ios'];
   const rnVersions = reactNativeVersions as string[];
   let scheduledCount = currentCount;
+  let scheduledIosCount = currentIosCount;
 
   for (const platform of platforms) {
     if (config[platform] === false) continue;
+    
+    if (platform === 'ios' && iosLimit !== undefined && scheduledIosCount >= iosLimit) {
+      console.log(`   ⚠️  Skipping iOS - reached limit of ${iosLimit} iOS builds`);
+      continue;
+    }
+
     // Add empty config to run from global versions
     const configPlatformList = Array.isArray(config[platform])
       ? (config[platform] as PlatformConfigOptions[])
@@ -102,7 +111,14 @@ export async function processLibrary(
               console.log(
                 `\n⏸️  Reached scheduling limit of ${limit}. Stopping.`
               );
-              return scheduledCount;
+              return { total: scheduledCount, ios: scheduledIosCount };
+            }
+
+            if (platform === 'ios' && iosLimit !== undefined && scheduledIosCount >= iosLimit) {
+              console.log(
+                `\n⏸️  Reached iOS scheduling limit of ${iosLimit}. Skipping iOS build.`
+              );
+              continue;
             }
 
             // Schedule the build
@@ -146,6 +162,9 @@ export async function processLibrary(
             }
 
             scheduledCount++;
+            if (platform === 'ios') {
+              scheduledIosCount++;
+            }
           }
         }
       }
@@ -156,30 +175,35 @@ export async function processLibrary(
     console.log(' ℹ️  No builds to schedule for', libraryName);
   }
 
-  return scheduledCount;
+  return { total: scheduledCount, ios: scheduledIosCount };
 }
 
 export async function runScheduler(limit?: number) {
   const librariesConfig = libraries as Record<string, LibraryConfig>;
   let totalScheduled = 0;
+  let totalIosScheduled = 0;
+  const IOS_LIMIT = 50; // Max 50 iOS builds
 
   if (limit !== undefined) {
     console.log(`\n📊 Scheduling limit set to: ${limit}`);
   }
 
   for (const [libraryName, config] of Object.entries(librariesConfig)) {
-    const count = await processLibrary(
+    const counts = await processLibrary(
       libraryName,
       config,
       limit,
-      totalScheduled
+      totalScheduled,
+      IOS_LIMIT,
+      totalIosScheduled
     );
-    totalScheduled = count;
+    totalScheduled = counts.total;
+    totalIosScheduled = counts.ios;
 
     if (limit !== undefined && totalScheduled >= limit) {
       break;
     }
   }
 
-  console.log(`\n✅ Done! Scheduled ${totalScheduled} build(s).`);
+  console.log(`\n✅ Done! Scheduled ${totalScheduled} build(s) (${totalIosScheduled} iOS).`);
 }
