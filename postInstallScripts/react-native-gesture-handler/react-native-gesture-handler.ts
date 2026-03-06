@@ -1,13 +1,14 @@
 import { $ } from 'bun';
+import semver from 'semver';
 
 const COMPATIBILITY_MATRIX = [
   {
-    rn: ['0.80', '0.81', '0.82', '0.83', '0.84'],
+    rn: '>=0.80.0',
     reanimated: '4.2.2',
     worklets: '0.7.3'
   },
   {
-    rn: ['0.77', '0.78', '0.79'],
+    rn: '>=0.77.0 <=0.79.x',
     reanimated: '4.1.6', 
     worklets: '0.6.1'
   }
@@ -47,8 +48,7 @@ async function getPackageVersion(packageName: string): Promise<string> {
 }
 
 function getReanimatedAndWorkletsVersion(rnVersion: string): { reanimatedVersion: string; workletsVersion: string } {
-    const majorMinor = rnVersion.split('.').slice(0, 2).join('.');
-    const config = COMPATIBILITY_MATRIX.find(m => m.rn.includes(majorMinor));
+    const config = COMPATIBILITY_MATRIX.find(m => semver.satisfies(rnVersion, m.rn));
     if (!config) {
         throw new Error(`Unsupported React Native version: ${rnVersion}. Please check the compatibility matrix.`);
     }
