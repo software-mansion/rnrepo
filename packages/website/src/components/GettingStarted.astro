@@ -3,7 +3,9 @@ import Icon from './Icon.astro';
 import { Info } from 'lucide-astro';
 import { codeToHtml } from 'shiki';
 
-const cngInstallInstructions = `$ npx expo install @rnrepo/expo-config-plugin`;
+const cngInstallInstructions = `$ npx expo install @rnrepo/expo-config-plugin
+# If you have a hoisted setup, you might also need to install build-tools package:
+# npx expo install @rnrepo/build-tools`;
 const cngInstallInstructionsCopyText = `npx expo install @rnrepo/expo-config-plugin`;
 
 const cngInstallCodeHtml = await codeToHtml(cngInstallInstructions, {
