@@ -668,6 +668,37 @@ class PrebuildsPlugin : Plugin<Project> {
         return true
     }
 
+    private fun removeCppDependenciesFromSupportedPackages(
+        packageItem: PackageItem,
+        supportedPackages: MutableSet<PackageItem>,
+        unavailablePackages: MutableSet<PackageItem>,
+        allDependentPackageAreSupported: List<PackageItem> = emptyList(),
+    ) {
+        val dependentPackagePattern = PACKAGES_WITH_CPP[packageItem.name].orEmpty().joinToString("|") { it }
+        val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
+        val packagesToRemove =
+            supportedPackages.filter { supportedPackage ->
+                packagesToCheckRegex.any { regex ->
+                    regex.matches(supportedPackage.name)
+                }
+            }
+        supportedPackages.removeAll(packagesToRemove)
+        unavailablePackages.addAll(packagesToRemove)
+        val reason =
+            if (allDependentPackageAreSupported.isEmpty()) {
+                "${packageItem.npmName} is denied."
+            } else {
+                "Unavailable dependent packages found for ${packageItem.npmName} matching pattern '$dependentPackagePattern': ${printList(
+                    allDependentPackageAreSupported,
+                )}"
+            }
+        logger.lifecycle(
+            "$reason\nRemoving packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages: ${printList(
+                packagesToRemove,
+            )}",
+        )
+    }
+
     private fun checkDependenciesLocal(
         packageItem: PackageItem,
         project: Project,
@@ -694,21 +725,11 @@ class PrebuildsPlugin : Plugin<Project> {
                     .filterNot { dep -> supportedPackages.any { it.name == dep.name } }
             if (allDependentPackageAreSupported.isNotEmpty()) {
                 unavailablePackages.add(packageItem)
-                val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
-                val packagesToRemove =
-                    supportedPackages.filter { supportedPackage ->
-                        packagesToCheckRegex.any { regex ->
-                            regex.matches(supportedPackage.name)
-                        }
-                    }
-                supportedPackages.removeAll(packagesToRemove)
-                unavailablePackages.addAll(packagesToRemove)
-                logger.lifecycle(
-                    "Unavailable dependent packages found for ${packageItem.npmName} matching pattern '$dependentPackagePattern':" +
-                        "${printList(allDependentPackageAreSupported)}\n" +
-                        "Removing packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages:${printList(
-                            packagesToRemove,
-                        )}",
+                removeCppDependenciesFromSupportedPackages(
+                    packageItem,
+                    supportedPackages,
+                    unavailablePackages,
+                    allDependentPackageAreSupported,
                 )
                 return
             }
@@ -756,10 +777,19 @@ class PrebuildsPlugin : Plugin<Project> {
         repositories: RepositoryHandler,
         extension: PackagesManager,
         unavailablePackages: MutableSet<PackageItem>,
+        supportedPackages: MutableSet<PackageItem>,
         elseClosure: () -> Unit,
     ) {
         when {
-            !isPackageNotDenied(packageItem.name, extension) -> return
+            !isPackageNotDenied(
+                packageItem.name,
+                extension,
+            ) ->
+                removeCppDependenciesFromSupportedPackages(
+                    packageItem,
+                    supportedPackages,
+                    unavailablePackages,
+                )
             !isSpecificCheckPassed(packageItem, extension) -> return
             !isPackageAvailable(packageItem, extension.reactNativeVersion, repositories) -> unavailablePackages.add(packageItem)
             else -> elseClosure()
@@ -806,6 +836,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 project.repositories,
                 extension,
                 unavailablePackages,
+                supportedPackages,
                 { supportedPackages.add(packageItem) },
             )
         }
@@ -817,11 +848,11 @@ class PrebuildsPlugin : Plugin<Project> {
                 )
                 checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages, extension.projectPackages)
             }
-            checkIfPackageIsSupported(packageItem, project.repositories, extension, unavailablePackages, elseClosure)
+            checkIfPackageIsSupported(packageItem, project.repositories, extension, unavailablePackages, supportedPackages, elseClosure)
         }
 
         extension.supportedPackages = supportedPackages
         logger.lifecycle("Found the following supported prebuilt packages:${printList(extension.supportedPackages, "📦")}")
-        logger.lifecycle("Packages not available – fallback to building from sources:${printList(unavailablePackages, "❓")}")
+        logger.lifecycle("Packages that fallback to building from sources:${printList(unavailablePackages, "❓")}")
     }
 }
