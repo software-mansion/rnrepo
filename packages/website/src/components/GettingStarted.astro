@@ -3,7 +3,9 @@ import Icon from './Icon.astro';
 import { Info } from 'lucide-astro';
 import { codeToHtml } from 'shiki';
 
-const cngInstallInstructions = `$ npx expo install @rnrepo/expo-config-plugin`;
+const cngInstallInstructions = `$ npx expo install @rnrepo/expo-config-plugin
+# If you have a hoisted setup, you might also need to install build-tools package:
+# npx expo install @rnrepo/build-tools`;
 const cngInstallInstructionsCopyText = `npx expo install @rnrepo/expo-config-plugin`;
 
 const cngInstallCodeHtml = await codeToHtml(cngInstallInstructions, {
@@ -228,14 +230,6 @@ const iOSPodfileCodeHtml = await codeToHtml(iOSPodfile, {
           <Fragment set:html={cngInstallCodeHtml} />
         </div>
       </div>
-      <p
-        class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
-      >
-      In hoisted node_modules you might have to install the <span
-          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
-          >@rnrepo/build-tools</span
-        > manually.
-      </p>
 
       {/* Expo Setup - Step 2 */}
       <p

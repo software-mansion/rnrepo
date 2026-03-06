@@ -42,8 +42,11 @@ If you are using Expo Continuous Code Generation (CNG) setup (generating your na
    ```bash
    npx expo install @rnrepo/expo-config-plugin
    ```
-   
-   > Note: In hoisted node_modules you might have to install the `@rnrepo/build-tools` manually
+
+   > Note: In hoisted node_modules you might have to install the `@rnrepo/build-tools` manually with:
+   > ```
+   > npx expo install @rnrepo/> build-tools@latest
+   > ```
 
 2. **Add the plugin to your `app.config.ts` file** (`app.json` or `app.config.js` depending on your setup):
 
