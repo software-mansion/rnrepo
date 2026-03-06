@@ -40,14 +40,13 @@ buildscript {
    }
 }
 
-apply plugin: "com.facebook.react.rootproject"
-
 allprojects {
   repositories {
 +    maven { url "https://packages.rnrepo.org/releases" }
   }
 }
 
+apply plugin: "com.facebook.react.rootproject"
 ```
 
 Then, apply the plugin in your `android/app/build.gradle` file:
