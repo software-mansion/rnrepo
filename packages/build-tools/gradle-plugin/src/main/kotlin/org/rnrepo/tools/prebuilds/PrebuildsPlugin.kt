@@ -664,6 +664,18 @@ class PrebuildsPlugin : Plugin<Project> {
                     return false
                 }
             }
+            "react-native-worklets" -> {
+                // In expo@55 and later, react-native-worklets is a dependency of expo, with hardcoded libworklets.so path in cmake file.
+                // https://github.com/expo/expo/blob/b887d67bbe061ac1f75ebcd9d018218868600822/packages/expo-modules-core/android/cmake/main.cmake#L83
+                // So until that will be resolved in expo, we need to deny substitution for react-native-worklets if expo@55 is present in the project.
+                val isExpo55OrLaterPresent = extension.projectPackages.any { it.name.startsWith("expo") && it.version.startsWith("55.") }
+                if (isExpo55OrLaterPresent) {
+                    logger.info(
+                        "react-native-worklets: Expo 55 or later found in project, which has react-native-worklets as a dependency with hardcoded native library path, using react-native-worklets from sources.",
+                    )
+                    return false
+                }
+            }
         }
         return true
     }
@@ -674,6 +686,9 @@ class PrebuildsPlugin : Plugin<Project> {
         unavailablePackages: MutableSet<PackageItem>,
         allDependentPackageAreSupported: List<PackageItem> = emptyList(),
     ) {
+        if (PACKAGES_WITH_CPP[packageItem.name].isNullOrEmpty()) {
+            return
+        }
         val dependentPackagePattern = PACKAGES_WITH_CPP[packageItem.name].orEmpty().joinToString("|") { it }
         val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
         val packagesToRemove =
@@ -686,7 +701,7 @@ class PrebuildsPlugin : Plugin<Project> {
         unavailablePackages.addAll(packagesToRemove)
         val reason =
             if (allDependentPackageAreSupported.isEmpty()) {
-                "${packageItem.npmName} is denied."
+                "${packageItem.npmName} is denied or unavailable."
             } else {
                 "Unavailable dependent packages found for ${packageItem.npmName} matching pattern '$dependentPackagePattern': ${printList(
                     allDependentPackageAreSupported,
@@ -780,18 +795,21 @@ class PrebuildsPlugin : Plugin<Project> {
         supportedPackages: MutableSet<PackageItem>,
         elseClosure: () -> Unit,
     ) {
+        val isDenied = !isPackageNotDenied(packageItem.name, extension)
+        val checkFailed = !isSpecificCheckPassed(packageItem, extension)
+        val isUnavailable = !isPackageAvailable(packageItem, extension.reactNativeVersion, repositories)
+
         when {
-            !isPackageNotDenied(
-                packageItem.name,
-                extension,
-            ) ->
+            isDenied || checkFailed || isUnavailable -> {
+                if (isUnavailable) {
+                    unavailablePackages.add(packageItem)
+                }
                 removeCppDependenciesFromSupportedPackages(
                     packageItem,
                     supportedPackages,
                     unavailablePackages,
                 )
-            !isSpecificCheckPassed(packageItem, extension) -> return
-            !isPackageAvailable(packageItem, extension.reactNativeVersion, repositories) -> unavailablePackages.add(packageItem)
+            }
             else -> elseClosure()
         }
     }
