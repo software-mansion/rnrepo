@@ -46,13 +46,6 @@ const standardBuildGradleChange = `buildscript {
 +   ).getParentFile().absolutePath
 +   classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
   }
-}
-
-allprojects {
-  repositories {
-    ...
-+   maven { url "https://packages.rnrepo.org/releases" }
-  }
 }`;
 const standardBuildGradleChangesCopyText = `def rnrepoDir = new File(
   providers.exec {
@@ -60,9 +53,7 @@ const standardBuildGradleChangesCopyText = `def rnrepoDir = new File(
     commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
   }.standardOutput.asText.get().trim()
 ).getParentFile().absolutePath
-classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
-...
-maven { url "https://packages.rnrepo.org/releases" }`;
+classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])`;
 
 const standardBuildGradleChangesCodeHtml = await codeToHtml(
   standardBuildGradleChange,
