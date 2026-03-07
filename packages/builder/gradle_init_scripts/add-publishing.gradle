@@ -23,11 +23,143 @@ allprojects { project ->
     }
 }
 
+def createExtractCodegenBinariesTask(libraryProject, codegenName, buildType) {
+    return libraryProject.tasks.register("extractCodegenBinaries${buildType.capitalize()}") {
+        onlyIf { codegenName != null }
+        doLast {
+            def appCxxDir = file("${libraryProject.rootProject.projectDir}/app/.cxx")
+            def archs = ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
+            def moduleFolder = "${codegenName}_autolinked_build"
+            archs.each { arch ->
+                // Find any .a file for this arch (will be whatever was just built)
+                def staticLib = fileTree(dir: appCxxDir, include: "**/$moduleFolder/**/libreact_codegen_${codegenName}.a")
+                    .find { it.path.contains(arch) }
+                if (staticLib) {
+                    def destDir = file("${libraryProject.projectDir}/src/main/assets/${buildType}/$arch")
+                    destDir.mkdirs()
+                    copy { from staticLib; into destDir }
+                    println "📦 Copied ${buildType} codegen library for $arch from ${staticLib.path}"
+                } else {
+                    println "⚠️  Warning: Codegen library not found for $arch in ${appCxxDir.absolutePath}"
+                }
+            }
+            // Metadata for the consumer (only for release to avoid duplication)
+            if (buildType == "release") {
+                def metaDir = file("${libraryProject.projectDir}/src/main/assets/meta")
+                metaDir.mkdirs()
+                file("${metaDir}/codegen_name.txt").text = codegenName
+            }
+        }
+    }
+}
+
+def configureCodegenTasks(project) {
+    // Codegen name is passed from build-library-android.ts when building codegen version
+    def codegenName = project.hasProperty('rnrepoCodegenName') 
+        ? project.property('rnrepoCodegenName') 
+        : null
+
+    // Create extract tasks for both debug and release
+    def extractDebugTask = createExtractCodegenBinariesTask(project, codegenName, "debug")
+    def extractReleaseTask = createExtractCodegenBinariesTask(project, codegenName, "release")
+
+    // Task to package headers - must run after codegen generation
+    def packageHeadersTask = project.tasks.register("packageCppHeaders") {
+        onlyIf { codegenName != null }
+        
+        // Only add dependency if generateCodegenArtifactsFromSchema task exists
+        def codegenTask = project.tasks.findByName('generateCodegenArtifactsFromSchema')
+        if (codegenTask != null) {
+            dependsOn(codegenTask)
+        }
+        
+        doLast {
+            def headersDestDir = file("${project.projectDir}/src/main/assets/headers")
+            headersDestDir.mkdirs()
+
+            def headerSources = [
+                // Codegen generated headers
+                file("${project.buildDir}/generated/source/codegen/jni"),
+                
+                // JNI headers specific to Android
+                file("${project.projectDir}/src/main/jni"),
+                
+                // Common locations for Shared C++ (relative to 'android' folder)
+                file("${project.projectDir}/../cpp"),
+                file("${project.projectDir}/../common/cpp"),
+                file("${project.projectDir}/../Common/cpp"),
+                file("${project.projectDir}/../shared")
+            ]
+
+            headerSources.each { source ->
+                if (source.exists()) {
+                    println "🔍 Collecting headers from: ${source.absolutePath}"
+                    project.copy {
+                        from source
+                        into headersDestDir
+                        include "**/*.h"
+                        // Preserve folder structure relative to 'source'
+                    }
+                }
+            }
+
+            // Failsafe: Check if anything was copied
+            if (headersDestDir.list()?.length > 0) {
+                println "📦 Successfully packaged all headers to assets/headers"
+            } else {
+                println "❌ Error: No headers found in any of the source directories!"
+            }
+        }
+    }
+
+    // Hook extract tasks to app's assemble tasks
+    project.rootProject.subprojects.each { subproject ->
+        if (subproject.name == 'app') {
+            def assembleDebugTask = subproject.tasks.findByName('assembleDebug')
+            if (assembleDebugTask) {
+                assembleDebugTask.finalizedBy(extractDebugTask)
+                println "🔗 Linked extractCodegenBinariesDebug to app's assembleDebug"
+            }
+            
+            def assembleReleaseTask = subproject.tasks.findByName('assembleRelease')
+            if (assembleReleaseTask) {
+                assembleReleaseTask.finalizedBy(extractReleaseTask)
+                println "🔗 Linked extractCodegenBinariesRelease to app's assembleRelease"
+            }
+        }
+    }
+
+    // Hook into mergeReleaseAssets to ensure headers are copied before AGP scans assets
+    def mergeAssetsTask = project.tasks.findByName('mergeReleaseAssets')
+    if (mergeAssetsTask) {
+        mergeAssetsTask.dependsOn(packageHeadersTask)
+    }
+
+    try {
+        if (project.hasProperty('android')) {
+            def android = project.android
+            
+            android.sourceSets.main {
+                assets.srcDirs += ["src/main/assets"]
+            }
+        }
+    } catch (Exception e) {
+        println "Warning: Could not configure Android settings for ${project.name}: ${e.message}"
+    }
+
+    return [codegenName: codegenName, packageHeadersTask: packageHeadersTask]
+}
+
 gradle.projectsEvaluated {
     allprojects { project ->
 
         // Target only Android library modules
         if (project.plugins.hasPlugin("com.android.library")) {
+            
+            def codegenConfig = configureCodegenTasks(project)
+            def codegenName = codegenConfig.codegenName
+            def packageHeadersTask = codegenConfig.packageHeadersTask
+
             // Configure maven-publish publications
             // components.release should now be available after singleVariant is configured
             try {
@@ -45,8 +177,10 @@ gradle.projectsEvaluated {
                             artifacts.removeAll { it.classifier == null }
                             def aarTask = project.tasks.findByName('bundleReleaseAar')
                             if (aarTask) {
+                                def baseClassifier = project.findProperty('rnrepoClassifier') ?: ''
+                                def finalClassifier = codegenName ? "${baseClassifier}-codegen" : baseClassifier
                                 artifact(aarTask.outputs.files.singleFile) {
-                                    classifier = project.findProperty('rnrepoClassifier')
+                                    classifier = finalClassifier
                                     extension = 'aar'
                                 }
                             }
