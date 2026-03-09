@@ -1,5 +1,16 @@
 require 'cocoapods'
 require 'json'
+
+# Ensure 'rubyzip' gem is available (provides 'zip' module used by downloader.rb).
+# Since this plugin is distributed via npm, Ruby gem dependencies are not auto-resolved.
+begin
+  require 'zip'
+rescue LoadError
+  system('gem install rubyzip --no-document') || raise("Failed to install 'rubyzip' gem. Please install it manually: gem install rubyzip")
+  Gem.clear_paths
+  require 'zip'
+end
+
 require_relative 'logger'
 require_relative 'pod_extractor'
 require_relative 'downloader'
