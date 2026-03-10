@@ -2,13 +2,16 @@ require 'cocoapods'
 require 'json'
 
 # Ensure 'rubyzip' gem is available (provides 'zip' module used by downloader.rb).
-# Since this plugin is distributed via npm, Ruby gem dependencies are not auto-resolved.
+# Other dependencies are standard Ruby libraries or part of CocoaPods ('json', 'fileutils', 'uri', 'net/http').
 begin
   require 'zip'
 rescue LoadError
-  system('gem install rubyzip --no-document') || raise("Failed to install 'rubyzip' gem. Please install it manually: gem install rubyzip")
-  Gem.clear_paths
-  require 'zip'
+  install_command = if defined?(Bundler)
+                      "Please add `gem 'rubyzip', '~> 2.0'` to your Gemfile and run `bundle install`"
+                    else
+                      "Please install it by running `gem install rubyzip -v '~> 2.0'`"
+                    end
+  raise "The 'rubyzip' gem in 2.x version is required but not available.\n#{install_command}"
 end
 
 require_relative 'logger'
