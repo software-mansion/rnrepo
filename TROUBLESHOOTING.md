@@ -196,8 +196,8 @@ Downgrade rubyzip to version 2.x:
 
 ```bash
 gem uninstall rubyzip
-gem install rubyzip -v 2.3.2
-# or change gemfile version, if you are using bundler
+gem install rubyzip -v '~> 2.0'
+# Or change your Gemfile to include gem 'rubyzip', '~> 2.0', if you are using bundler
 ```
 
 After installing the correct version, clean your build and rebuild:

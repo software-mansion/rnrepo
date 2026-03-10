@@ -137,7 +137,8 @@ and edit the following files to use RNRepo:
 
 ```bash
 gem uninstall rubyzip
-gem install rubyzip -v 2.3.2
+gem install rubyzip -v '~> 2.0'
+# Or change your Gemfile to include gem 'rubyzip', '~> 2.0', if you are using bundler
 ```
 
 That's it! Now build your app as usual and RNRepo will pull prebuilt artifacts from `packages.rnrepo.org` whenever a library + RN version pair is available. If a dependency is missing, RNRepo gracefully falls back to building from source.
