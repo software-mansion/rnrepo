@@ -36,10 +36,25 @@ jobs:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use latest stable Xcode
+      - name: xcode-select
+        id: version
+        shell: sh
+        run: |
+          version=$(cat .xcode-version)
+          echo "Setting Xcode version to: $version"
+          echo "xcode-version=$version" >> $GITHUB_OUTPUT
+
+      - name: Setup Xcode from .xcode-version
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.1'
+          xcode-version: ${{ steps.version.outputs.xcode-version }}
+
+      - name: Print Xcode version
+        shell: sh
+        run: |
+          xcode-select -print-path
+          xcodebuild -version
+          swift -version
       
       - name: Install Ruby gems
         run: gem install cocoapods -v 1.15.2
