@@ -183,6 +183,40 @@ Check the `android/build` folder for a specific package (inside node_modules):
 
 ## iOS CocoaPods Plugin
 
+### Empty .rnrepo-cache Directories
+
+#### Problem Description
+When building your iOS app with RNRepo, you might notice that the `.rnrepo-cache/` directory inside your `node_modules/<library>/` only contains directories with no files inside them, just nested empty folders.
+
+#### Cause
+This issue is typically caused by having **rubyzip gem version 3.x or higher** installed, while RNRepo requires **version 2.x**.
+
+#### Solution
+Downgrade rubyzip to version 2.x:
+
+```bash
+gem uninstall rubyzip
+gem install rubyzip -v 2.3.2
+# or change gemfile version, if you are using bundler
+```
+
+After installing the correct version, clean your build and rebuild:
+
+```bash
+rm -rf ios/Pods ios/Podfile.lock node_modules/.rnrepo-cache
+pod install
+```
+
+You can verify the correct gem version is installed with:
+
+```bash
+gem list rubyzip
+# Should output:
+# rubyzip (2.<MINOR>.<PATCH>)
+```
+
+---
+
 ### How to check if the plugin works?
 
 Run building commands and monitor the terminal output:
