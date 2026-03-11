@@ -20,6 +20,7 @@
     "cocoapods-plugin/",
     "gradle-plugin/README.md",
     "gradle-plugin/build/libs/prebuilds-plugin-0.3.0.jar",
+    "CHANGELOG.md",
     "README.md"
   ],
   "keywords": [
