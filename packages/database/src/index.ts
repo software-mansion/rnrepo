@@ -43,7 +43,7 @@ export async function isBuildAlreadyScheduled(
   }
   const supabase = getSupabaseClient();
 
-  let query = supabase
+  const query = supabase
     .from('builds')
     .select('package_name, version, rn_version, platform, worklets_version')
     .eq('package_name', packageName)
