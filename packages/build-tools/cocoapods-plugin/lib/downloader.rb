@@ -1,6 +1,5 @@
 require 'net/http'
 require 'uri'
-require 'fileutils'
 
 module CocoapodsRnrepo
   class Downloader
