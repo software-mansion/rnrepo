@@ -21,6 +21,10 @@ export function getSupabaseClient(): SupabaseClient {
   return createClient(supabaseUrl, supabaseKey);
 }
 
+const DatabaseCache = {
+  alreadyScheduledCache: new Map<string, boolean>(),
+};
+
 /**
  * Checks if a build record exists with retry=false.
  * Returns true if such a record exists (skip scheduling).
@@ -33,26 +37,27 @@ export async function isBuildAlreadyScheduled(
   platform: Platform,
   workletsVersion?: string | null
 ): Promise<boolean> {
+  const cacheKey = `${packageName}-${version}-${rnVersion}-${platform}-${workletsVersion || 'null'}`;
+  if (DatabaseCache.alreadyScheduledCache.has(cacheKey) && DatabaseCache.alreadyScheduledCache.get(cacheKey) !== null) {
+    return DatabaseCache.alreadyScheduledCache.get(cacheKey)!;
+  }
   const supabase = getSupabaseClient();
 
   let query = supabase
     .from('builds')
-    .select('id')
+    .select('package_name, version, rn_version, platform, worklets_version')
     .eq('package_name', packageName)
-    .eq('version', version)
-    .eq('rn_version', rnVersion)
-    .eq('platform', platform)
     .eq('retry', false);
 
-  // Filter by worklets_version if provided, otherwise check for NULL
-  if (workletsVersion) {
-    query = query.eq('worklets_version', workletsVersion);
-  } else {
-    // If workletsVersion is undefined, filter for NULL to match the unique constraint behavior
-    query = query.is('worklets_version', null);
-  }
+  const { data, error } = await query;
+  data?.forEach((record) => {
+    DatabaseCache.alreadyScheduledCache.set(
+      `${record.package_name}-${record.version}-${record.rn_version}-${record.platform}-${record.worklets_version}`,
+      true
+    );
+  });
 
-  const { data, error } = await query.limit(1).maybeSingle();
+  return DatabaseCache.alreadyScheduledCache.get(cacheKey)!;
 
   if (error) {
     console.error(
@@ -62,10 +67,6 @@ export async function isBuildAlreadyScheduled(
     // On error, assume not scheduled to avoid blocking builds
     return false;
   }
-
-  // If a record exists with retry=false, skip scheduling
-  // If no such record exists (either no record or record with retry=true), allow scheduling
-  return data !== null;
 }
 
 /**
