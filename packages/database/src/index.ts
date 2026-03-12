@@ -26,6 +26,11 @@ const DatabaseCache = {
   currentPackageCache: null as string | null,
 };
 
+function databaseCacheClear() {
+  DatabaseCache.alreadyScheduledCache.clear();
+  DatabaseCache.currentPackageCache = null;
+}
+
 /**
  * Checks if a build record exists with retry=false.
  * Returns true if such a record exists (skip scheduling).
@@ -40,8 +45,11 @@ export async function isBuildAlreadyScheduled(
 ): Promise<boolean> {
   const cacheKey = `${packageName}-${version}-${rnVersion}-${platform}-${workletsVersion || 'null'}`;
   if (DatabaseCache.alreadyScheduledCache.has(cacheKey)) {
+    // if key is in cache then build was already scheduled
     return true;
   } else if (DatabaseCache.currentPackageCache === packageName) {
+    // if current package cache is the same as the package name, 
+    // and key is not in cache, then build was not scheduled
     return false;
   }
   const supabase = getSupabaseClient();
@@ -62,12 +70,13 @@ export async function isBuildAlreadyScheduled(
       error
     );
     // Clear cache on error to force re-fetch on next call
-    DatabaseCache.alreadyScheduledCache.clear();
-    DatabaseCache.currentPackageCache = null;
+    databaseCacheClear();
     // On error, assume not scheduled to avoid blocking builds
     return false;
   }
 
+  // Clear cache and add all records to cache
+  databaseCacheClear();
   DatabaseCache.currentPackageCache = packageName;
   data?.forEach((record) => {
     DatabaseCache.alreadyScheduledCache.add(
