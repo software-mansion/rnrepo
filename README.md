@@ -48,8 +48,6 @@ If you are using Expo Continuous Code Generation (CNG) setup (generating your na
    > npx expo install @rnrepo/build-tools
    > ```
 
-   > Note: RNRepo requires **rubyzip gem 2.x**. If your system has rubyzip 3.x or later installed, you must downgrade it.
-
 2. **Add the plugin to your `app.config.ts` file** (`app.json` or `app.config.js` depending on your setup):
 
    ```diff
@@ -132,14 +130,6 @@ and edit the following files to use RNRepo:
      end
    end
    ```
-
-**Important:** The RNRepo plugin requires **rubyzip gem 2.x**. If your system has rubyzip 3.x or later installed, you must downgrade it:
-
-```bash
-gem uninstall rubyzip
-gem install rubyzip -v '~> 2.0'
-# Or change your Gemfile to include gem 'rubyzip', '~> 2.0', if you are using bundler
-```
 
 That's it! Now build your app as usual and RNRepo will pull prebuilt artifacts from `packages.rnrepo.org` whenever a library + RN version pair is available. If a dependency is missing, RNRepo gracefully falls back to building from source.
 

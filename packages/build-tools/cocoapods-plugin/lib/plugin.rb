@@ -1,21 +1,5 @@
 require 'cocoapods'
 require 'json'
-
-# Ensure 'rubyzip' gem is available (provides 'zip' module used by downloader.rb).
-# Other dependencies are standard Ruby libraries or part of CocoaPods ('json', 'fileutils', 'uri', 'net/http').
-begin
-  require 'zip'
-  spec = Gem.loaded_specs['rubyzip']
-  if spec && spec.version.segments.first != 2
-    raise "The 'rubyzip' gem version #{spec.version} is loaded."
-  end
-rescue LoadError, StandardError => e
-  cmd = defined?(Bundler) ? 
-    "Add `gem 'rubyzip', '~> 2.0'` to your Gemfile and run `bundle install`" : 
-    "Run `gem install rubyzip -v '~> 2.0'`"
-  raise "#{e.message}\n'rubyzip' 2.x is required by RNRepo. To fix: #{cmd}"
-end
-
 require_relative 'logger'
 require_relative 'pod_extractor'
 require_relative 'downloader'

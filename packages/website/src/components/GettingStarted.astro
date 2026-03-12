@@ -113,15 +113,6 @@ const iOSPodfileCodeHtml = await codeToHtml(iOSPodfile, {
   lang: 'diff',
   theme: 'github-dark',
 });
-
-const iOSRubyzipInstallation = `gem install rubyzip -v '~> 2.0'
-# if you are using bundler, add this line to your Gemfile:
-# gem 'rubyzip', '~> 2.0'`;
-const iOSRubyzipInstallationCopyText = `gem install rubyzip -v '~> 2.0'`;
-const iOSRubyzipInstallationCodeHtml = await codeToHtml(iOSRubyzipInstallation, {
-  lang: 'shell',
-  theme: 'github-dark',
-});
 ---
 
 <section id="setup" class="py-20 border-b border-rnrGrey-80">
@@ -289,41 +280,6 @@ const iOSRubyzipInstallationCodeHtml = await codeToHtml(iOSRubyzipInstallation, 
         </div>
       </div>
 
-      {/* Expo iOS rubyzip requirement */}
-      <p
-        class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
-      >
-        If you plan to build for iOS, ensure you have <span
-          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
-          >rubyzip</span
-        > gem version 2.x installed:
-      </p>
-      <div
-        class="code-block-wrapper code-block-wrapper-expo border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
-        data-code={iOSRubyzipInstallation}
-      >
-        <div
-          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
-        >
-          <span class="text-xs text-rnrGrey-50 font-mono"> terminal </span>
-          <button
-            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
-            type="button"
-            data-copy-text={iOSRubyzipInstallationCopyText}
-          >
-            <Icon
-              name="copy"
-              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
-            />
-            <span class="copy-text">Copy</span>
-            <span class="copied-text">Copied!</span>
-          </button>
-        </div>
-        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
-          <Fragment set:html={iOSRubyzipInstallationCodeHtml} />
-        </div>
-      </div>
-
       {/* Standard Setup - Step 1 */}
       <p
         class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
@@ -448,40 +404,7 @@ const iOSRubyzipInstallationCodeHtml = await codeToHtml(iOSRubyzipInstallation, 
       <p
         class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
       >
-        First, ensure you have <span
-          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
-          >rubyzip</span
-        > gem version 2.x installed:
-      </p>
-      <div
-        class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-4"
-        data-code={iOSRubyzipInstallation}
-      >
-        <div
-          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
-        >
-          <span class="text-xs text-rnrGrey-50 font-mono"> terminal </span>
-          <button
-            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
-            type="button"
-            data-copy-text={iOSRubyzipInstallationCopyText}
-          >
-            <Icon
-              name="copy"
-              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
-            />
-            <span class="copy-text">Copy</span>
-            <span class="copied-text">Copied!</span>
-          </button>
-        </div>
-        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
-          <Fragment set:html={iOSRubyzipInstallationCodeHtml} />
-        </div>
-      </div>
-      <p
-        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
-      >
-        Then, include the RNRepo script at the top of your <span
+        On iOS, include the RNRepo script at the top of your <span
           class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
           >ios/Podfile</span
         > and add the post-install hook
