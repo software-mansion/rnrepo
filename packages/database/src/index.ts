@@ -50,7 +50,9 @@ export async function isBuildAlreadyScheduled(
     .from('builds')
     .select('package_name, version, rn_version, platform, worklets_version')
     .eq('package_name', packageName)
-    .eq('retry', false);
+    .eq('retry', false)
+    // Increase limit to avoid Supabase's default 1000-row truncation
+    .limit(10000);
 
   const { data, error } = await query;
 
