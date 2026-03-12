@@ -67,7 +67,7 @@ module CocoapodsRnrepo
     # Unzip file to destination directory
     def self.unzip_file(zip_path, destination)
       Logger.log "Extracting to #{destination}..."
-      success = system("unzip", "-q", zip_path, "-d", destination)
+      success = system("unzip", "-oq", zip_path, "-d", destination)
       Logger.log success ? "Extracted successfully #{zip_path}" : "Error extracting #{zip_path}"
       success
     end
