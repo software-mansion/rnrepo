@@ -1,7 +1,5 @@
 require 'net/http'
 require 'uri'
-require 'fileutils'
-require 'zip'
 
 module CocoapodsRnrepo
   class Downloader
@@ -68,26 +66,9 @@ module CocoapodsRnrepo
     # Unzip file to destination directory
     def self.unzip_file(zip_path, destination)
       Logger.log "Extracting to #{destination}..."
-
-      FileUtils.mkdir_p(destination)
-
-      Zip::File.open(zip_path) do |zip_file|
-        zip_file.each do |entry|
-          entry_path = File.join(destination, entry.name)
-          FileUtils.mkdir_p(File.dirname(entry_path))
-
-          # Remove existing file if it exists
-          FileUtils.rm_f(entry_path) if File.exist?(entry_path)
-
-          entry.extract(entry_path)
-        end
-      end
-
-      Logger.log "Extracted successfully"
-      true
-    rescue => e
-      Logger.log "Error extracting #{zip_path}: #{e.message}"
-      return false
+      success = system("unzip", "-oq", zip_path, "-d", destination)
+      Logger.log success ? "Extracted successfully #{zip_path}" : "Error extracting #{zip_path}"
+      success
     end
   end
 end
