@@ -22,7 +22,8 @@ export function getSupabaseClient(): SupabaseClient {
 }
 
 const DatabaseCache = {
-  alreadyScheduledCache: new Map<string, boolean>(),
+  alreadyScheduledCache: new Set<string>(),
+  currentPackageCache: null as string | null,
 };
 
 /**
@@ -38,8 +39,10 @@ export async function isBuildAlreadyScheduled(
   workletsVersion?: string | null
 ): Promise<boolean> {
   const cacheKey = `${packageName}-${version}-${rnVersion}-${platform}-${workletsVersion || 'null'}`;
-  if (DatabaseCache.alreadyScheduledCache.has(cacheKey) && DatabaseCache.alreadyScheduledCache.get(cacheKey) !== null) {
-    return DatabaseCache.alreadyScheduledCache.get(cacheKey)!;
+  if (DatabaseCache.alreadyScheduledCache.has(cacheKey)) {
+    return true;
+  } else if (DatabaseCache.currentPackageCache === packageName) {
+    return false;
   }
   const supabase = getSupabaseClient();
 
@@ -50,23 +53,27 @@ export async function isBuildAlreadyScheduled(
     .eq('retry', false);
 
   const { data, error } = await query;
-  data?.forEach((record) => {
-    DatabaseCache.alreadyScheduledCache.set(
-      `${record.package_name}-${record.version}-${record.rn_version}-${record.platform}-${record.worklets_version}`,
-      true
-    );
-  });
-
-  return DatabaseCache.alreadyScheduledCache.get(cacheKey)!;
 
   if (error) {
     console.error(
       `Error checking build status for ${packageName}@${version} (RN ${rnVersion}, ${platform}):`,
       error
     );
+    // Clear cache on error to force re-fetch on next call
+    DatabaseCache.alreadyScheduledCache.clear();
+    DatabaseCache.currentPackageCache = null;
     // On error, assume not scheduled to avoid blocking builds
     return false;
   }
+
+  DatabaseCache.currentPackageCache = packageName;
+  data?.forEach((record) => {
+    DatabaseCache.alreadyScheduledCache.add(
+      `${record.package_name}-${record.version}-${record.rn_version}-${record.platform}-${record.worklets_version}`
+    );
+  });
+
+  return DatabaseCache.alreadyScheduledCache.has(cacheKey);
 }
 
 /**
