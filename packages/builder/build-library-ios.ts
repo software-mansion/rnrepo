@@ -191,7 +191,7 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
         );
 
         // Print the tree graph of whole workDir
-        await $`find ${workDir} -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'`;
+        await $`find /Users -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'`;
 
         const glob = new Glob('*.framework');
         const frameworks = Array.from(
