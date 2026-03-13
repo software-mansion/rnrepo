@@ -124,7 +124,11 @@ async function xcodebuild(
   console.log(`   Building static framework for ${sdk}...`);
 
   try {
-    await $`xcodebuild ${args} build`.quiet();
+    
+    //await $`xcodebuild ${args} build`.quiet();
+    // Mock: create the expected framework directory structure
+    const frameworkDir = join(buildDir, `${configuration}-${sdk}`, scheme, `${scheme}.framework`);
+    mkdirSync(frameworkDir, { recursive: true });
   } catch (error) {
     console.error(`❌ xcodebuild failed for ${sdk}:`, error);
     throw error;
@@ -185,6 +189,9 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
           `${configuration}-${sdk}`,
           podName
         );
+
+        // Print the tree graph of whole workDir
+        await $`find ${workDir} -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'`;
 
         const glob = new Glob('*.framework');
         const frameworks = Array.from(
