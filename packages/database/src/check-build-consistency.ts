@@ -32,9 +32,9 @@ function buildArtifactUrl(
   const commonPath = `${repositoryUrl}/org/rnrepo/public/${artifactId}/${encodeURIComponent(build.version)}`;
   const fileName = `${artifactId}-${build.version}-${classifier}`;
 
-  const variants = build.platform === "android" 
-    ? [".aar"] 
-    : ["-debug.zip", "-release.zip"];
+  const variants = build.platform === 'android' 
+    ? ['.aar'] 
+    : ['-debug.zip', '-release.zip'];
   return variants.map(suffix => `${commonPath}/${encodeURIComponent(fileName + suffix)}`);
 }
 
