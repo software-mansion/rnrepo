@@ -1,6 +1,6 @@
 // Consistency checker / updater for the status field in the builds table:
 // - Finds "scheduled" builds older than 10 hours.
-// - Verifies Android artifacts exist in the Maven repo.
+// - Verifies artifacts exist in the Maven repo.
 // - Updates build status to completed/failed when run with --write (dry run otherwise).
 import { SupabaseClient } from '@supabase/supabase-js';
 import { sanitizePackageName } from '@rnrepo/config';
@@ -19,21 +19,23 @@ interface BuildRow {
   updated_at: string;
 }
 
-function buildAndroidArtifactUrl(
+function buildArtifactUrl(
   build: BuildRow,
   baseRepositoryUrl: string
-): string {
+): string[] {
   const repositoryUrl = baseRepositoryUrl.replace(/\/+$/, '');
   const artifactId = sanitizePackageName(build.package_name);
   const classifier = `rn${build.rn_version}${
     build.worklets_version ? `-worklets${build.worklets_version}` : ''
   }`;
-  const encodedVersion = encodeURIComponent(build.version);
-  const fileName = `${artifactId}-${build.version}-${classifier}.aar`;
+  
+  const commonPath = `${repositoryUrl}/org/rnrepo/public/${artifactId}/${encodeURIComponent(build.version)}`;
+  const fileName = `${artifactId}-${build.version}-${classifier}`;
 
-  return `${repositoryUrl}/org/rnrepo/public/${artifactId}/${encodedVersion}/${encodeURIComponent(
-    fileName
-  )}`;
+  const variants = build.platform === "android" 
+    ? [".aar"] 
+    : ["-debug.zip", "-release.zip"];
+  return variants.map(suffix => `${commonPath}/${encodeURIComponent(fileName + suffix)}`);
 }
 
 async function artifactExists(url: string): Promise<boolean> {
@@ -114,16 +116,8 @@ async function main() {
     } [${build.platform}]`;
     console.log(`\n▶️  Checking ${info} (current: ${build.status})`);
 
-    if (build.platform !== 'android') {
-      console.warn(
-        `⚠️  Platform ${build.platform} not supported for Maven check. Skipping.`
-      );
-      skippedCount++;
-      continue;
-    }
-
-    const artifactUrl = buildAndroidArtifactUrl(build, baseRepositoryUrl);
-    const exists = await artifactExists(artifactUrl);
+    const artifactUrls = buildArtifactUrl(build, baseRepositoryUrl);
+    const exists = (await Promise.all(artifactUrls.map(artifactExists))).every(Boolean);
 
     if (exists) {
       completedCount++;
