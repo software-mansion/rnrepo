@@ -1,11 +1,3 @@
-<<<<<<< rolkrado/migrate-to-system-curl
-require 'fileutils'
-require 'zip'
-=======
-require 'net/http'
-require 'uri'
->>>>>>> main
-
 module CocoapodsRnrepo
   class Downloader
     @@repo_url = "https://packages.rnrepo.org/releases"
