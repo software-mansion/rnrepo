@@ -33,6 +33,9 @@ module CocoapodsRnrepo
 
       if success
         return artifact_spec[:destination]
+      elsif success.nil?
+        Logger.error "Error: 'curl' command not found or could not be executed. Please ensure curl is installed and in your PATH."
+        return nil
       else
         Logger.log "Failed to download #{url}"
         return nil
