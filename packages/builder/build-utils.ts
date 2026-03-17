@@ -248,19 +248,23 @@ export async function setupReactNativeProject(
   const { mkdirSync } = await import('fs');
   mkdirSync(workDir, { recursive: true });
 
-  // Check that app directory doesn't exist yet
+  // If appDir already exists, assume it's a cached RN project and skip setup
   if (existsSync(appDir)) {
-    throw new Error(`App directory ${appDir} already exists.`);
+    console.log(`♻️ Using cached React Native project at ${appDir}`);
+  } else {
+    // Create RN project in the work directory
+    console.log(
+      `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
+    );
+
+    await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`
+      .cwd(workDir)
+      .quiet();
   }
 
-  // Create RN project in the work directory
-  console.log(
-    `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
-  );
-
-  await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`
-    .cwd(workDir)
-    .quiet();
+  if (!existsSync(join(appDir, 'package.json'))) {
+    throw new Error(`Invalid React Native project at ${appDir}`);
+  }
 
   // Perform any library-specific setup before installing
   await installSetup(appDir, libraryName, 'preInstall');
