@@ -1,7 +1,7 @@
 {
   "name": "@rnrepo/build-tools",
   "title": "RNRepo Prebuilds plugin",
-  "version": "0.1.0",
+  "version": "0.1.1-beta.0",
   "description": "RNRepo plugin for handling prebuilt binaries of iOS and Android libraries",
   "scripts": {
     "build": "./gradle-plugin/gradlew build --no-daemon -p gradle-plugin",
@@ -20,6 +20,7 @@
     "cocoapods-plugin/",
     "gradle-plugin/README.md",
     "gradle-plugin/build/libs/prebuilds-plugin-0.3.0.jar",
+    "gradle-plugin/build/libs/prebuilds-plugin-0.3.1.jar",
     "CHANGELOG.md",
     "README.md"
   ],
