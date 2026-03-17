@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Replace the rubyzip dependency with system("unzip", ...) (#287)
+- Replace the net/http dependency with system("curl", ...) (#293)
 
 ### Fixed
 - Propagated more RNWorklets path to ExpoModulesCore for expo@55 (#281)
