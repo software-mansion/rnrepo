@@ -170,13 +170,45 @@
   "react-native-worklets": {
     "android": [
       {
-        "versionMatcher": "*",
+        "versionMatcher": ["0.4", "0.5"],
+        "reactNativeVersion": ">=0.78 <0.82",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "0.6",
+        "reactNativeVersion": ">=0.78 <0.83",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "0.7",
+        "reactNativeVersion": ">=0.79 <0.85",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "0.8",
+        "reactNativeVersion": ">=0.81",
         "publishedAfterDate": "2025-01-01"
       }
     ],
     "ios": [
       {
-        "versionMatcher": "*",
+        "versionMatcher": ["0.4", "0.5"],
+        "reactNativeVersion": ">=0.78 <0.82",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "0.6",
+        "reactNativeVersion": ">=0.78 <0.83",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "0.7",
+        "reactNativeVersion": ">=0.79 <0.85",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "0.8",
+        "reactNativeVersion": ">=0.81",
         "publishedAfterDate": "2025-01-01"
       }
     ]
