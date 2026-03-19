@@ -46,6 +46,7 @@
   },
   "files": [
     "build",
+    "CHANGELOG.md",
     "app.plugin.js"
   ]
 }

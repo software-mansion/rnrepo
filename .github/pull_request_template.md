@@ -2,6 +2,9 @@
 
 Please include a summary of the changes and related context. Explain the **why** behind your changes, not just the **what**.
 
+[hidden-comment]: <> (Update changelog if needed)
+[hidden-comment]: <> (Mention related issues if applicable)
+
 ## 🎯 Type of Change
 
 Please delete options that are not relevant:
@@ -22,13 +25,3 @@ Please describe the tests you ran to verify your changes. Provide instructions s
 1. [First step]
 2. [Second step]
 3. [Third step]
-
-## 📋 Additional Notes
-
-Add any other context that might be helpful for reviewers (if applicable):
-
-- Breaking changes?
-- Migration needed?
-- Performance impact?
-- Security considerations?
-- Related issues, PRs?
