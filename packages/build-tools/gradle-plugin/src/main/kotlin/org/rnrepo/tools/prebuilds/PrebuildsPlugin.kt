@@ -668,10 +668,16 @@ class PrebuildsPlugin : Plugin<Project> {
                 // In expo@55 and later, react-native-worklets is a dependency of expo, with hardcoded libworklets.so path in cmake file.
                 // https://github.com/expo/expo/blob/b887d67bbe061ac1f75ebcd9d018218868600822/packages/expo-modules-core/android/cmake/main.cmake#L83
                 // So until that will be resolved in expo, we need to deny substitution for react-native-worklets if expo@55 is present in the project.
-                val isExpo55OrLaterPresent = extension.projectPackages.any { pkg ->
-                    pkg.name.startsWith("expo") && 
-                    (pkg.version.split('.').firstOrNull()?.toIntOrNull() ?: Int.MAX_VALUE) >= 55
-                }
+                val isExpo55OrLaterPresent =
+                    extension.projectPackages.any { pkg ->
+                        pkg.name.startsWith("expo") &&
+                            (
+                                pkg.version
+                                    .split('.')
+                                    .firstOrNull()
+                                    ?.toIntOrNull() ?: Int.MAX_VALUE
+                            ) >= 55
+                    }
                 if (isExpo55OrLaterPresent) {
                     logger.info(
                         "react-native-worklets: Expo 55 or later found in project, which has react-native-worklets as a dependency with hardcoded native library path, using react-native-worklets from sources.",
