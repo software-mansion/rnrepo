@@ -1,19 +1,10 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.8.22'
-    id 'maven-publish'
     id 'java-gradle-plugin'
-    id 'signing'
     id 'com.diffplug.spotless' version '6.25.0'
 }
 
 group = 'org.rnrepo.tools'
-
-// Fixed version in code - automatically appends -SNAPSHOT for local publishes
-def baseVersion = '0.3.1'
-def isLocalPublish = project.gradle.startParameter.taskNames.any {
-    it.contains("MavenLocal")
-}
-version = baseVersion + (isLocalPublish ? '-SNAPSHOT' : '')
 
 repositories {
     mavenCentral()
@@ -39,37 +30,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
-// Generate build-time constants
-def generatedSourcesDir = file("$buildDir/generated/sources/kotlin/main")
-sourceSets.main.kotlin.srcDirs += generatedSourcesDir
-
-task generateBuildConstants {
-    def outputDir = file(generatedSourcesDir)
-    def outputFile = file("$outputDir/org/rnrepo/tools/prebuilds/BuildConstants.kt")
-    def projectVersion = project.version.toString()
-
-    outputs.dir(outputDir)
-    outputs.file(outputFile)
-
-    doLast {
-        outputDir.mkdirs()
-        outputFile.parentFile.mkdirs()
-
-        outputFile.text = """package org.rnrepo.tools.prebuilds
-
-/**
- * Build-time constants generated during plugin compilation.
- * DO NOT EDIT - This file is auto-generated.
- */
-object BuildConstants {
-    const val PLUGIN_VERSION = "${projectVersion}"
-}
-"""
-    }
-}
-
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-    dependsOn generateBuildConstants
     kotlinOptions {
         jvmTarget = "11"
     }
@@ -82,44 +43,6 @@ gradlePlugin {
             implementationClass = "org.rnrepo.tools.prebuilds.PrebuildsPlugin"
         }
     }
-}
-
-publishing {
-    publications {
-        release(MavenPublication) {
-            from components.java
-            pom {
-                name = "RNRepo Gradle Plugin"
-                description = "A Gradle plugin to automate React Native AAR prebuilds integration for faster builds"
-                url = "https://rnrepo.org"
-                licenses {
-                    license {
-                        name = "ISC"
-                        url = "https://opensource.org/licenses/ISC"
-                    }
-                }
-            }
-        }
-    }
-    repositories {
-        mavenLocal()
-        maven {
-            name = "rnrepo"
-            url = project.properties["mavenRepositoryUrl"]
-            credentials {
-                username = project.properties["mavenUsername"]
-                password = project.properties["mavenPassword"]
-            }
-        }
-    }
-}
-
-// Signing is required only when publishing to remote repository
-signing {
-    def publishingToMavenLocal = project.gradle.startParameter.taskNames.any { it.contains("MavenLocal") }
-    setRequired(!publishingToMavenLocal)
-    useInMemoryPgpKeys(project.findProperty("signingKey"), project.findProperty("signingPassword"))
-    sign publishing.publications.release
 }
 
 tasks.test {
