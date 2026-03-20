@@ -5,7 +5,7 @@
 To build the plugin locally:
 
 ```bash
-cd packages/gradle-client/rnrepo-plugin
+cd packages/build-tools/gradle-plugin
 ./gradlew build
 ```
 
@@ -39,6 +39,6 @@ You can disable the RNRepo plugin execution by setting the `DISABLE_RNREPO` envi
 To run the unittests for the RNRepo plugin, navigate to the plugin's directory and execute the test task:
 
 ```bash
-cd packages/gradle-client/rnrepo-plugin
+cd packages/build-tools/gradle-plugin
 ./gradlew test
 ```
