@@ -39,29 +39,12 @@ def get_ios_denylist(workspace_root)
   denylist_config['ios'] || []
 end
 
-def check_xcode_version
-  begin
-    xcode_version_output = `xcodebuild -version 2>/dev/null`
-    if match = xcode_version_output.match(/Xcode\s+([\d.]+)/)
-      major_version = match[1].to_f
-      CocoapodsRnrepo::Logger.log "RAD: #{major_version}"
-      if major_version < 16.0
-        CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: You are compiling with Xcode < 16 (found #{major_version}). Prebuilt frameworks might have been built with a newer Xcode and may not work correctly. See https://github.com/buildle-org/rnrepo/blob/main/docs/troubleshooting/ios.md#xcode-version-mismatch"
-      end
-    end
-  rescue
-    # Ignore errors reading Xcode version
-  end
-end
-
 def rnrepo_pre_install(installer_context)
   # Check if plugin is disabled via environment variable
   if ENV['DISABLE_RNREPO']
     CocoapodsRnrepo::Logger.log "⊘ RNREPO plugin is disabled (DISABLE_RNREPO is set)"
     return
   end
-
-  check_xcode_version
 
   CocoapodsRnrepo::Logger.log "🚀 Scanning for React Native dependencies to replace with pre-builds..."
 
