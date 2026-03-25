@@ -183,6 +183,17 @@ Check the `android/build` folder for a specific package (inside node_modules):
 
 ## iOS CocoaPods Plugin
 
+### Xcode Version Mismatch (Xcode < 26)
+
+#### Problem Description
+Prebuilt frameworks are compiled using Xcode 26. If your application is being compiled with an older version of Xcode, it might not work correctly. The prebuilt libraries might not be compatible because they might utilize newer APIs or language features that are missing or incompatible in older Xcode versions.
+
+#### Solutions
+There are three primary ways to solve this issue:
+1. **Upgrade your Xcode version (recommended)**: Update your build environment so that the Xcode version you use to compile your app is greater than or equal to the Xcode version used to build the precompiled frameworks (currently Xcode 26). This keeps your dependencies and build toolchain aligned without changing library versions.
+2. **Downgrade the library version (if available)**: Switch to a lower version of the library whose prebuilt binaries were produced with an older Xcode that is compatible with your environment. This only works if such an older prebuilt exists in the RNRepo registry.
+3. **Add to deny list**: If downgrading is not an option, you can add the library to the `denyList` under `ios` in your `rnrepo.config.json`. This forces standard compilation from sources using your current Xcode version instead of pulling the precompiled framework.
+
 ### How to check if the plugin works?
 
 Run building commands and monitor the terminal output:
