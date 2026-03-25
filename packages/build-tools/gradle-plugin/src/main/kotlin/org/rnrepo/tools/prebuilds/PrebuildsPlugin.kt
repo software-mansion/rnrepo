@@ -814,6 +814,7 @@ class PrebuildsPlugin : Plugin<Project> {
         unavailablePackages: MutableSet<PackageItem>,
         supportedPackages: MutableSet<PackageItem>,
         elseClosure: () -> Unit,
+        project: Project,
     ) {
         val isDenied = !isPackageNotDenied(packageItem.name, extension)
         val checkFailed = !isSpecificCheckPassed(packageItem, extension, supportedPackages, project)
@@ -876,6 +877,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 unavailablePackages,
                 supportedPackages,
                 { supportedPackages.add(packageItem) },
+                project,
             )
         }
         dependentList.parallelStream().forEach { packageItem ->
@@ -886,7 +888,15 @@ class PrebuildsPlugin : Plugin<Project> {
                 )
                 checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages, extension.projectPackages)
             }
-            checkIfPackageIsSupported(packageItem, project.repositories, extension, unavailablePackages, supportedPackages, elseClosure)
+            checkIfPackageIsSupported(
+                packageItem,
+                project.repositories,
+                extension,
+                unavailablePackages,
+                supportedPackages,
+                elseClosure,
+                project,
+            )
         }
 
         extension.supportedPackages = supportedPackages
