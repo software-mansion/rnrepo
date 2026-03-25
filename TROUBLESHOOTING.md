@@ -183,7 +183,7 @@ Check the `android/build` folder for a specific package (inside node_modules):
 
 ## iOS CocoaPods Plugin
 
-### Xcode Version Mismatch (Xcode < 16)
+### Xcode Version Mismatch (Xcode < 26)
 
 #### Problem Description
 Prebuilt frameworks are compiled using Xcode 26. If your application is being compiled with an older version of Xcode, it might not work correctly. The prebuilt libraries might not be compatible because they might utilize newer APIs or language features that are missing or incompatible in older Xcode versions.
