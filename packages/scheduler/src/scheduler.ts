@@ -10,6 +10,7 @@ import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
 const DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD = 10000;
+const DEFAULT_LAST_WEEK_DOWNLOADS_RN_THRESHOLD = 20000;
 
 export async function processLibrary(
   libraryName: string,
@@ -56,7 +57,7 @@ export async function processLibrary(
         'react-native',
         reactNativeMatcher ?? '*',
         {
-          weeklyDownloadsThreshold: DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD
+          weeklyDownloadsThreshold: DEFAULT_LAST_WEEK_DOWNLOADS_RN_THRESHOLD
         }
       ).then(versions => versions.map(v => v.version));
 
