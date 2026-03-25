@@ -221,6 +221,11 @@ Expo EAS builds might fail due to mismatched fingerprints. This typically happen
 #### Solution
 To fix this, you need to exclude the `.rnrepo-cache` directories from Expo's fingerprint generation. You can do this using either a `.fingerprintignore` file or `fingerprint.config.js`.
 
+```
+// .fingerprintignore
+**/.rnrepo-cache
+```
+
 See the [`.fingerprintignore` documentation](https://docs.expo.dev/versions/latest/sdk/fingerprint/#fingerprintignore) or [`fingerprint.config.js` documentation](https://docs.expo.dev/versions/latest/sdk/fingerprint/#fingerprintconfigjs) for more details.
 
 ---
