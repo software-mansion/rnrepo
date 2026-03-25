@@ -1,4 +1,19 @@
 {
+  "expo-modules-core": {
+    "preInstallScriptPath": "preInstallScripts/expo-modules-core/expo-modules-core.ts",
+    "android": [
+      {
+        "versionMatcher": "3",
+        "reactNativeVersion": "0.81",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "55",
+        "reactNativeVersion": "0.83",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
   "react-native-gesture-handler": {
     "postInstallScriptPath": "postInstallScripts/react-native-gesture-handler/react-native-gesture-handler.ts",
     "android": [
