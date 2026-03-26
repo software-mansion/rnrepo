@@ -1,0 +1,140 @@
+// Gets failed builds
+// - Finds failed builds older than 30 days
+// - Verifies the error issue from known issues
+// - Updates retry status to true when run with --write (dry run otherwise).
+// Note: changing retry to false again needs to be done manually
+import { getSupabaseClient } from './index';
+import type { BuildStatus, Platform } from './types';
+import { $ } from 'bun';
+
+const CONCURRENCY = 5;
+const MAX_AGE_MS = 20 * 24 * 60 * 60 * 1000; // 20 days
+type IssueResult = 'buildable' | 'unbuildable' | 'actionNeeded' | 'noGithubRunUrl' | 'unknown' | 'error';
+
+interface BuildRow {
+  id: number;
+  package_name: string;
+  version: string;
+  rn_version: string;
+  worklets_version: string | null;
+  platform: Platform;
+  status: BuildStatus;
+  created_at: string;
+  updated_at: string;
+  github_run_url: string;
+}
+
+function getIdFromOutput(str: string): string {
+  const [, id] = str.match(/gh run view (\d+)/) || [];
+  if (!id) throw new Error(`No ID found in ${str}`);
+  return id;
+}
+
+async function checkIssue(build: BuildRow): Promise<IssueResult> {
+  if (!build.github_run_url) {
+    return 'noGithubRunUrl';
+  }
+  const workflowId = build.github_run_url.split('/').pop() || '';
+  const outputAction = await $`gh run view ${workflowId} --repo software-mansion/rnrepo`.text();
+
+  if (outputAction.includes('The job has exceeded the maximum execution time while awaiting a runner')) {
+    return 'buildable';
+  } else if (!outputAction.includes('X build-library-android') && !outputAction.includes('X build-library-ios')) {
+    // failed something else than building process
+    return 'actionNeeded';
+  } else if (outputAction.includes('To see what failed, try:')) {
+    const jobId = getIdFromOutput(outputAction);
+    const outputJob = await $`gh run view ${jobId} --repo software-mansion/rnrepo --log-failed`.text();
+    if (outputJob.includes('[Reanimated] Invalid version of `react-native-worklets`')) {
+      return 'unbuildable';
+    } else if (/\[Reanimated\] React Native .* version is not compatible with Reanimated .*/.test(outputJob)) {
+      return 'unbuildable';
+    } else if (outputJob.includes('[Worklets] Your installed version of React Native is not compatible')) {
+      return 'unbuildable';
+    } else if (outputJob.includes('VideoEventEmitter.kt:293:63 Argument type mismatch: actual type is \'Int\'')) {
+      // react-native-video@6.X issue
+      return 'unbuildable';
+    } else {
+      // todo: add more cases in future
+    }
+  }
+  return 'unknown';
+}
+
+async function main() {
+  const writeMode = process.argv.some(arg => ['--write', '-w'].includes(arg));
+  const supabase = getSupabaseClient();
+  const cutoffIso = new Date(Date.now() - MAX_AGE_MS).toISOString();
+
+  console.log(`🔎 Scanning failed builds newer than ${cutoffIso}...`);
+  if (!writeMode) {
+    console.log('🧪 Dry run mode (no database updates). Use --write to apply.');
+  }
+
+  const [retryTrueBuilds, { data: builds, error }] = await Promise.all([
+    supabase.from('builds').select('id', { count: 'exact', head: true }).eq('retry', true),
+    supabase.from('builds').select('*').eq('status', 'failed').eq('retry', false).gt('created_at', cutoffIso)
+  ]);
+
+  if (error || !builds) throw new Error(`Fetch failed: ${error?.message}`);
+  if (!builds.length) return console.log('✅ No failed builds found.');
+
+  const results = { buildable: 0, unbuildable: 0, actionNeeded: 0, noGithubRunUrl: 0, unknown: 0, error: 0 };
+
+  const queue = [...builds];
+  let isCancelled = false;
+
+  async function worker() {
+    while (queue.length > 0 && !isCancelled) {
+      const build = queue.shift();
+      if (!build) break;
+      const info = `${build.package_name}@${build.version} RN ${
+        build.rn_version
+      }${
+        build.worklets_version ? ` (worklets ${build.worklets_version})` : ''
+      } [${build.platform}]`;
+
+      try {
+        const result = await checkIssue(build);
+        results[result]++;
+
+        if (result === 'buildable') {
+          if (writeMode) {
+            await supabase.from('builds').update({ retry: true, updated_at: new Date().toISOString() }).eq('id', build.id);
+          }
+          console.log(`✅ Buildable: ${info} ${writeMode ? '(Marked retry)' : '(Dry run)'}.`);
+        } else if (result === 'unknown') {
+          console.log(`⚠️ Unknown issue: ${info}. Skipping.`);
+        } else {
+          console.log(`🚫 ${result}: ${info}. Skipping.`);
+        }
+      } catch (err) {
+        results.error++;
+        console.error(`❌ Error processing ${info}:`, err);
+        if (err instanceof $.ShellError && err.stderr.toString().includes('HTTP 403: API rate limit exceeded')) {
+          isCancelled = true; 
+        }
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  if (isCancelled) {
+    console.log("\n⚠️ Process was interrupted due to API rate limit. Results are partial.");
+  }
+
+  console.log('\n📊 Done.');
+  console.log(`   Checked: ${builds.length}`);
+  console.log(`   Buildable issue          -> ${results.buildable}`);
+  console.log(`   Unbuildable issue        -> ${results.unbuildable}`);
+  console.log(`   Action needed issue      -> ${results.actionNeeded}`);
+  console.log(`   No Github run URL        -> ${results.noGithubRunUrl}`);
+  console.log(`   Unknown issue            -> ${results.unknown}`);
+  console.log(`   Errors                   -> ${results.error}`);
+  console.log(`   Retry=true builds before -> ${retryTrueBuilds.count}`);
+}
+
+main().catch((error) => {
+  console.error('❌ Failed-builds check failed:', error);
+  process.exit(1);
+});
