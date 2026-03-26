@@ -39,7 +39,7 @@ jobs:
               - '**/*.tsx'
               - '.github/workflows/lint-and-validate.yml'
             kotlin:
-              - 'packages/gradle-client/**'
+              - 'packages/build-tools/gradle-plugin/**'
               - '.github/workflows/lint-and-validate.yml'
             json:
               - '*.json'

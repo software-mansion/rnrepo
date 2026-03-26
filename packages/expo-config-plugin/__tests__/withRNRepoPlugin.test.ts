@@ -62,7 +62,7 @@ describe('withRNRepoPlugin', () => {
                      commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
                    }.standardOutput.asText.get().trim()
                  ).getParentFile().absolutePath
-                 classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
+                 classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin.jar"])
             }
         }
         apply plugin: "com.facebook.react.rootproject"
