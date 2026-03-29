@@ -87,7 +87,7 @@ and edit the following files to use RNRepo:
    +       commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
    +     }.standardOutput.asText.get().trim()
    +   ).getParentFile().absolutePath
-   +   classpath fileTree(dir: "${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
+   +   classpath fileTree(dir: "${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin.jar"])
      }
    }
 
@@ -272,6 +272,8 @@ RNRepo currently supports **50+ popular React Native libraries** with prebuilt a
 - **Transparent pipeline:** Every artifact references its workflow URL so you can audit logs before trusting a build.
 - **GPG signing:** Artifacts are signed before upload; downstream clients can verify signatures to ensure binaries were produced by the workflow we run on GitHub.
 - **Repository integrity:** `packages.rnrepo.org` serves checksums + signatures.
+
+> Note: iOS builds are executed on self-hosted runners to increase throughput and minimize queue times. GitHub-hosted runners are limited and shared across the organization, which led to delays. The build process is unchanged, and the runner environment remains ephemeral, ensuring transparency and reproducibility.
 
 ---
 

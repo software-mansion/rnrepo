@@ -81,8 +81,6 @@ class PrebuildsPlugin : Plugin<Project> {
             return
         }
         if (shouldPluginExecute(project, extension)) {
-            logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
-
             // Check what packages are in project and which are we supporting
             getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(extension)

@@ -8,8 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
-
 - Added support for ExpoModulesCore in Android release builds (#301)
+
+## [0.1.2-beta.0] - 2026-03-26
+
+### Changed 
+- Updated Gradle plugin resolution to use names without version regex (#299)
+
+### Removed
+- Removed version numbers from both Android and iOS plugins (#299)
 
 ## [0.1.1-beta.0] - 2026-03-19
 

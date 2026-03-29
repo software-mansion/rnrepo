@@ -5,32 +5,9 @@
 To build the plugin locally:
 
 ```bash
-cd packages/gradle-client/rnrepo-plugin
+cd packages/build-tools/gradle-plugin
 ./gradlew build
 ```
-
-## Publishing
-
-### Production Publishing (CI)
-
-Production publishing should be done via the GitHub Actions workflow (`.github/workflows/publish-plugin-android.yml`). This ensures proper signing and credentials management.
-
-**Before publishing, update the version in `build.gradle`** (line 11):
-
-```gradle
-def baseVersion = '0.0.1'  // Update this version
-```
-
-### Local Publishing
-
-To publish locally for testing (e.g., to `~/.m2/repository`):
-
-```bash
-cd packages/gradle-client/rnrepo-plugin
-./gradlew publishReleasePublicationToMavenLocalRepository
-```
-
-**Note:** Local publishes automatically append a `-SNAPSHOT` suffix to the version (e.g., `0.0.1` becomes `0.0.1-SNAPSHOT`).
 
 ## Env variables:
 
@@ -62,6 +39,6 @@ You can disable the RNRepo plugin execution by setting the `DISABLE_RNREPO` envi
 To run the unittests for the RNRepo plugin, navigate to the plugin's directory and execute the test task:
 
 ```bash
-cd packages/gradle-client/rnrepo-plugin
+cd packages/build-tools/gradle-plugin
 ./gradlew test
 ```
