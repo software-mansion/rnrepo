@@ -3,7 +3,7 @@ import { $ } from 'bun';
 export default async function preInstallSetup(): Promise<void> {
     console.log(`Running pre-install setup for expo-modules-core...`);
     
-    console.log(`npm install from pre-install for getting react=native package...`);
+    console.log(`Running npm install during pre-install to ensure react-native and related packages are installed...`);
     await $`npm install`.quiet();
     
     console.log(`Installing expo-modules with 'install-expo-modules@latest' command...`);
