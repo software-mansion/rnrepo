@@ -11,14 +11,6 @@ cd packages/build-tools/gradle-plugin
 
 ## Env variables:
 
-#### Using RNRepo in dev mode:
-Add the following to `<RNProjectRoot/android/gradle.properties` to use the provided remote repository:
-```gradle
-RNREPO_REPO_URL_DEV=<YOUR_DEV_REPO_URL>
-// example:
-RNREPO_REPO_URL_DEV=https://packages.rnrepo.org/releases
-```
-
 #### Setting React Native root directory
 You can set the React Native root directory by adding the following to your `gradle.properties`:
 ```gradle
