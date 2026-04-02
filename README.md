@@ -61,6 +61,14 @@ If you are using Expo Continuous Code Generation (CNG) setup (generating your na
    }
    ```
 
+3. **Expo Fingerprint generation:**
+
+   If you are using Expo Fingerprint (e.g., during EAS builds), add RNRepo downloaded artifacts to ignored files by adding the following to your [`.fingerprintignore`](https://docs.expo.dev/versions/latest/sdk/fingerprint/#fingerprintignore) file:
+
+   ```text
+   **/.rnrepo-cache
+   ```
+
 That's it! The plugin will automatically configure your project when you run `expo prebuild`.
 
 ### Standard React Native / Other Expo Setups
