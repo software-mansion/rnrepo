@@ -1,8 +1,9 @@
 // Gets failed builds
 // - Finds failed builds older than 30 days
 // - Verifies the error issue from known issues
-// - Updates retry status to true when run with --write (dry run otherwise).
+// - If buildable then updates failed_reason to buildable and retry status to true when run with --write (dry run otherwise).
 // Note: changing retry to false again needs to be done manually
+// Note: keeping track of actionNeeded records in DB and their retry status is on developer side, not automated
 import { getSupabaseClient } from './index';
 import type { BuildStatus, Platform } from './types';
 import { $ } from 'bun';
@@ -73,7 +74,7 @@ async function main() {
 
   const [retryTrueBuilds, { data: builds, error }] = await Promise.all([
     supabase.from('builds').select('id', { count: 'exact', head: true }).eq('retry', true),
-    supabase.from('builds').select('*').eq('status', 'failed').eq('retry', false).gt('created_at', cutoffIso)
+    supabase.from('builds').select('*').eq('status', 'failed').eq('retry', false).eq('failed_reason', 'unknown').gt('created_at', cutoffIso)
   ]);
 
   if (error || !builds) throw new Error(`Fetch failed: ${error?.message}`);
@@ -98,21 +99,27 @@ async function main() {
         const result = await checkIssue(build);
         results[result]++;
 
-        if (result === 'buildable') {
+        const isKnown = ['buildable', 'unbuildable', 'actionNeeded'].includes(result);
+
+        if (isKnown) {
           if (writeMode) {
-            await supabase.from('builds').update({ retry: true, updated_at: new Date().toISOString() }).eq('id', build.id);
+            await supabase.from('builds').update({
+              failed_reason: result,
+              retry: result === 'buildable',
+              updated_at: new Date().toISOString()
+            }).eq('id', build.id);
           }
-          console.log(`✅ Buildable: ${info} ${writeMode ? '(Marked retry)' : '(Dry run)'}.`);
-        } else if (result === 'unknown') {
-          console.log(`⚠️ Unknown issue: ${info}. Skipping.`);
+          
+          const icons = { buildable: '✅', unbuildable: '🚫', actionNeeded: '🛠️' };
+          console.log(`${icons[result]} ${result}: ${info} ${writeMode ? '(Marked retry)' : '(Dry run)'}`);
         } else {
-          console.log(`🚫 ${result}: ${info}. Skipping.`);
+          console.log(`⚠️ ${result === 'unknown' ? 'Unknown issue' : result}: ${info}. Skipping.`);
         }
       } catch (err) {
         results.error++;
         console.error(`❌ Error processing ${info}:`, err);
         if (err instanceof $.ShellError && err.stderr.toString().includes('HTTP 403: API rate limit exceeded')) {
-          isCancelled = true; 
+          isCancelled = true;
         }
       }
     }

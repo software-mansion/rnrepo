@@ -2,6 +2,8 @@ export type Platform = 'android' | 'ios';
 
 export type BuildStatus = 'scheduled' | 'completed' | 'failed';
 
+export type FailedReason = 'buildable' | 'unbuildable' | 'actionNeeded' | 'unknown';
+
 export interface BuildRecord {
   id?: number;
   package_name: string;
@@ -11,6 +13,7 @@ export interface BuildRecord {
   worklets_version?: string | null;
   status: BuildStatus;
   retry: boolean;
+  failed_reason: FailedReason;
   github_run_url?: string | null;
   build_duration_seconds?: number | null;
   created_at?: string;
