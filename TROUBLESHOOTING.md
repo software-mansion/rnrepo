@@ -207,7 +207,7 @@ find ./node_modules -path "*RNSTabsBottomAccessoryHelper*"
 # Output: ./node_modules/react-native-screens/ios/tabs/bottom-accessory/RNSTabsBottomAccessoryHelper.mm
 ```
 
-In this example, `react-native-screens` is the culprit — which could be resolved by adding to the deny list in `rnrepo.config.json`.
+In this example, `react-native-screens` is the culprit — which could be resolved by adding that library to the deny list in `rnrepo.config.json`.
 
 #### Solutions
 There are three primary ways to solve this issue:
