@@ -3,10 +3,19 @@ import Icon from './Icon.astro';
 import { Info } from 'lucide-astro';
 import { codeToHtml } from 'shiki';
 
-const cngInstallInstructions = `$ npx expo install @rnrepo/expo-config-plugin`;
+const cngInstallInstructions = `$ npx expo install @rnrepo/expo-config-plugin
+# If you have a hoisted setup, you might also need to install build-tools package:
+# npx expo install @rnrepo/build-tools`;
 const cngInstallInstructionsCopyText = `npx expo install @rnrepo/expo-config-plugin`;
 
 const cngInstallCodeHtml = await codeToHtml(cngInstallInstructions, {
+  lang: 'shell',
+  theme: 'github-dark',
+});
+
+const buildToolsInstallInstructions = `npm install @rnrepo/build-tools`;
+const buildToolsInstallCopyText = `npm install @rnrepo/build-tools`;
+const buildToolsInstallCodeHtml = await codeToHtml(buildToolsInstallInstructions, {
   lang: 'shell',
   theme: 'github-dark',
 });
@@ -26,15 +35,16 @@ const cngConfigCodeHtml = await codeToHtml(cngConfigInstructions, {
   theme: 'github-dark',
 });
 
-const standardBuildGradleChange = `
-buildscript {
-  repositories {
-    ...
-+   maven { url "https://packages.rnrepo.org/releases" }
-  }
+const standardBuildGradleChange = `buildscript {
   dependencies {
     ...
-+   classpath("org.rnrepo.tools:prebuilds-plugin:0.2.2")
++   def rnrepoDir = new File(
++     providers.exec {
++       workingDir(rootDir)
++       commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
++     }.standardOutput.asText.get().trim()
++   ).getParentFile().absolutePath
++   classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin.jar"])
   }
 }
 
@@ -44,7 +54,15 @@ allprojects {
 +   maven { url "https://packages.rnrepo.org/releases" }
   }
 }`;
-const standardBuildGradleChangesCopyText = `maven { url "https://packages.rnrepo.org/releases" }`;
+const standardBuildGradleChangesCopyText = `def rnrepoDir = new File(
+  providers.exec {
+    workingDir(rootDir)
+    commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
+  }.standardOutput.asText.get().trim()
+).getParentFile().absolutePath
+classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin.jar"])
+...
+maven { url "https://packages.rnrepo.org/releases" }`;
 
 const standardBuildGradleChangesCodeHtml = await codeToHtml(
   standardBuildGradleChange,
@@ -54,8 +72,7 @@ const standardBuildGradleChangesCodeHtml = await codeToHtml(
   }
 );
 
-const standardAppBuildGradleChange = `
-apply plugin: "com.android.application"
+const standardAppBuildGradleChange = `apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 + apply plugin: "org.rnrepo.tools.prebuilds-plugin"
@@ -70,6 +87,32 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
     theme: 'github-dark',
   }
 );
+
+const iOSPodfile = `+ require Pod::Executable.execute_command('node', ['-p',
++  'require.resolve(
++  "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
++  {paths: [process.argv[1]]},
++ )', __dir__]).strip
+
+...
+
+target 'YourProjectName' do
+  post_install do |installer|
+    ...
++   rnrepo_post_install(installer)
+  end
+end`;
+
+const iOSPodfileCopyText = `require Pod::Executable.execute_command('node', ['-p', 'require.resolve("@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb", {paths: [process.argv[1]]})', __dir__]).strip \n...\ntarget 'YourProjectName' do
+  post_install do |installer|
+   rnrepo_post_install(installer)
+  end
+end`;
+
+const iOSPodfileCodeHtml = await codeToHtml(iOSPodfile, {
+  lang: 'diff',
+  theme: 'github-dark',
+});
 ---
 
 <section id="setup" class="py-20 border-b border-rnrGrey-80">
@@ -91,11 +134,7 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
         <div class="flex-1">
           <p class="text-sm text-rnrGrey-30 leading-relaxed">
             RNRepo is currently in
-            <strong class="text-brandYellow-100">Beta</strong> and available for
-            <strong class="text-rnrGrey-0">Android only</strong>.
-          </p>
-          <p class="text-sm text-rnrGrey-30 leading-relaxed mt-1">
-            Please report any feedback or issues with your setup via our{' '}
+            <strong class="text-brandYellow-100">Beta</strong>, please report any feedback or issues with your setup via our{' '}
             <a
               href="https://github.com/software-mansion/rnrepo"
               target="_blank"
@@ -107,9 +146,9 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
       </div>
     </div>
 
-    <p class="text-lg text-rnrGrey-40 leading-relaxed max-w-2xl mb-8">
-      To start using RNRepo, you need to configure your Android project to
-      include our Maven repository and use our Gradle plugin that will
+    <p class="text-lg text-rnrGrey-40 leading-relaxed mb-8">
+      To start using RNRepo, you need to configure your project to
+      include our build plugin that will
       automatically swap out dependencies on supported libraries with pre-built
       artifacts downloaded from our repository.
     </p>
@@ -150,8 +189,8 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
         class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
       >
         If you are using Expo Continuous Code Generation (CNG) setup (generating
-        your native android directory with expo prebuild command), you can use
-        our Expo config plugin to automatically configure Android's project to
+        your native directories with expo prebuild command), you can use
+        our Expo config plugin to automatically configure your project to
         use RNRepo.
       </p>
       <p
@@ -226,7 +265,7 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
           <button
             class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
             type="button"
-            data-copy-text={cngConfigInstructions}
+            data-copy-text={cngConfigInstructionsCopyText}
           >
             <Icon
               name="copy"
@@ -246,9 +285,39 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
         class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
       >
         For standard React Native setups or when using Expo but managing your
-        android folder by hand, you need to edit the following gradle files to
-        us RNRepo.
+        native folders by hand, you need to install build-tools package:
       </p>
+      <div
+        class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-4"
+        data-code={buildToolsInstallInstructions}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono"> terminal </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={buildToolsInstallCopyText}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={buildToolsInstallCodeHtml} />
+        </div>
+      </div>
+            <p
+        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        And then edit the following files to use RNRepo:
+      </p>
+        <h3 class="code-block-wrapper code-block-wrapper-standard text-lg font-semibold text-rnrGrey-0 mb-2">Android</h3>
       <p
         class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
       >
@@ -327,6 +396,42 @@ const standardAppBuildGradleChangesCodeHtml = await codeToHtml(
         </div>
         <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
           <Fragment set:html={standardAppBuildGradleChangesCodeHtml} />
+        </div>
+      </div>
+
+      {/* Standard iOS Instructions */}
+      <h3 class="code-block-wrapper code-block-wrapper-standard text-lg font-semibold text-rnrGrey-0 mb-2">iOS</h3>
+      <p
+        class="code-block-wrapper code-block-wrapper-standard text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        On iOS, include the RNRepo script at the top of your <span
+          class="text-rnrGrey-0 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm"
+          >ios/Podfile</span
+        > and add the post-install hook
+      </p>
+      <div
+        class="code-block-wrapper code-block-wrapper-standard border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-4"
+        data-code={iOSPodfile}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono"> ios/Podfile </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={iOSPodfileCopyText}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={iOSPodfileCodeHtml} />
         </div>
       </div>
     </div>

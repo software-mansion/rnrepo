@@ -1,14 +1,25 @@
 import { $ } from 'bun';
+import semver from 'semver';
+
+const COMPATIBILITY_MATRIX = [
+  {
+    rn: '>=0.80.0',
+    reanimated: '4.2.2',
+    worklets: '0.7.3'
+  },
+  {
+    rn: '>=0.77.0 <=0.79.x',
+    reanimated: '4.1.6', 
+    worklets: '0.6.1'
+  }
+];
 
 export default async function postInstallSetup(): Promise<void> {
     console.log(`Running post-install setup for react-native-gesture-handler...`);
     
     const rnVersion = await getPackageVersion('react-native');
     console.log(`Detected React Native version: ${rnVersion}`);
-    const reanimatedVersion = getReanimatedVersion(rnVersion);
-    console.log(`Determined compatible react-native-reanimated version: ${reanimatedVersion}`);
-    const workletsVersion = getWorkletsVersion(reanimatedVersion);
-    console.log(`Determined compatible react-native-worklets version: ${workletsVersion}`);
+    const { reanimatedVersion, workletsVersion } = getReanimatedAndWorkletsVersion(rnVersion);
     // Support RN-GH only with reanimated
     await $`bun install react-native-reanimated@${reanimatedVersion} --save-exact`.quiet();
     console.log(`✓ Installed react-native-reanimated@${reanimatedVersion}`);
@@ -36,12 +47,12 @@ async function getPackageVersion(packageName: string): Promise<string> {
     }
 }
 
-function getReanimatedVersion(rnVersion: string): string {
-    return rnVersion.startsWith('0.8') ? '4.1.4' : '4.0.0';
-}
-
-function getWorkletsVersion(reanimatedVersion: string): string {
-    return reanimatedVersion === '4.1.4' ? '0.6.1' : '0.4.0';
+function getReanimatedAndWorkletsVersion(rnVersion: string): { reanimatedVersion: string; workletsVersion: string } {
+    const config = COMPATIBILITY_MATRIX.find(m => semver.satisfies(rnVersion, m.rn));
+    if (!config) {
+        throw new Error(`Unsupported React Native version: ${rnVersion}. Please check the compatibility matrix.`);
+    }
+    return { reanimatedVersion: config.reanimated, workletsVersion: config.worklets };
 }
 
 try {

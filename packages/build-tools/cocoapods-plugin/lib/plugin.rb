@@ -98,6 +98,9 @@ def rnrepo_pre_install(installer_context)
     end
   end
 
+  # Add expo pod to installer context for later use in post_install
+  Pod::Installer.expo_pod = rn_pods.find { |pod| pod[:name] == 'Expo' }
+
   # Download and cache pre-built frameworks in parallel
   threads = rn_pods.map do |pod_info|
     Thread.new do
@@ -189,8 +192,10 @@ module Pod
     # Store prebuilt pod info (hashes with :name, :package_root, etc.) as class variable
     class << self
       attr_accessor :prebuilt_rnrepo_pods
+      attr_accessor :expo_pod
     end
     self.prebuilt_rnrepo_pods = []
+    self.expo_pod = nil
 
     # Hook into resolve_dependencies to modify specs BEFORE project generation
     old_method = instance_method(:resolve_dependencies)
@@ -415,5 +420,39 @@ def rnrepo_post_install(installer_context)
 
   CocoapodsRnrepo::Logger.log "✓ Build phase scripts configured"
   CocoapodsRnrepo::Logger.log ""
+
+  # ExpoModulesCore in SDK@55 requires worklets as direct dependency.
+  # So when worklets are prebuilt, we need to add the modulesmaps to ExpoModulesCore target.
+  installer_context.pods_project.targets.each do |target|
+    if target.name == 'ExpoModulesCore'
+      worklets_pod = Pod::Installer.prebuilt_rnrepo_pods.find { |pod| pod[:name] == 'RNWorklets' }
+      expoVersion = Pod::Installer.expo_pod ? Pod::Installer.expo_pod[:version] : '999.0.0'
+      break if !worklets_pod || Gem::Version.new(expoVersion) < Gem::Version.new('55.0.0')
+
+      worklets_root = worklets_pod[:package_root]
+      if worklets_root == nil
+        raise "RNWorklets not found in podfile, add react-native-worklets to denyList."
+      end
+      module_map = "-fmodule-map-file=\"$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/RNWorklets.framework/Modules/module.modulemap\""
+
+      target.build_configurations.each do |config|
+        
+        # --- HEADER SEARCH PATHS ---
+        build_settings = config.build_settings
+        build_settings['HEADER_SEARCH_PATHS'] ||= '$(inherited)'
+        build_settings['HEADER_SEARCH_PATHS'] += " #{worklets_root}/Common/cpp/**"
+
+        # --- CUSTOM COMPILER FLAGS (C/C++) ---
+        build_settings['OTHER_CFLAGS'] ||= '$(inherited)'
+        build_settings['OTHER_CFLAGS'] += " #{module_map}"
+
+        # --- OTHER SWIFT FLAGS ---
+        build_settings['OTHER_SWIFT_FLAGS'] ||= '$(inherited)'
+        build_settings['OTHER_SWIFT_FLAGS'] += " -Xcc #{module_map}"
+      end
+
+      break
+    end
+  end
 end
 

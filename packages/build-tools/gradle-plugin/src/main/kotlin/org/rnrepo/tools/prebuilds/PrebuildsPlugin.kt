@@ -82,8 +82,6 @@ class PrebuildsPlugin : Plugin<Project> {
             return
         }
         if (shouldPluginExecute(project, extension)) {
-            logger.lifecycle("RN Repo plugin v${BuildConstants.PLUGIN_VERSION} is enabled")
-
             // Setup codegen prebuilts configuration for codegen dependencies
             val codegenConfig =
                 project.configurations.create("codegenPrebuilts") {
@@ -752,8 +750,63 @@ class PrebuildsPlugin : Plugin<Project> {
                     return false
                 }
             }
+            "react-native-worklets" -> {
+                // In expo@55 and later, react-native-worklets is a dependency of expo, with hardcoded libworklets.so path in cmake file.
+                // https://github.com/expo/expo/blob/b887d67bbe061ac1f75ebcd9d018218868600822/packages/expo-modules-core/android/cmake/main.cmake#L83
+                // So until that will be resolved in expo, we need to deny substitution for react-native-worklets if expo@55 is present in the project.
+                val isExpo55OrLaterPresent =
+                    extension.projectPackages.any { pkg ->
+                        pkg.name.startsWith("expo") &&
+                            (
+                                pkg.version
+                                    .split('.')
+                                    .firstOrNull()
+                                    ?.toIntOrNull() ?: Int.MAX_VALUE
+                            ) >= 55
+                    }
+                if (isExpo55OrLaterPresent) {
+                    logger.info(
+                        "react-native-worklets: Expo 55 or later found in project, which has react-native-worklets as a dependency with hardcoded native library path, using react-native-worklets from sources.",
+                    )
+                    return false
+                }
+            }
         }
         return true
+    }
+
+    private fun removeCppDependenciesFromSupportedPackages(
+        packageItem: PackageItem,
+        supportedPackages: MutableSet<PackageItem>,
+        unavailablePackages: MutableSet<PackageItem>,
+        allDependentPackageAreSupported: List<PackageItem> = emptyList(),
+    ) {
+        if (PACKAGES_WITH_CPP[packageItem.name].isNullOrEmpty()) {
+            return
+        }
+        val dependentPackagePattern = PACKAGES_WITH_CPP[packageItem.name].orEmpty().joinToString("|") { it }
+        val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
+        val packagesToRemove =
+            supportedPackages.filter { supportedPackage ->
+                packagesToCheckRegex.any { regex ->
+                    regex.matches(supportedPackage.name)
+                }
+            }
+        supportedPackages.removeAll(packagesToRemove)
+        unavailablePackages.addAll(packagesToRemove)
+        val reason =
+            if (allDependentPackageAreSupported.isEmpty()) {
+                "${packageItem.npmName} is denied or unavailable."
+            } else {
+                "Unavailable dependent packages found for ${packageItem.npmName} matching pattern '$dependentPackagePattern': ${printList(
+                    allDependentPackageAreSupported,
+                )}"
+            }
+        logger.lifecycle(
+            "$reason\nRemoving packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages: ${printList(
+                packagesToRemove,
+            )}",
+        )
     }
 
     private fun checkDependenciesLocal(
@@ -761,13 +814,14 @@ class PrebuildsPlugin : Plugin<Project> {
         project: Project,
         supportedPackages: MutableSet<PackageItem>,
         unavailablePackages: MutableSet<PackageItem>,
+        projectPackages: Set<PackageItem>,
     ) {
         logger.info("${packageItem.npmName} is supported, checking if all packages depending on it are supported.")
         PACKAGES_WITH_CPP.get(packageItem.name)?.forEach { dependentPackagePattern ->
             val dependentPackagePatternRegex = dependentPackagePattern.toRegex()
             val isPackagePresentInProject =
                 project.rootProject.allprojects.any { subproject ->
-                    dependentPackagePatternRegex.matches(subproject.name)
+                    dependentPackagePatternRegex.matches(subproject.name) && subproject.name != packageItem.name
                 }
             if (!isPackagePresentInProject) {
                 logger.info(
@@ -775,28 +829,17 @@ class PrebuildsPlugin : Plugin<Project> {
                 )
                 return@forEach
             }
-            val isDependentPackageSupported =
-                supportedPackages.any { supportedPackage ->
-                    dependentPackagePatternRegex.matches(supportedPackage.name)
-                }
-            if (!isDependentPackageSupported) {
+            val allDependentPackageAreSupported =
+                projectPackages
+                    .filter { dependentPackagePatternRegex.matches(it.name) && it.name != packageItem.name }
+                    .filterNot { dep -> supportedPackages.any { it.name == dep.name } }
+            if (allDependentPackageAreSupported.isNotEmpty()) {
                 unavailablePackages.add(packageItem)
-                logger.lifecycle(
-                    "A package depending on ${packageItem.npmName} matching pattern '$dependentPackagePattern' is not available as a prebuild, building ${packageItem.npmName} from sources.",
-                )
-                val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
-                val packagesToRemove =
-                    supportedPackages.filter { supportedPackage ->
-                        packagesToCheckRegex.any { regex ->
-                            regex.matches(supportedPackage.name)
-                        }
-                    }
-                supportedPackages.removeAll(packagesToRemove)
-                unavailablePackages.addAll(packagesToRemove)
-                logger.lifecycle(
-                    "Removing packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages:${printList(
-                        packagesToRemove,
-                    )}",
+                removeCppDependenciesFromSupportedPackages(
+                    packageItem,
+                    supportedPackages,
+                    unavailablePackages,
+                    allDependentPackageAreSupported,
                 )
                 return
             }
@@ -844,12 +887,24 @@ class PrebuildsPlugin : Plugin<Project> {
         repositories: RepositoryHandler,
         extension: PackagesManager,
         unavailablePackages: MutableSet<PackageItem>,
+        supportedPackages: MutableSet<PackageItem>,
         elseClosure: () -> Unit,
     ) {
+        val isDenied = !isPackageNotDenied(packageItem.name, extension)
+        val checkFailed = !isSpecificCheckPassed(packageItem, extension)
+        val isUnavailable = !isPackageAvailable(packageItem, extension.reactNativeVersion, repositories)
+
         when {
-            !isPackageNotDenied(packageItem.name, extension) -> return
-            !isSpecificCheckPassed(packageItem, extension) -> return
-            !isPackageAvailable(packageItem, extension.reactNativeVersion, repositories) -> unavailablePackages.add(packageItem)
+            isDenied || checkFailed || isUnavailable -> {
+                if (isUnavailable) {
+                    unavailablePackages.add(packageItem)
+                }
+                removeCppDependenciesFromSupportedPackages(
+                    packageItem,
+                    supportedPackages,
+                    unavailablePackages,
+                )
+            }
             else -> elseClosure()
         }
     }
@@ -894,27 +949,24 @@ class PrebuildsPlugin : Plugin<Project> {
                 project.repositories,
                 extension,
                 unavailablePackages,
+                supportedPackages,
                 { supportedPackages.add(packageItem) },
             )
         }
         dependentList.parallelStream().forEach { packageItem ->
             logger.info("Handling ${packageItem.npmName} package after others.")
             val elseClosure: () -> Unit = {
-                if (getBuildType(project) == "release") {
-                    supportedPackages.add(packageItem)
-                } else {
-                    logger.info(
-                        "In debug builds, ${packageItem.npmName} requires all consumer packages to be supported; otherwise, it will not be applied.",
-                    )
-                    checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages)
-                }
+                logger.info(
+                    "${packageItem.npmName} has dependencies with C++ code, checking availability of dependent packages...",
+                )
+                checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages, extension.projectPackages)
             }
-            checkIfPackageIsSupported(packageItem, project.repositories, extension, unavailablePackages, elseClosure)
+            checkIfPackageIsSupported(packageItem, project.repositories, extension, unavailablePackages, supportedPackages, elseClosure)
         }
 
         extension.supportedPackages = supportedPackages
         logger.lifecycle("Found the following supported prebuilt packages:${printList(extension.supportedPackages, "📦")}")
-        logger.lifecycle("Packages not available – fallback to building from sources:${printList(unavailablePackages, "❓")}")
+        logger.lifecycle("Packages that fallback to building from sources:${printList(unavailablePackages, "❓")}")
     }
 
     private fun configureCMakeWrapper(

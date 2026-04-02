@@ -1,5 +1,31 @@
 # Troubleshooting for the RNRepo
 
+## Common Issues
+
+### Deny List Configuration
+You can create a `rnrepo.config.json` file in your React-Native root directory to manage specific packages that should be excluded from automatic AAR management. The structure of the configuration file is as follows:
+```json
+{
+  "denyList": {
+    "android": ["library-name-1", "library-name-2"],
+    "ios": ["library-name-3", "library-name-4"]
+  }
+}
+```
+
+### Disabling the RNRepo Plugin
+You can opt out of the RNRepo plugin using an environment variable `DISABLE_RNREPO`. If this variable is set to ANY value, the plugin will not execute. By default, if this variable is not set, it defaults to enabling the plugin execution.
+
+Android:
+```bash
+DISABLE_RNREPO=true ./gradlew :app:assembleDebug
+```
+
+iOS requires running pod install to disable the plugin:
+```bash
+DISABLE_RNREPO=true pod install
+```
+
 ## Android Gradle Plugin
 
 ### Setting React-Native Directory
@@ -15,14 +41,6 @@ Or you can set it in `gradle.properties` file:
 REACT_NATIVE_ROOT_DIR=/path/to/your/react-native-dir
 ```
 
-### Deny List Configuration
-You can create a `rnrepo.config.json` file in your React-Native root directory to manage specific packages that should be excluded from automatic AAR management. The structure of the configuration file is as follows:
-```json
-{
-  "denyList": ["library-name-1", "library-name-2"]
-}
-```
-
 ### Reload Cache
 You can force the RNRepo plugin to re-download all dependencies by running the following command:
 ```bash
@@ -34,13 +52,6 @@ RNRepo caches downloaded AAR files and metadata in the Gradle cache directory. I
 - `~/.gradle/caches/modules-2/files-2.1/org.rnrepo.public`
 - `~/.gradle/caches/modules-2/metadata-2.107/descriptors/org.rnrepo.tools`
 - `~/.gradle/caches/modules-2/files-2.1/org.rnrepo.tools`
-
-### Disabling the RNRepo Plugin
-You can opt out of the RNRepo plugin using an environment variable `DISABLE_RNREPO`. If this variable is set to ANY value, the plugin will not execute. By default, if this variable is not set, it defaults to "false", thereby enabling the plugin execution.
-
-```bash
-DISABLE_RNREPO=true ./gradlew :app:assembleDebug
-```
 
 ### Logging
 To get more detailed logs from the RNRepo plugin during the build process, you can run the following command:
@@ -152,3 +163,65 @@ This typically means that:
 
 #### Solution
 Ensure that your `build.gradle` applies the RNRepo plugin **after** defining the RNRepo maven repository. This ensures the RNRepo Maven repository is available to all subprojects, including your app module, before the RNRepo plugin attempts to check package availability.
+
+### How to check if the plugin works?
+
+Run `npm run android` and observe the terminal output and build folders. Compare your results with the table below:
+
+| Step | Basic Build | RNRepo Build |
+| :--- | :--- | :--- |
+| **Gradle Preparation** | No specific logs. | RNRepo logs the supported packages, e.g. <br> `[📦 RNRepo] Found the following supported prebuilt packages:`<br> `📦 react-native-safe-area-context@5.7.0` |
+| **Build Phase** | Gradle prints compilation tasks:<br>`> Task :react-native-safe-area-context:compileDebugKotlin` | **No compilation tasks** for substituted RN packages. |
+
+#### Filesystem Impact
+Check the `android/build` folder for a specific package (inside node_modules):
+
+* **Basic build:** Contains full compilation artifacts in directories like `generated`, `intermediates`, `kotlin`, `outputs`, and `tmp`.
+* **RNRepo build:** Shows **only** the `generated` directory (containing codegen artifacts).
+
+---
+
+## iOS CocoaPods Plugin
+
+### Xcode Version Mismatch (Xcode < 26)
+
+#### Problem Description
+Prebuilt frameworks are compiled using Xcode 26. If your application is being compiled with an older version of Xcode, it might not work correctly. The prebuilt libraries might not be compatible because they might utilize newer APIs or language features that are missing or incompatible in older Xcode versions.
+
+#### Solutions
+There are three primary ways to solve this issue:
+1. **Upgrade your Xcode version (recommended)**: Update your build environment so that the Xcode version you use to compile your app is greater than or equal to the Xcode version used to build the precompiled frameworks (currently Xcode 26). This keeps your dependencies and build toolchain aligned without changing library versions.
+2. **Downgrade the library version (if available)**: Switch to a lower version of the library whose prebuilt binaries were produced with an older Xcode that is compatible with your environment. This only works if such an older prebuilt exists in the RNRepo registry.
+3. **Add to deny list**: If downgrading is not an option, you can add the library to the `denyList` under `ios` in your `rnrepo.config.json`. This forces standard compilation from sources using your current Xcode version instead of pulling the precompiled framework.
+
+### How to check if the plugin works?
+
+Run building commands and monitor the terminal output:
+
+| Step | Basic Build | RNRepo Build |
+| :--- | :--- | :--- |
+| **Pod Installation** | Standard CocoaPods output. | RNRepo logs:<br>`[📦 RNRepo] Total React Native dependencies detected: 1`<br>`[📦 RNRepo] ⬇ Downloaded from Maven...`<br>`[📦 RNRepo] • react-native-safe-area-context`<br>`[📦 RNRepo] Added build phase to <package-name>` |
+| **Build Phase** | Xcode compiles all source files:<br>`▸ Compiling RNCSafeAreaContext.mm`<br>`▸ Building library libreact-native-safe-area-context.a` | Xcode compiles **only** JSI glue code:<br>`▸ Compiling safeareacontextJSI-generated.cpp`<br>`▸ Compiling safeareacontext-generated.mm` |
+
+#### Filesystem Impact
+
+* **Basic build:**
+    * Copies headers to `Pods/Headers/Public` and `Pods/Headers/Private`.
+    * Copies the built library to `Xcode/DerivedData`, e.g.:
+        ```bash
+        ls ~/Library/Developer/Xcode/DerivedData/<project-name>-<hash>/Build/Products/Debug-iphonesimulator/react-native-safe-area-context
+        
+        Output:
+        libreact-native-safe-area-context.a
+        ```
+* **RNRepo build:**
+    * Copies only JSI glue code to `Pods/<pod-name>/<architecture>/<pod-name>.framework`.
+    * Keeps the prebuilt framework in `XCFrameworkIntermediates`, e.g.:
+        ```bash
+        ls ~/Library/Developer/Xcode/DerivedData/<project-name>-<hash>/Build/Products/Debug-iphonesimulator/XCFrameworkIntermediates/react-native-safe-area-context
+        
+        Output:
+        common    react_native_safe_area_context.framework    fabric
+        ```
+
+---

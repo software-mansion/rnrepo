@@ -36,11 +36,9 @@ buildscript {
 +         commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
 +       }.standardOutput.asText.get().trim()
 +     ).getParentFile().absolutePath
-+     classpath fileTree(dir: "${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
++     classpath fileTree(dir: "${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin.jar"])
    }
 }
-
-apply plugin: "com.facebook.react.rootproject"
 
 allprojects {
   repositories {
@@ -48,6 +46,7 @@ allprojects {
   }
 }
 
+apply plugin: "com.facebook.react.rootproject"
 ```
 
 Then, apply the plugin in your `android/app/build.gradle` file:

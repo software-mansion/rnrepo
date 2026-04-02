@@ -1,8 +1,3 @@
-require 'net/http'
-require 'uri'
-require 'fileutils'
-require 'zip'
-
 module CocoapodsRnrepo
   class Downloader
     @@repo_url = "https://packages.rnrepo.org/releases"
@@ -19,18 +14,10 @@ module CocoapodsRnrepo
 
     def self.build_artifact_url(artifact_spec)
       worklets_suffix = artifact_spec[:worklets_version] ? "-worklets#{artifact_spec[:worklets_version]}" : ''
-      "#{@@repo_url}/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
+      "#{@@repo_url}/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.zip"
     end
 
-    def self.build_http_client(uri, read_timeout)
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = (uri.scheme == 'https')
-      http.read_timeout = read_timeout
-      http.open_timeout = 10
-      http
-    end
-
-    # Download file via HTTP request
+    # Download file via curl
     # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination, :worklets_version (optional)
     # Returns: destination path if successful, nil on failure
     def self.download_file(artifact_spec)
@@ -42,23 +29,16 @@ module CocoapodsRnrepo
       url = build_artifact_url(artifact_spec)
       Logger.log "Downloading from #{url}..."
 
-      uri = URI.parse(url)
-      http = build_http_client(uri, 60)
+      success = system("curl", "-s", "-S", "-f", "-L", "--connect-timeout", "15", "--max-time", "300", "-o", artifact_spec[:destination], url)
 
-      request = Net::HTTP::Get.new(uri.request_uri)
-
-      http.request(request) do |response|
-        if response.code.to_i == 200
-          File.open(artifact_spec[:destination], 'wb') do |file|
-            response.read_body do |chunk|
-              file.write(chunk)
-            end
-          end
-          return artifact_spec[:destination]
-        else
-          Logger.log "Failed to download #{url}: HTTP #{response.code}"
-          return nil
-        end
+      if success
+        return artifact_spec[:destination]
+      elsif success.nil?
+        Logger.error "Error: 'curl' command not found or could not be executed. Please ensure curl is installed and in your PATH."
+        return nil
+      else
+        Logger.log "Failed to download #{url}"
+        return nil
       end
     rescue => e
       Logger.log "Error downloading #{url}: #{e.message}"
@@ -68,26 +48,9 @@ module CocoapodsRnrepo
     # Unzip file to destination directory
     def self.unzip_file(zip_path, destination)
       Logger.log "Extracting to #{destination}..."
-
-      FileUtils.mkdir_p(destination)
-
-      Zip::File.open(zip_path) do |zip_file|
-        zip_file.each do |entry|
-          entry_path = File.join(destination, entry.name)
-          FileUtils.mkdir_p(File.dirname(entry_path))
-
-          # Remove existing file if it exists
-          FileUtils.rm_f(entry_path) if File.exist?(entry_path)
-
-          entry.extract(entry_path)
-        end
-      end
-
-      Logger.log "Extracted successfully"
-      true
-    rescue => e
-      Logger.log "Error extracting #{zip_path}: #{e.message}"
-      return false
+      success = system("unzip", "-oq", zip_path, "-d", destination)
+      Logger.log success ? "Extracted successfully #{zip_path}" : "Error extracting #{zip_path}"
+      success
     end
   end
 end

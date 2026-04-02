@@ -29,7 +29,7 @@ on:
 
 jobs:
   build-library-ios:
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS, ARM64, ephemeral]
     timeout-minutes: 60
 
     steps:

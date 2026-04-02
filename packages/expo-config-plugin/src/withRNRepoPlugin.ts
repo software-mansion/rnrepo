@@ -11,7 +11,7 @@ const rnrepoClasspathBlock = `def rnrepoDir = new File(
        commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
      }.standardOutput.asText.get().trim()
    ).getParentFile().absolutePath
-   classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin-*.jar"])
+   classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin.jar"])
 `;
 const applyPluginrnrepo = 'apply plugin: "org.rnrepo.tools.prebuilds-plugin"';
 const applyPluginFacebook = 'apply plugin: "com.facebook.react"';

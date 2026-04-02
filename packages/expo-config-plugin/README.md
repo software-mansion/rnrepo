@@ -14,6 +14,11 @@ yarn add @rnrepo/expo-config-plugin
 bun add @rnrepo/expo-config-plugin
 ```
 
+> Note: In hoisted node_modules you might have to install the `@rnrepo/build-tools` manually with:
+> ```
+> npx expo install @rnrepo/build-tools
+> ```
+
 Then add the plugin to your Expo configuration in `app.json` or `app.config.js`.
 ```diff
 {
