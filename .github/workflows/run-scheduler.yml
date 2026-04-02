@@ -42,7 +42,7 @@ jobs:
       - name: 🔄 Run scheduler
         env:
           GITHUB_TOKEN: ${{ secrets.SCHEDULER_GITHUB_PAT }}
-          SCHEDULER_LIMIT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.limit || 1) || 50 }} # TODO: change back to 200 when we have custom macos runner
+          SCHEDULER_LIMIT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.limit || 1) || 200 }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: bun run scheduler
