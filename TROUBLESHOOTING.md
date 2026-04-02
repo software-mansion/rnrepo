@@ -188,6 +188,27 @@ Check the `android/build` folder for a specific package (inside node_modules):
 #### Problem Description
 Prebuilt frameworks are compiled using Xcode 26. If your application is being compiled with an older version of Xcode, it might not work correctly. The prebuilt libraries might not be compatible because they might utilize newer APIs or language features that are missing or incompatible in older Xcode versions.
 
+#### Identifying the Problematic Package
+When the build fails with linker errors, you can identify which package is causing the issue by inspecting the error output. Look for `Undefined symbols` errors that reference specific files e.g.:
+
+```
+Undefined symbols for architecture arm64:
+  "_OBJC_CLASS_$_UITabAccessory", referenced from:
+      objc-class-ref in RNScreens(RNSTabsHostComponentView.o)
+  "_OBJC_CLASS_$_UITraitTabAccessoryEnvironment", referenced from:
+      objc-class-ref in RNScreens(RNSTabsBottomAccessoryHelper.o)
+ld: symbol(s) not found for architecture arm64
+```
+
+The `.o` filename (e.g., `RNSTabsBottomAccessoryHelper.o`) points to a source file in one of your packages. Search for it in `node_modules` to identify which package to add to the deny list:
+
+```bash
+find ./node_modules -path "*RNSTabsBottomAccessoryHelper*"
+# Output: ./node_modules/react-native-screens/ios/tabs/bottom-accessory/RNSTabsBottomAccessoryHelper.mm
+```
+
+In this example, `react-native-screens` is the culprit — which could be resolved by adding that library to the deny list in `rnrepo.config.json`.
+
 #### Solutions
 There are three primary ways to solve this issue:
 1. **Upgrade your Xcode version (recommended)**: Update your build environment so that the Xcode version you use to compile your app is greater than or equal to the Xcode version used to build the precompiled frameworks (currently Xcode 26). This keeps your dependencies and build toolchain aligned without changing library versions.
