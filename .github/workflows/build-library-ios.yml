@@ -61,13 +61,7 @@ jobs:
 
       - name: 📱 Create RN project (cache miss)
         if: steps.rn-project-cache.outputs.cache-hit != 'true'
-        run: |
-          work_dir="${{ runner.temp }}"
-          mkdir -p "$work_dir"
-          cd "$work_dir"
-          bunx @react-native-community/cli@latest init rnrepo_build_app --version "${{ inputs.react_native_version }}" --skip-install
-          cd "$work_dir/rnrepo_build_app"
-          npm install
+        run: bun run packages/builder/build-utils.ts -- "${{ runner.temp }}" "${{ inputs.react_native_version }}"
 
       - name: 💾 Save RN project cache (clean)
         if: steps.rn-project-cache.outputs.cache-hit != 'true'

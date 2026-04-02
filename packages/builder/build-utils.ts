@@ -227,6 +227,51 @@ export async function installSetup(
   return undefined;
 }
 
+async function simplifyAppTsx(appDir: string): Promise<void> {
+  const appTsxPath = join(appDir, 'App.tsx');
+  if (!existsSync(appTsxPath)) return;
+  const { writeFileSync } = await import('fs');
+  console.log('✓ Simplifying App.tsx...');
+  const minimalApp = `import React from 'react';
+import { View } from 'react-native';
+
+function App(): React.JSX.Element {
+  return <View />;
+}
+
+export default App;
+`;
+  writeFileSync(appTsxPath, minimalApp);
+}
+
+async function removeSafeAreaContext(appDir: string): Promise<void> {
+  const packageJsonPath = join(appDir, 'package.json');
+  if (!existsSync(packageJsonPath)) return;
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+  if (!packageJson.dependencies?.['react-native-safe-area-context']) return;
+  console.log(
+    '🧹 Removing unnecessary react-native-safe-area-context from package.json...'
+  );
+  await $`npm uninstall react-native-safe-area-context`.cwd(appDir).quiet();
+}
+
+export async function createReactNativeProject(
+  workDir: string, 
+  reactNativeVersion: string
+): Promise<void> {
+  console.log(
+    `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
+  );
+  const appDir = join(workDir, 'rnrepo_build_app');
+
+  await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`
+    .cwd(workDir)
+    .quiet();
+
+  await Promise.all([simplifyAppTsx(appDir), removeSafeAreaContext(appDir)]);
+}
+  
+
 /**
  * Setup React Native project and install library with dependencies
  * Returns appDir, license, and optional gradle script path for Android
@@ -252,14 +297,7 @@ export async function setupReactNativeProject(
   if (existsSync(appDir)) {
     console.log(`♻️ Using cached React Native project at ${appDir}`);
   } else {
-    // Create RN project in the work directory
-    console.log(
-      `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
-    );
-
-    await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`
-      .cwd(workDir)
-      .quiet();
+    await createReactNativeProject(workDir, reactNativeVersion);
   }
 
   if (!existsSync(join(appDir, 'package.json'))) {
@@ -305,4 +343,14 @@ export async function setupReactNativeProject(
     license,
     postinstallGradleScriptPath,
   };
+}
+
+// if script is run directly (from build-library-android.yml or build-library-ios.yml)
+if (import.meta.main) {
+  const [workDir, reactNativeVersion] = process.argv.slice(2);
+  if (!workDir || !reactNativeVersion) {
+    console.error('Usage: bun run build-utils.ts -- <workDir> <reactNativeVersion>');
+    process.exit(1);
+  }
+  await createReactNativeProject(workDir, reactNativeVersion);
 }
