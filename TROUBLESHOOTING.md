@@ -142,6 +142,24 @@ The RNRepo plugin automatically detects when a provider library (e.g., `react-na
 
 If other libraries cause similar issues, please report them so they can be added to the automatic handling list.
 
+### `FAIL_ON_PROJECT_REPOS` Set in Gradle
+
+#### Problem Description
+If your Gradle configuration has `FAIL_ON_PROJECT_REPOS` enabled, Gradle will reject any attempt to add repositories at the project level. This prevents the RNRepo plugin from automatically registering the Maven repository, resulting in a build failure.
+
+#### Solution
+You need to manually add the RNRepo Maven repository to your `allprojects` block in your root `build.gradle` file:
+
+```groovy
+allprojects {
+    repositories {
+        maven { url "https://packages.rnrepo.org/releases" }
+    }
+}
+```
+
+After adding this, the RNRepo plugin will be able to resolve prebuilt packages from the registry without conflicting with the `FAIL_ON_PROJECT_REPOS` setting.
+
 ### No Supported Packages Found or Empty Repository List
 
 #### Problem Description
