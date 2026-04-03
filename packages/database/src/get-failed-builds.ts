@@ -79,7 +79,7 @@ async function main() {
   if (error || !builds) throw new Error(`Fetch failed: ${error?.message}`);
   if (!builds.length) return console.log('✅ No failed builds found.');
 
-  const results = { buildable: 0, unbuildable: 0, actionNeeded: 0, noGithubRunUrl: 0, unknown: 0, error: 0 };
+  const results = { buildable: 0, unbuildable: 0, actionNeeded: 0, noGithubRunUrl: 0, unknown: 0, error: 0, removed: 0 };
 
   const queue = [...builds];
   let isCancelled = false;
@@ -115,10 +115,15 @@ async function main() {
           console.log(`⚠️ ${result === 'unknown' ? 'Unknown issue' : result}: ${info}. Skipping.`);
         }
       } catch (err) {
-        results.error++;
-        console.error(`❌ Error processing ${info}:`, err);
         if (err instanceof $.ShellError && err.stderr.toString().includes('HTTP 403: API rate limit exceeded')) {
           isCancelled = true;
+          console.log(`⚠️ API rate limit exceeded. Stopping.`);
+        } else if (err instanceof $.ShellError && err.stderr.toString().includes('failed to get run log: HTTP 410: Server Error')) {
+          results.removed++;
+          console.log(`🗑️ Removed logs for ${info}`);
+        } else {
+          results.error++;
+          console.error(`❌ Error processing ${info}:`, err);
         }
       }
     }
@@ -137,6 +142,7 @@ async function main() {
   console.log(`   No Github run URL        -> ${results.noGithubRunUrl}`);
   console.log(`   Unknown issue            -> ${results.unknown}`);
   console.log(`   Errors                   -> ${results.error}`);
+  console.log(`   Logs unavailable (old)   -> ${results.removed}`);
   console.log(`   Retry=true builds before -> ${retryTrueBuilds.count}`);
 }
 
