@@ -1,5 +1,5 @@
 // Gets failed builds
-// - Finds failed builds older than 30 days
+// - Finds failed builds with unknown failed_reason (1000 limit due to GH API rate limit)
 // - Verifies the error issue from known issues
 // - If buildable then updates failed_reason to buildable and retry status to true when run with --write (dry run otherwise).
 // Note: changing retry to false again needs to be done manually
@@ -9,7 +9,7 @@ import type { BuildStatus, Platform } from './types';
 import { $ } from 'bun';
 
 const CONCURRENCY = 5;
-const MAX_AGE_MS = 20 * 24 * 60 * 60 * 1000; // 20 days
+const RECORDS_LIMIT = 1000;
 type IssueResult = 'buildable' | 'unbuildable' | 'actionNeeded' | 'noGithubRunUrl' | 'unknown' | 'error';
 
 interface BuildRow {
@@ -65,16 +65,15 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
 async function main() {
   const writeMode = process.argv.some(arg => ['--write', '-w'].includes(arg));
   const supabase = getSupabaseClient();
-  const cutoffIso = new Date(Date.now() - MAX_AGE_MS).toISOString();
 
-  console.log(`🔎 Scanning failed builds newer than ${cutoffIso}...`);
+  console.log(`🔎 Scanning failed builds...`);
   if (!writeMode) {
     console.log('🧪 Dry run mode (no database updates). Use --write to apply.');
   }
 
   const [retryTrueBuilds, { data: builds, error }] = await Promise.all([
     supabase.from('builds').select('id', { count: 'exact', head: true }).eq('retry', true),
-    supabase.from('builds').select('*').eq('status', 'failed').eq('retry', false).eq('failed_reason', 'unknown').gt('created_at', cutoffIso)
+    supabase.from('builds').select('*').eq('status', 'failed').eq('retry', false).eq('failed_reason', 'unknown').limit(RECORDS_LIMIT)
   ]);
 
   if (error || !builds) throw new Error(`Fetch failed: ${error?.message}`);
