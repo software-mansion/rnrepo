@@ -262,6 +262,9 @@ export async function createReactNativeProject(
   console.log(
     `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
   );
+  // Create work directory if it doesn't exist
+  const { mkdirSync } = await import('fs');
+  mkdirSync(workDir, { recursive: true });
   const appDir = join(workDir, 'rnrepo_build_app');
 
   await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`
