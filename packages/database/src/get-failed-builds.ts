@@ -114,6 +114,7 @@ async function main() {
             }).eq('id', build.id);
             if (updateError) {
               console.error(`❌ Error updating build ${build.id}:`, updateError);
+              continue
             }
           }
           
