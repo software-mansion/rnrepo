@@ -28,7 +28,7 @@ interface BuildRow {
   status: BuildStatus;
   created_at: string;
   updated_at: string;
-  github_run_url: string;
+  github_run_url: string | null;
   failed_reason: FailedReason;
 }
 
