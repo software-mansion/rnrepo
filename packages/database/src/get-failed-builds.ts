@@ -3,14 +3,20 @@
 // - Verifies the error issue from known issues
 // - If buildable then updates failed_reason to buildable and retry status to true when run with --write (dry run otherwise).
 // Note: changing retry to false again needs to be done manually
-// Note: keeping track of actionNeeded records in DB and their retry status is on developer side, not automated
+// Note: keeping track of fixable records in DB and their retry status is on developer side, not automated
 import { getSupabaseClient } from './index';
-import type { BuildStatus, Platform } from './types';
+import type { BuildStatus, FailedReason, Platform } from './types';
 import { $ } from 'bun';
 
 const CONCURRENCY = 5;
 const RECORDS_LIMIT = 1000;
-type IssueResult = 'buildable' | 'unbuildable' | 'actionNeeded' | 'noGithubRunUrl' | 'unknown' | 'error';
+type IssueResult = FailedReason | 'noGithubRunUrl' | 'error';
+
+// Typeguard to keep correct types in updating DB
+const KNOWN_REASONS = ['buildable', 'unbuildable', 'fixable'] as const satisfies FailedReason[];
+function isKnownReason(result: IssueResult): result is (typeof KNOWN_REASONS)[number] {
+  return (KNOWN_REASONS as readonly IssueResult[]).includes(result);
+}
 
 interface BuildRow {
   id: number;
@@ -23,6 +29,7 @@ interface BuildRow {
   created_at: string;
   updated_at: string;
   github_run_url: string;
+  failed_reason: FailedReason;
 }
 
 function getIdFromOutput(str: string): string {
@@ -42,7 +49,7 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
     return 'buildable';
   } else if (!outputAction.includes('X build-library-android') && !outputAction.includes('X build-library-ios')) {
     // failed something else than building process
-    return 'actionNeeded';
+    return 'fixable';
   } else if (outputAction.includes('To see what failed, try:')) {
     const jobId = getIdFromOutput(outputAction);
     const outputJob = await $`gh run view ${jobId} --repo software-mansion/rnrepo --log-failed`.text();
@@ -79,7 +86,7 @@ async function main() {
   if (error || !builds) throw new Error(`Fetch failed: ${error?.message}`);
   if (!builds.length) return console.log('✅ No failed builds found.');
 
-  const results = { buildable: 0, unbuildable: 0, actionNeeded: 0, noGithubRunUrl: 0, unknown: 0, error: 0, removed: 0 };
+  const results = { buildable: 0, unbuildable: 0, fixable: 0, noGithubRunUrl: 0, unknown: 0, error: 0, removed: 0 };
 
   const queue = [...builds];
   let isCancelled = false;
@@ -98,19 +105,20 @@ async function main() {
         const result = await checkIssue(build);
         results[result]++;
 
-        const isKnown = ['buildable', 'unbuildable', 'actionNeeded'].includes(result);
-
-        if (isKnown) {
+        if (isKnownReason(result)) {
           if (writeMode) {
-            await supabase.from('builds').update({
+             const { error: updateError } = await supabase.from('builds').update({
               failed_reason: result,
               retry: result === 'buildable',
               updated_at: new Date().toISOString()
             }).eq('id', build.id);
+            if (updateError) {
+              console.error(`❌ Error updating build ${build.id}:`, updateError);
+            }
           }
           
-          const icons = { buildable: '✅', unbuildable: '🚫', actionNeeded: '🛠️' };
-          console.log(`${icons[result]} ${result}: ${info} ${writeMode ? '(Marked retry)' : '(Dry run)'}`);
+          const icons = { buildable: '✅', unbuildable: '🚫', fixable: '🛠️' };
+          console.log(`${icons[result]} ${result}: ${info} ${writeMode ? '(Updated DB)' : '(Dry run)'}`);
         } else {
           console.log(`⚠️ ${result === 'unknown' ? 'Unknown issue' : result}: ${info}. Skipping.`);
         }
@@ -138,12 +146,12 @@ async function main() {
   console.log(`   Checked: ${builds.length}`);
   console.log(`   Buildable issue          -> ${results.buildable}`);
   console.log(`   Unbuildable issue        -> ${results.unbuildable}`);
-  console.log(`   Action needed issue      -> ${results.actionNeeded}`);
+  console.log(`   Fixable issue            -> ${results.fixable}`);
   console.log(`   No Github run URL        -> ${results.noGithubRunUrl}`);
   console.log(`   Unknown issue            -> ${results.unknown}`);
   console.log(`   Errors                   -> ${results.error}`);
   console.log(`   Logs unavailable (old)   -> ${results.removed}`);
-  console.log(`   Retry=true builds before -> ${retryTrueBuilds.count}`);
+  console.log(`   Retry=true builds before -> ${retryTrueBuilds?.count}`);
 }
 
 main().catch((error) => {

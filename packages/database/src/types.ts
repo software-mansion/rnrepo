@@ -2,7 +2,7 @@ export type Platform = 'android' | 'ios';
 
 export type BuildStatus = 'scheduled' | 'completed' | 'failed';
 
-export type FailedReason = 'buildable' | 'unbuildable' | 'actionNeeded' | 'unknown';
+export type FailedReason = 'buildable' | 'unbuildable' | 'fixable' | 'unknown';
 
 export interface BuildRecord {
   id?: number;
