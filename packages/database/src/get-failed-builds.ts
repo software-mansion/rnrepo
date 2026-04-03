@@ -129,7 +129,16 @@ async function main() {
           console.log(`⚠️ API rate limit exceeded. Stopping.`);
         } else if (err instanceof $.ShellError && err.stderr.toString().includes('failed to get run log: HTTP 410: Server Error')) {
           results.removed++;
-          console.log(`🗑️ Removed logs for ${info}`);
+          if (writeMode) {
+            const { error: updateError } = await supabase.from('builds').update({
+              failed_reason: 'fixable', // requires manual check
+              updated_at: new Date().toISOString()
+            }).eq('id', build.id);
+            if (updateError) {
+              console.error(`❌ Error updating build ${build.id}:`, updateError);
+            }
+          }
+          console.log(`🗑️ Removed logs for ${info} ${writeMode ? '(Updated DB → fixable)' : '(Dry run)'}`);
         } else {
           results.error++;
           console.error(`❌ Error processing ${info}:`, err);
