@@ -304,6 +304,12 @@ export async function setupReactNativeProject(
     throw new Error(`Invalid React Native project at ${appDir}`);
   }
 
+  // check if there are patches to copy
+  if (existsSync(join(__dirname, 'patches'))) {
+    console.log(`✓ Copying patches...`);
+    await $`cp -r ./patches ${appDir}`.cwd(__dirname);
+  }
+
   // Perform any library-specific setup before installing
   await installSetup(appDir, libraryName, 'preInstall');
 
@@ -334,6 +340,12 @@ export async function setupReactNativeProject(
   // Install all dependencies
   console.log('📦 Installing all dependencies...');
   await $`npm install`.cwd(appDir).quiet();
+
+  // check if there is patches folder to apply
+  if (existsSync(join(appDir, 'patches'))) {
+    console.log('📦 Applying patches...');
+    await $`npx patch-package`.cwd(appDir);
+  }
 
   // Check if the react-native version is correctly set
   checkRnVersion(appDir, reactNativeVersion);
