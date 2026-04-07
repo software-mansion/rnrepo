@@ -57,6 +57,24 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install
 
+      - name: ♻️ Restore RN project cache
+        id: rn-project-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/rnrepo_build_app
+          key: ${{ runner.os }}-rn-project-cache-${{ inputs.react_native_version }}
+
+      - name: 📱 Create RN project (cache miss)
+        if: steps.rn-project-cache.outputs.cache-hit != 'true'
+        run: bun run packages/builder/build-utils.ts -- "${{ runner.temp }}" "${{ inputs.react_native_version }}"
+
+      - name: 💾 Save RN project cache (clean)
+        if: steps.rn-project-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/rnrepo_build_app
+          key: ${{ runner.os }}-rn-project-cache-${{ inputs.react_native_version }}
+
       - name: 🔨 Build library for Android
         run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}" "${{ inputs.worklets_version }}"
 
