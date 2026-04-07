@@ -35,6 +35,14 @@ const cngConfigCodeHtml = await codeToHtml(cngConfigInstructions, {
   theme: 'github-dark',
 });
 
+const cngFingerprintInstructions = `**/.rnrepo-cache`;
+const cngFingerprintInstructionsCopyText = `**/.rnrepo-cache`;
+
+const cngFingerprintCodeHtml = await codeToHtml(cngFingerprintInstructions, {
+  lang: 'text',
+  theme: 'github-dark',
+});
+
 const standardBuildGradleChange = `buildscript {
   dependencies {
     ...
@@ -277,6 +285,47 @@ const iOSPodfileCodeHtml = await codeToHtml(iOSPodfile, {
         </div>
         <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
           <Fragment set:html={cngConfigCodeHtml} />
+        </div>
+      </div>
+
+      {/* Expo Setup - Step 3 */}
+      <p
+        class="code-block-wrapper code-block-wrapper-expo text-rnrGrey-40 leading-relaxed mb-4"
+      >
+        If you are using Expo Fingerprint (e.g., during EAS builds), add RNRepo downloaded artifacts to ignored files by adding the following to your <a
+          href="https://docs.expo.dev/versions/latest/sdk/fingerprint/#fingerprintignore"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-brandSeaBlue-100 bg-rnrGrey-90 px-1.5 py-0.5 rounded font-mono text-sm hover:underline"
+          >.fingerprintignore</a
+        > file:
+      </p>
+
+      <div
+        class="code-block-wrapper code-block-wrapper-expo border border-rnrGrey-80 rounded-sm overflow-hidden bg-[#0D0D0D] mb-8"
+        data-code={cngFingerprintInstructions}
+      >
+        <div
+          class="flex items-center justify-between px-6 py-3 border-b border-rnrGrey-80 bg-[#141414]"
+        >
+          <span class="text-xs text-rnrGrey-50 font-mono">
+            .fingerprintignore
+          </span>
+          <button
+            class="copy-button flex items-center gap-1.5 text-xs text-rnrGrey-50 hover:text-rnrGrey-0 transition-colors group"
+            type="button"
+            data-copy-text={cngFingerprintInstructionsCopyText}
+          >
+            <Icon
+              name="copy"
+              className="copy-icon w-3.5 h-3.5 group-hover:text-brandSeaBlue-100 transition-colors"
+            />
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+          </button>
+        </div>
+        <div class="p-6 overflow-x-auto bg-[#0A0A0A] code-block">
+          <Fragment set:html={cngFingerprintCodeHtml} />
         </div>
       </div>
 

@@ -189,7 +189,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
 
   try {
     // console.log('📦 Publishing standard version...');
-    // await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
+    // await $`./gradlew ${gradleProjectName}:publishToMavenLocal \
     //   --no-daemon \
     //   --init-script ${addPublishingGradleScriptPath} \
     //   --init-script ${addPrefabReduceGradleScriptPath} \
