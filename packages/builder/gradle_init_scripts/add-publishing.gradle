@@ -24,7 +24,7 @@ allprojects { project ->
 }
 
 def createExtractCodegenBinariesTask(libraryProject, codegenName, buildType) {
-    return libraryProject.tasks.register("extractCodegenBinaries${buildType.capitalize()}") {
+    return libraryProject.tasks.register("extractCodegenBinaries${buildType}") {
         onlyIf { codegenName != null }
         doLast {
             def appCxxDir = file("${libraryProject.rootProject.projectDir}/app/.cxx")
@@ -35,7 +35,7 @@ def createExtractCodegenBinariesTask(libraryProject, codegenName, buildType) {
                 def staticLib = fileTree(dir: appCxxDir, include: "**/$moduleFolder/**/libreact_codegen_${codegenName}.a")
                     .find { it.path.contains(arch) }
                 if (staticLib) {
-                    def destDir = file("${libraryProject.projectDir}/src/main/assets/${buildType}/$arch")
+                    def destDir = file("${libraryProject.projectDir}/src/main/assets/${buildType.toLowerCase()}/$arch")
                     destDir.mkdirs()
                     copy { from staticLib; into destDir }
                     println "📦 Copied ${buildType} codegen library for $arch from ${staticLib.path}"
@@ -44,7 +44,7 @@ def createExtractCodegenBinariesTask(libraryProject, codegenName, buildType) {
                 }
             }
             // Metadata for the consumer (only for release to avoid duplication)
-            if (buildType == "release") {
+            if (buildType == "Release") {
                 def metaDir = file("${libraryProject.projectDir}/src/main/assets/meta")
                 metaDir.mkdirs()
                 file("${metaDir}/codegen_name.txt").text = codegenName
@@ -59,9 +59,9 @@ def configureCodegenTasks(project) {
         ? project.property('rnrepoCodegenName') 
         : null
 
-    // Create extract tasks for both debug and release
-    def extractDebugTask = createExtractCodegenBinariesTask(project, codegenName, "debug")
-    def extractReleaseTask = createExtractCodegenBinariesTask(project, codegenName, "release")
+    // Create extract tasks for both Debug and Release (CAPITALIZED! due to String::capitalized() is deprecated)
+    def extractDebugTask = createExtractCodegenBinariesTask(project, codegenName, "Debug")
+    def extractReleaseTask = createExtractCodegenBinariesTask(project, codegenName, "Release")
 
     // Task to package headers - must run after codegen generation
     def packageHeadersTask = project.tasks.register("packageCppHeaders") {
