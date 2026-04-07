@@ -1,6 +1,6 @@
 import { $ } from 'bun';
 import { createHash } from 'crypto';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
 
@@ -230,7 +230,6 @@ export async function installSetup(
 async function simplifyAppTsx(appDir: string): Promise<void> {
   const appTsxPath = join(appDir, 'App.tsx');
   if (!existsSync(appTsxPath)) return;
-  const { writeFileSync } = await import('fs');
   console.log('✓ Simplifying App.tsx...');
   const minimalApp = `import React from 'react';
 import { View } from 'react-native';
@@ -263,7 +262,6 @@ export async function createReactNativeProject(
     `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
   );
   // Create work directory if it doesn't exist
-  const { mkdirSync } = await import('fs');
   mkdirSync(workDir, { recursive: true });
   const appDir = join(workDir, 'rnrepo_build_app');
 
@@ -293,7 +291,6 @@ export async function setupReactNativeProject(
   const appDir = join(workDir, 'rnrepo_build_app');
 
   // Create work directory if it doesn't exist
-  const { mkdirSync } = await import('fs');
   mkdirSync(workDir, { recursive: true });
 
   // If appDir already exists, assume it's a cached RN project and skip setup
