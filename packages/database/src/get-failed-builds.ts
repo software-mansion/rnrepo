@@ -59,6 +59,9 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
       return 'unbuildable';
     } else if (outputJob.includes('[Worklets] Your installed version of React Native is not compatible')) {
       return 'unbuildable';
+    } else if (outputJob.includes('Could not get unknown property \'destinationDir\' for task \':shopify')) {
+      // fails on gradle@9.0.0 - https://github.com/Shopify/react-native-skia/pull/3332
+      return 'unbuildable';
     } else if (outputJob.includes('VideoEventEmitter.kt:293:63 Argument type mismatch: actual type is \'Int\'')) {
       // react-native-video@6.X issue
       return 'unbuildable';
