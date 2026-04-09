@@ -13,7 +13,7 @@ const RECORDS_LIMIT = 1000;
 type IssueResult = FailedReason | 'noGithubRunUrl' | 'error';
 
 // Typeguard to keep correct types in updating DB
-const KNOWN_REASONS = ['buildable', 'unbuildable', 'fixable'] as const satisfies FailedReason[];
+const KNOWN_REASONS = ['buildable', 'unbuildable', 'fixable', 'expired'] as const satisfies FailedReason[];
 function isKnownReason(result: IssueResult): result is (typeof KNOWN_REASONS)[number] {
   return (KNOWN_REASONS as readonly IssueResult[]).includes(result);
 }
@@ -58,6 +58,9 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
     } else if (/\[Reanimated\] React Native .* version is not compatible with Reanimated .*/.test(outputJob)) {
       return 'unbuildable';
     } else if (outputJob.includes('[Worklets] Your installed version of React Native is not compatible')) {
+      return 'unbuildable';
+    } else if (outputJob.includes('Could not get unknown property \'destinationDir\' for task \':shopify')) {
+      // fails on gradle@9.0.0 - https://github.com/Shopify/react-native-skia/pull/3332
       return 'unbuildable';
     } else if (outputJob.includes('VideoEventEmitter.kt:293:63 Argument type mismatch: actual type is \'Int\'')) {
       // react-native-video@6.X issue
@@ -131,14 +134,14 @@ async function main() {
           results.removed++;
           if (writeMode) {
             const { error: updateError } = await supabase.from('builds').update({
-              failed_reason: 'fixable', // requires manual check
+              failed_reason: 'expired',
               updated_at: new Date().toISOString()
             }).eq('id', build.id);
             if (updateError) {
               console.error(`❌ Error updating build ${build.id}:`, updateError);
             }
           }
-          console.log(`🗑️ Removed logs for ${info} ${writeMode ? '(Updated DB → fixable)' : '(Dry run)'}`);
+          console.log(`🗑️ Removed logs for ${info} ${writeMode ? '(Updated DB → expired)' : '(Dry run)'}`);
         } else {
           results.error++;
           console.error(`❌ Error processing ${info}:`, err);
