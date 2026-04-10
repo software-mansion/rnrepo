@@ -49,6 +49,7 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
             if (metaFile.exists()) {
                 val codegenName = metaFile.readText().trim()
                 val currentBuildType = buildType.get()
+                var foundAnyLib = false
 
                 // 3. Extract static libraries (.a files) for each ABI from the correct build variant
                 abis.forEach { abi ->
@@ -66,6 +67,7 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
                             it.from(variantStaticLib)
                             it.into(abiDest)
                         }
+                        foundAnyLib = true
                         project.logger.lifecycle("RNRepo: Extracted $currentBuildType codegen library for $abi from $moduleName")
                     } else {
                         project.logger.warn("RNRepo: No $currentBuildType codegen library found for $abi in $moduleName")
@@ -73,24 +75,30 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
                 }
 
                 // 4. Extract Headers from assets/headers
-                val headersDir = File(outDir, "headers/$codegenName")
-                headersDir.mkdirs()
+                if (foundAnyLib) {
+                    val headersDir = File(outDir, "headers/$codegenName")
+                    headersDir.mkdirs()
 
-                val headersSourceDir = File(extractionDir, "assets/headers")
-                if (headersSourceDir.exists()) {
-                    project.copy {
-                        it.from(headersSourceDir)
-                        it.into(headersDir)
-                        it.include("**/*.h")
+                    val headersSourceDir = File(extractionDir, "assets/headers")
+                    if (headersSourceDir.exists()) {
+                        project.copy {
+                            it.from(headersSourceDir)
+                            it.into(headersDir)
+                            it.include("**/*.h")
+                        }
+
+                        // 5. Register in manifest: name;path_to_a;path_to_headers
+                        // Using a placeholder ${ANDROID_ABI} for CMake
+                        val cmakeLibPath = "${outDir.absolutePath}/\${ANDROID_ABI}/libreact_codegen_$codegenName.a"
+                        sb.append("$codegenName;$cmakeLibPath;${headersDir.absolutePath}\n")
+                    } else {
+                        project.logger.lifecycle(
+                            "RNRepo: Headers not found in assets/headers for $moduleName - will build codegen from sources",
+                        )
                     }
-
-                    // 5. Register in manifest: name;path_to_a;path_to_headers
-                    // Using a placeholder ${ANDROID_ABI} for CMake
-                    val cmakeLibPath = "${outDir.absolutePath}/\${ANDROID_ABI}/libreact_codegen_$codegenName.a"
-                    sb.append("$codegenName;$cmakeLibPath;${headersDir.absolutePath}\n")
                 } else {
                     project.logger.lifecycle(
-                        "RNRepo: Headers not found in assets/headers for $moduleName - will build codegen from sources",
+                        "RNRepo: Skipping $moduleName from manifest because no .a files were found for $currentBuildType",
                     )
                 }
             }
