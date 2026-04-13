@@ -75,7 +75,7 @@ def rnrepo_pre_install(installer_context)
 
   # Add worklets version to reanimated pod info
   if (pod = rn_pods.find { |p| p[:name] == 'RNReanimated' })
-    if is_version_at_least(pod[:version], "4.3.0")
+    if !is_version_at_least(pod[:version], "4.3.0")
       pod[:worklets_version] = worklets_version
     end
   end
