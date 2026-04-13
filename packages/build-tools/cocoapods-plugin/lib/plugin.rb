@@ -39,6 +39,12 @@ def get_ios_denylist(workspace_root)
   denylist_config['ios'] || []
 end
 
+def is_version_at_least(current_version, minimum_version)
+  current_version ||= '0.0.0'
+  current_core = current_version.match(/^\d+(\.\d+)*/)&.to_s || '0.0.0'
+  Gem::Version.new(current_core) >= Gem::Version.new(minimum_version)
+end
+
 def rnrepo_pre_install(installer_context)
   # Check if plugin is disabled via environment variable
   if ENV['DISABLE_RNREPO']
@@ -69,7 +75,9 @@ def rnrepo_pre_install(installer_context)
 
   # Add worklets version to reanimated pod info
   if (pod = rn_pods.find { |p| p[:name] == 'RNReanimated' })
-    pod[:worklets_version] = worklets_version
+    if is_version_at_least(pod[:version], "4.3.0")
+      pod[:worklets_version] = worklets_version
+    end
   end
 
   if rn_pods.empty?
