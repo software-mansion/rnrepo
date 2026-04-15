@@ -1,5 +1,5 @@
 // Gets failed builds
-// - Finds failed builds with unknown failed_reason (1000 limit due to GH API rate limit)
+// - Finds failed builds with pending failed_reason (1000 limit due to GH API rate limit)
 // - Verifies the error issue from known issues
 // - If buildable then updates failed_reason to buildable and retry status to true when run with --write (dry run otherwise).
 // Note: changing retry to false again needs to be done manually
@@ -13,7 +13,7 @@ const RECORDS_LIMIT = 1000;
 type IssueResult = FailedReason | 'noGithubRunUrl' | 'error';
 
 // Typeguard to keep correct types in updating DB
-const KNOWN_REASONS = ['buildable', 'unbuildable', 'fixable', 'expired'] as const satisfies FailedReason[];
+const KNOWN_REASONS = ['buildable', 'unbuildable', 'fixable', 'expired', 'unknown'] as const satisfies FailedReason[];
 function isKnownReason(result: IssueResult): result is (typeof KNOWN_REASONS)[number] {
   return (KNOWN_REASONS as readonly IssueResult[]).includes(result);
 }
@@ -86,7 +86,7 @@ async function main() {
 
   const [retryTrueBuilds, { data: builds, error }] = await Promise.all([
     supabase.from('builds').select('id', { count: 'exact', head: true }).eq('retry', true),
-    supabase.from('builds').select('*').eq('status', 'failed').eq('retry', false).eq('failed_reason', 'unknown').limit(RECORDS_LIMIT)
+    supabase.from('builds').select('*').eq('status', 'failed').eq('retry', false).eq('failed_reason', 'pending').limit(RECORDS_LIMIT)
   ]);
 
   if (error || !builds) throw new Error(`Fetch failed: ${error?.message}`);
@@ -124,10 +124,10 @@ async function main() {
             }
           }
           
-          const icons = { buildable: '✅', unbuildable: '🚫', fixable: '🛠️' };
+          const icons = { buildable: '✅', unbuildable: '🚫', fixable: '🛠️', unknown: '❓' };
           console.log(`${icons[result]} ${result}: ${info} ${writeMode ? '(Updated DB)' : '(Dry run)'}`);
         } else {
-          console.log(`⚠️ ${result === 'unknown' ? 'Unknown issue' : result}: ${info}. Skipping.`);
+          console.log(`⚠️ ${result}: ${info}. Skipping.`);
         }
       } catch (err) {
         if (err instanceof $.ShellError && err.stderr.toString().includes('HTTP 403: API rate limit exceeded')) {
