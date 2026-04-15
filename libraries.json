@@ -839,5 +839,19 @@
         "publishedAfterDate": "2025-01-01"
       }
     ]
+  },
+  "@op-engineering/op-sqlite": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
   }
 }
