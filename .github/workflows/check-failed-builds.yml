@@ -45,4 +45,4 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
-          bun run --cwd packages/database src/get-failed-builds.ts ${{ github.event.inputs.write == 'true' && '--write' }}
+          bun run --cwd packages/database src/get-failed-builds.ts ${{ (github.event.inputs.write == 'true' || github.event_name == 'schedule') && '--write' || '' }}

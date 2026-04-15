@@ -1,5 +1,5 @@
 // Gets failed builds
-// - Finds failed builds with unknown failed_reason (1000 limit due to GH API rate limit)
+// - Finds failed builds with pending failed_reason (1000 limit due to GH API rate limit)
 // - Verifies the error issue from known issues
 // - If buildable then updates failed_reason to buildable and retry status to true when run with --write (dry run otherwise).
 // Note: changing retry to false again needs to be done manually
@@ -10,10 +10,10 @@ import { $ } from 'bun';
 
 const CONCURRENCY = 5;
 const RECORDS_LIMIT = 1000;
-type IssueResult = FailedReason | 'noGithubRunUrl' | 'error';
+type IssueResult = FailedReason | 'error';
 
 // Typeguard to keep correct types in updating DB
-const KNOWN_REASONS = ['buildable', 'unbuildable', 'fixable'] as const satisfies FailedReason[];
+const KNOWN_REASONS = ['buildable', 'unbuildable', 'fixable', 'expired', 'unknown'] as const satisfies FailedReason[];
 function isKnownReason(result: IssueResult): result is (typeof KNOWN_REASONS)[number] {
   return (KNOWN_REASONS as readonly IssueResult[]).includes(result);
 }
@@ -40,7 +40,7 @@ function getIdFromOutput(str: string): string {
 
 async function checkIssue(build: BuildRow): Promise<IssueResult> {
   if (!build.github_run_url) {
-    return 'noGithubRunUrl';
+    return 'unknown';
   }
   const workflowId = build.github_run_url.split('/').pop() || '';
   const outputAction = await $`gh run view ${workflowId} --repo software-mansion/rnrepo`.text();
@@ -55,9 +55,15 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
     const outputJob = await $`gh run view ${jobId} --repo software-mansion/rnrepo --log-failed`.text();
     if (outputJob.includes('[Reanimated] Invalid version of `react-native-worklets`')) {
       return 'unbuildable';
+    } else if (outputJob.includes('Cannot locate matching tasks for an empty path. The path should include a task name')) {
+      // issue with gradle@9.0.0 syntax
+      return 'buildable';
     } else if (/\[Reanimated\] React Native .* version is not compatible with Reanimated .*/.test(outputJob)) {
       return 'unbuildable';
     } else if (outputJob.includes('[Worklets] Your installed version of React Native is not compatible')) {
+      return 'unbuildable';
+    } else if (outputJob.includes('Could not get unknown property \'destinationDir\' for task \':shopify')) {
+      // fails on gradle@9.0.0 - https://github.com/Shopify/react-native-skia/pull/3332
       return 'unbuildable';
     } else if (outputJob.includes('VideoEventEmitter.kt:293:63 Argument type mismatch: actual type is \'Int\'')) {
       // react-native-video@6.X issue
@@ -80,13 +86,13 @@ async function main() {
 
   const [retryTrueBuilds, { data: builds, error }] = await Promise.all([
     supabase.from('builds').select('id', { count: 'exact', head: true }).eq('retry', true),
-    supabase.from('builds').select('*').eq('status', 'failed').eq('retry', false).eq('failed_reason', 'unknown').limit(RECORDS_LIMIT)
+    supabase.from('builds').select('*').eq('status', 'failed').eq('retry', false).eq('failed_reason', 'pending').limit(RECORDS_LIMIT)
   ]);
 
   if (error || !builds) throw new Error(`Fetch failed: ${error?.message}`);
   if (!builds.length) return console.log('✅ No failed builds found.');
 
-  const results = { buildable: 0, unbuildable: 0, fixable: 0, noGithubRunUrl: 0, unknown: 0, error: 0, removed: 0 };
+  const results = { buildable: 0, unbuildable: 0, fixable: 0, unknown: 0, error: 0, expired: 0 };
 
   const queue = [...builds];
   let isCancelled = false;
@@ -118,27 +124,27 @@ async function main() {
             }
           }
           
-          const icons = { buildable: '✅', unbuildable: '🚫', fixable: '🛠️' };
+          const icons = { buildable: '✅', unbuildable: '🚫', fixable: '🛠️', unknown: '❓' };
           console.log(`${icons[result]} ${result}: ${info} ${writeMode ? '(Updated DB)' : '(Dry run)'}`);
         } else {
-          console.log(`⚠️ ${result === 'unknown' ? 'Unknown issue' : result}: ${info}. Skipping.`);
+          console.log(`⚠️ ${result}: ${info}. Skipping.`);
         }
       } catch (err) {
         if (err instanceof $.ShellError && err.stderr.toString().includes('HTTP 403: API rate limit exceeded')) {
           isCancelled = true;
           console.log(`⚠️ API rate limit exceeded. Stopping.`);
         } else if (err instanceof $.ShellError && err.stderr.toString().includes('failed to get run log: HTTP 410: Server Error')) {
-          results.removed++;
+          results.expired++;
           if (writeMode) {
             const { error: updateError } = await supabase.from('builds').update({
-              failed_reason: 'fixable', // requires manual check
+              failed_reason: 'expired',
               updated_at: new Date().toISOString()
             }).eq('id', build.id);
             if (updateError) {
               console.error(`❌ Error updating build ${build.id}:`, updateError);
             }
           }
-          console.log(`🗑️ Removed logs for ${info} ${writeMode ? '(Updated DB → fixable)' : '(Dry run)'}`);
+          console.log(`🗑️ Expired logs for ${info} ${writeMode ? '(Updated DB → expired)' : '(Dry run)'}`);
         } else {
           results.error++;
           console.error(`❌ Error processing ${info}:`, err);
@@ -157,10 +163,9 @@ async function main() {
   console.log(`   Buildable issue          -> ${results.buildable}`);
   console.log(`   Unbuildable issue        -> ${results.unbuildable}`);
   console.log(`   Fixable issue            -> ${results.fixable}`);
-  console.log(`   No Github run URL        -> ${results.noGithubRunUrl}`);
   console.log(`   Unknown issue            -> ${results.unknown}`);
   console.log(`   Errors                   -> ${results.error}`);
-  console.log(`   Logs unavailable (old)   -> ${results.removed}`);
+  console.log(`   Logs expired             -> ${results.expired}`);
   console.log(`   Retry=true builds before -> ${retryTrueBuilds?.count}`);
 }
 
