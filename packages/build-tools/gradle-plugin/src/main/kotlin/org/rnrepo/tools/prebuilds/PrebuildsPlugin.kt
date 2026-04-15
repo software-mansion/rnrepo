@@ -600,6 +600,26 @@ class PrebuildsPlugin : Plugin<Project> {
         return matchResult?.value ?: version
     }
 
+    private fun isVersionAtLeast(
+        current: String,
+        minimum: String,
+    ): Boolean {
+        val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
+        val minParts = minimum.split(".").map { it.toIntOrNull() ?: 0 }
+
+        val maxLength = maxOf(currentParts.size, minParts.size)
+
+        for (i in 0 until maxLength) {
+            val currentPart = currentParts.getOrElse(i) { 0 }
+            val minPart = minParts.getOrElse(i) { 0 }
+
+            if (currentPart > minPart) return true
+            if (currentPart < minPart) return false
+        }
+
+        return true
+    }
+
     private fun getReactNativeVersion(extension: PackagesManager): Boolean {
         // find react-native package.json
         val reactNativePackageJsonFile =
@@ -648,6 +668,12 @@ class PrebuildsPlugin : Plugin<Project> {
                 if (packageItem.version.startsWith("3.")) {
                     logger.info(
                         "react-native-reanimated: Version ${packageItem.version} is 3.x, no worklets package needed.",
+                    )
+                    return true
+                }
+                if (isVersionAtLeast(packageItem.version, "4.3.0")) {
+                    logger.info(
+                        "react-native-reanimated: Version ${packageItem.version} is 4.3.0 or higher, no worklets classifier needed.",
                     )
                     return true
                 }
