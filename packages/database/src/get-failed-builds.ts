@@ -10,7 +10,7 @@ import { $ } from 'bun';
 
 const CONCURRENCY = 5;
 const RECORDS_LIMIT = 1000;
-type IssueResult = FailedReason | 'noGithubRunUrl' | 'error';
+type IssueResult = FailedReason | 'error';
 
 // Typeguard to keep correct types in updating DB
 const KNOWN_REASONS = ['buildable', 'unbuildable', 'fixable', 'expired', 'unknown'] as const satisfies FailedReason[];
@@ -40,7 +40,7 @@ function getIdFromOutput(str: string): string {
 
 async function checkIssue(build: BuildRow): Promise<IssueResult> {
   if (!build.github_run_url) {
-    return 'noGithubRunUrl';
+    return 'unknown';
   }
   const workflowId = build.github_run_url.split('/').pop() || '';
   const outputAction = await $`gh run view ${workflowId} --repo software-mansion/rnrepo`.text();
@@ -92,7 +92,7 @@ async function main() {
   if (error || !builds) throw new Error(`Fetch failed: ${error?.message}`);
   if (!builds.length) return console.log('✅ No failed builds found.');
 
-  const results = { buildable: 0, unbuildable: 0, fixable: 0, noGithubRunUrl: 0, unknown: 0, error: 0, removed: 0 };
+  const results = { buildable: 0, unbuildable: 0, fixable: 0, unknown: 0, error: 0, expired: 0 };
 
   const queue = [...builds];
   let isCancelled = false;
@@ -134,7 +134,7 @@ async function main() {
           isCancelled = true;
           console.log(`⚠️ API rate limit exceeded. Stopping.`);
         } else if (err instanceof $.ShellError && err.stderr.toString().includes('failed to get run log: HTTP 410: Server Error')) {
-          results.removed++;
+          results.expired++;
           if (writeMode) {
             const { error: updateError } = await supabase.from('builds').update({
               failed_reason: 'expired',
@@ -144,7 +144,7 @@ async function main() {
               console.error(`❌ Error updating build ${build.id}:`, updateError);
             }
           }
-          console.log(`🗑️ Removed logs for ${info} ${writeMode ? '(Updated DB → expired)' : '(Dry run)'}`);
+          console.log(`🗑️ Expired logs for ${info} ${writeMode ? '(Updated DB → expired)' : '(Dry run)'}`);
         } else {
           results.error++;
           console.error(`❌ Error processing ${info}:`, err);
@@ -163,10 +163,9 @@ async function main() {
   console.log(`   Buildable issue          -> ${results.buildable}`);
   console.log(`   Unbuildable issue        -> ${results.unbuildable}`);
   console.log(`   Fixable issue            -> ${results.fixable}`);
-  console.log(`   No Github run URL        -> ${results.noGithubRunUrl}`);
   console.log(`   Unknown issue            -> ${results.unknown}`);
   console.log(`   Errors                   -> ${results.error}`);
-  console.log(`   Logs unavailable (old)   -> ${results.removed}`);
+  console.log(`   Logs expired             -> ${results.expired}`);
   console.log(`   Retry=true builds before -> ${retryTrueBuilds?.count}`);
 }
 
