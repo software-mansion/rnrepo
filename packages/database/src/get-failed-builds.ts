@@ -55,6 +55,9 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
     const outputJob = await $`gh run view ${jobId} --repo software-mansion/rnrepo --log-failed`.text();
     if (outputJob.includes('[Reanimated] Invalid version of `react-native-worklets`')) {
       return 'unbuildable';
+    } else if (outputJob.includes('Cannot locate matching tasks for an empty path. The path should include a task name')) {
+      // issue with gradle@9.0.0 syntax
+      return 'buildable';
     } else if (/\[Reanimated\] React Native .* version is not compatible with Reanimated .*/.test(outputJob)) {
       return 'unbuildable';
     } else if (outputJob.includes('[Worklets] Your installed version of React Native is not compatible')) {
