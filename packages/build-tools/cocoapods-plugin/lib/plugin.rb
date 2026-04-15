@@ -321,13 +321,19 @@ module Pod
             end
           end
 
-          # Empty source files - CocoaPods will handle headers from xcframework automatically
-          spec.attributes_hash["source_files"] = []
+          # Create dummy header file
+          [debug_cache_dir, release_cache_dir, current_link].select { |d| Dir.exist?(d) }.each do |dir|
+            File.write(File.join(dir, 'dummy.h'), "// Dummy for #{pod_name}\n")
+          end
 
-          # Empty source files for each platform too
+          # Add dummy header as source files - so Xcode propagates info about the React Native framework to the main app target
+          dummy_header_path = ".rnrepo-cache/Current/dummy.h"
+          spec.attributes_hash["source_files"] = ["#{dummy_header_path}"]
+
+          # Add dummy header as source files for each platform too
           ["ios", "watchos", "tvos", "osx"].each do |platform|
             if spec.attributes_hash[platform]
-              spec.attributes_hash[platform]["source_files"] = []
+              spec.attributes_hash[platform]["source_files"] = ["#{dummy_header_path}"]
             end
           end
 
