@@ -32,6 +32,7 @@
     ]
   },
   "react-native-reanimated": {
+    "postInstallScriptPath": "postInstallScripts/react-native-reanimated/react-native-reanimated.ts",
     "android": [
       {
         "versionMatcher": "3.16",
