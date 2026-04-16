@@ -3,7 +3,7 @@ import semver from 'semver';
 
 const COMPATIBILITY_MATRIX = [
   {
-    reanimated: '>=4.3.0 <4.4.0',
+    reanimated: '>=4.3.0',
     worklets: '0.8.1'
   },
 ];
@@ -14,7 +14,7 @@ export default async function postInstallSetup(): Promise<void> {
     const reanimatedVersion = await getPackageVersion('react-native-reanimated');
     console.log(`Detected react-native-reanimated version: ${reanimatedVersion}`);
     const workletsVersion = COMPATIBILITY_MATRIX.find(m => semver.satisfies(reanimatedVersion, m.reanimated))?.worklets;
-    if (!workletsVersion) {
+    if (!workletsVersion && semver.satisfies(reanimatedVersion, '>=4.3.0')) {
         throw new Error(`Unsupported react-native-reanimated version: ${reanimatedVersion}. Please check the compatibility matrix.`);
     }
     // install react-native-worklets
