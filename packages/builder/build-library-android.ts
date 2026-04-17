@@ -191,23 +191,23 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
     // If library has codegen, build codegen version as well
     if (!hasCodegenConfig) {
       console.log('ℹ️ No codegen configuration found, building just standard AAR version');
-      await $`./gradlew ${gradleProjectName}:publishToMavenLocal \
-        --no-daemon \
-        --init-script ${addPublishingGradleScriptPath} \
-        --init-script ${addPrefabReduceGradleScriptPath} \
-        ${
-          postinstallGradleScriptPath
-            ? { raw: '--init-script ' + postinstallGradleScriptPath }
-            : ''
-        } \
-        -PrnrepoArtifactId=${gradleProjectName} \
-        -PrnrepoPublishVersion=${libraryVersion} \
-        -PrnrepoClassifier=${classifier} \
-        -PrnrepoCpuInfo=${getCpuInfo()} \
-        -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
-        -PrnrepoLicenseName=${license} \
-        -PrnrepoLicenseUrl=https://opensource.org/license/${license}
-      `.cwd(androidPath);
+      const args = [
+        `:${gradleProjectName}:publishToMavenLocal`,
+        '--no-daemon',
+        '--init-script', addPublishingGradleScriptPath,
+        '--init-script', addPrefabReduceGradleScriptPath,
+        ...(postinstallGradleScriptPath
+          ? ['--init-script', postinstallGradleScriptPath]
+          : []),
+        `-PrnrepoArtifactId=${gradleProjectName}`,
+        `-PrnrepoPublishVersion=${libraryVersion}`,
+        `-PrnrepoClassifier=${classifier}`,
+        `-PrnrepoCpuInfo=${getCpuInfo()}`,
+        `-PrnrepoBuildUrl=${GITHUB_BUILD_URL}`,
+        `-PrnrepoLicenseName=${license}`,
+        `-PrnrepoLicenseUrl=https://opensource.org/license/${license}`,
+      ];
+      await $`./gradlew ${args}`.cwd(androidPath);
       // verify that the .pom and .aar files are present aftre the publish command completes
       const pomPath = join(
         mavenLocalLibraryLocationPath,

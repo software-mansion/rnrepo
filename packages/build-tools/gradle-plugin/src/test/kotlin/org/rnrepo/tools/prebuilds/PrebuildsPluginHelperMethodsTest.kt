@@ -283,7 +283,7 @@ class PrebuildsPluginHelperMethodsTest {
     fun `isSpecificCheckPassed should handle react-native-reanimated with worklets`() {
         // Given
         val extension = PackagesManager()
-        val reanimatedPackage = PackageItem("react-native-reanimated", "4.5.0", "react-native-reanimated")
+        val reanimatedPackage = PackageItem("react-native-reanimated", "4.2.0", "react-native-reanimated")
         val workletsPackage = PackageItem("react-native-worklets", "1.0.0", "react-native-worklets")
         extension.projectPackages = setOf(reanimatedPackage, workletsPackage)
         val supportedPackages = mutableSetOf<PackageItem>()
@@ -310,7 +310,7 @@ class PrebuildsPluginHelperMethodsTest {
     fun `isSpecificCheckPassed should handle react-native-reanimated without worklets`() {
         // Given
         val extension = PackagesManager()
-        val reanimatedPackage = PackageItem("react-native-reanimated", "4.5.0", "react-native-reanimated")
+        val reanimatedPackage = PackageItem("react-native-reanimated", "4.2.0", "react-native-reanimated")
         extension.projectPackages = setOf(reanimatedPackage)
         val supportedPackages = mutableSetOf<PackageItem>()
         val mockProject = setupPluginExecution(listOf("assembleDebug"), null, false)
@@ -329,6 +329,31 @@ class PrebuildsPluginHelperMethodsTest {
 
         // Then
         assertThat(result).isFalse()
+    }
+
+    @Test
+    fun `isSpecificCheckPassed should handle react-native-reanimated4-3-0 without worklets`() {
+        // Given
+        val extension = PackagesManager()
+        val reanimatedPackage = PackageItem("react-native-reanimated", "4.5.0", "react-native-reanimated")
+        extension.projectPackages = setOf(reanimatedPackage)
+        val supportedPackages = mutableSetOf<PackageItem>()
+        val mockProject = setupPluginExecution(listOf("assembleDebug"), null, false)
+
+        // When
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "isSpecificCheckPassed",
+                arrayOf(PackageItem::class.java, PackagesManager::class.java, Set::class.java, Project::class.java),
+                reanimatedPackage,
+                extension,
+                supportedPackages,
+                mockProject,
+            )
+
+        // Then
+        assertThat(result).isTrue()
     }
 
     @Test

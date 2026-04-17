@@ -114,6 +114,7 @@ class PrebuildsPlugin : Plugin<Project> {
             }
 
             // Check what packages are in project and which are we supporting
+            addRNRepoRepository(project)
             getProjectPackages(project.rootProject.allprojects, extension)
             loadDenyList(extension)
             determineSupportedPackages(project, extension)
@@ -218,6 +219,43 @@ class PrebuildsPlugin : Plugin<Project> {
                     }
                 }
             }
+        }
+    }
+
+    private fun addRNRepoRepository(project: Project) {
+        val rnrepoUrl = project.uri("https://packages.rnrepo.org/releases")
+        try {
+            project.rootProject.allprojects.forEach { currentProject ->
+                val alreadyAdded =
+                    currentProject.repositories.any { repo ->
+                        repo is MavenArtifactRepository && repo.url == rnrepoUrl
+                    }
+                if (alreadyAdded) {
+                    logger.info("RNRepo maven repository already present for project ${currentProject.path}, skipping adding url.")
+                    return@forEach
+                }
+                currentProject.repositories.maven { repo ->
+                    repo.url = rnrepoUrl
+                }
+            }
+        } catch (e: Exception) {
+            val errorMessage = e.message ?: "No additional details provided."
+            val isRepositoryModeViolation =
+                errorMessage.contains("FAIL_ON_PROJECT_REPOS", ignoreCase = true) ||
+                    errorMessage.contains("PREFER_SETTINGS", ignoreCase = true) ||
+                    errorMessage.contains("repositoriesMode", ignoreCase = true) ||
+                    errorMessage.contains("project repositories", ignoreCase = true)
+            if (!isRepositoryModeViolation) {
+                throw e
+            }
+            logger.warn(
+                "Could not add RNRepo maven repository to all project repositories.\n" +
+                    "repositoriesMode may be set to FAIL_ON_PROJECT_REPOS or PREFER_SETTINGS.\n" +
+                    "Gradle reported: $errorMessage\n" +
+                    "Add it manually to your settings.gradle:\n" +
+                    "  maven { url = uri(\"$rnrepoUrl\") }",
+            )
+            logger.debug("Gradle exception while adding RNRepo repository: ${e.stackTraceToString()}")
         }
     }
 
@@ -674,6 +712,26 @@ class PrebuildsPlugin : Plugin<Project> {
         return matchResult?.value ?: version
     }
 
+    private fun isVersionAtLeast(
+        current: String,
+        minimum: String,
+    ): Boolean {
+        val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
+        val minParts = minimum.split(".").map { it.toIntOrNull() ?: 0 }
+
+        val maxLength = maxOf(currentParts.size, minParts.size)
+
+        for (i in 0 until maxLength) {
+            val currentPart = currentParts.getOrElse(i) { 0 }
+            val minPart = minParts.getOrElse(i) { 0 }
+
+            if (currentPart > minPart) return true
+            if (currentPart < minPart) return false
+        }
+
+        return true
+    }
+
     private fun getReactNativeVersion(extension: PackagesManager): Boolean {
         // find react-native package.json
         val reactNativePackageJsonFile =
@@ -722,6 +780,12 @@ class PrebuildsPlugin : Plugin<Project> {
                 if (packageItem.version.startsWith("3.")) {
                     logger.info(
                         "react-native-reanimated: Version ${packageItem.version} is 3.x, no worklets package needed.",
+                    )
+                    return true
+                }
+                if (isVersionAtLeast(packageItem.version, "4.3.0")) {
+                    logger.info(
+                        "react-native-reanimated: Version ${packageItem.version} is 4.3.0 or higher, no worklets classifier needed.",
                     )
                     return true
                 }

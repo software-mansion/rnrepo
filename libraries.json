@@ -32,6 +32,7 @@
     ]
   },
   "react-native-reanimated": {
+    "postInstallScriptPath": "postInstallScripts/react-native-reanimated/react-native-reanimated.ts",
     "android": [
       {
         "versionMatcher": "3.16",
@@ -82,9 +83,14 @@
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ">=4.2.2",
+        "versionMatcher": ">=4.2.2 <4.3.0",
         "reactNativeVersion": ">=0.80",
         "withWorkletsVersion": ["0.7"],
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.3.0",
+        "reactNativeVersion": ">=0.81",
         "publishedAfterDate": "2025-01-01"
       }
     ],
@@ -138,9 +144,14 @@
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ">=4.2.2",
+        "versionMatcher": ">=4.2.2 <4.3.0",
         "reactNativeVersion": ">=0.80",
         "withWorkletsVersion": ["0.7"],
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.3.0",
+        "reactNativeVersion": ">=0.81",
         "publishedAfterDate": "2025-01-01"
       }
     ]
@@ -834,6 +845,20 @@
   "@react-native-firebase/firestore": {
     "postInstallScriptPath": "postInstallScripts/@react-native-firebase/firestore/react-native-firebase_firestore.ts",
     "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "@op-engineering/op-sqlite": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"

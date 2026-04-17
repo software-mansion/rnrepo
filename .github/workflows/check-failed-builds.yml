@@ -1,0 +1,48 @@
+name: Check Failed Builds
+
+on:
+  workflow_dispatch:
+    inputs:
+      write:
+        description: 'Apply changes to the database (dry run if unchecked)'
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    # Runs every day
+    - cron: '0 6 * * *'
+
+jobs:
+  check-failed-builds:
+    runs-on: rnrepo-ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 🗃️ Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: 📦 Install dependencies
+        run: bun install
+
+      - name: 🔍 Check failed builds
+        env:
+          GITHUB_TOKEN: ${{ secrets.SCHEDULER_GITHUB_PAT }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          bun run --cwd packages/database src/get-failed-builds.ts ${{ (github.event.inputs.write == 'true' || github.event_name == 'schedule') && '--write' || '' }}

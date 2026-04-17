@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added support for ExpoModulesCore in Android release builds (#301)
 
+### Changed
+- Worklets classifier is no longer added in reanimated@4.3.0+ artifacts (#317)
+- Incorporate RNRepo maven url inside gradle plugin (#270)
+
+### Fixed
+- Added dummy header for iOS pods source_files (#311)
+
 ## [0.1.2-beta.0] - 2026-03-26
 
 ### Changed 

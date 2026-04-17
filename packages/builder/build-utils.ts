@@ -313,6 +313,14 @@ export async function setupReactNativeProject(
   // Perform any library-specific setup before installing
   await installSetup(appDir, libraryName, 'preInstall');
 
+  // Install react-native-worklets if specified
+  if (workletsVersion) {
+    console.log(`📦 Installing react-native-worklets@${workletsVersion}...`);
+    await $`npm install react-native-worklets@${workletsVersion} --save-exact`
+      .cwd(appDir)
+      .quiet();
+  }
+
   // Install the library
   console.log(`📦 Installing ${libraryName}@${libraryVersion}...`);
   await $`npm install ${libraryName}@${libraryVersion} --save-exact`
@@ -328,14 +336,6 @@ export async function setupReactNativeProject(
     libraryName,
     'postInstall'
   );
-
-  // Install react-native-worklets if specified
-  if (workletsVersion) {
-    console.log(`📦 Installing react-native-worklets@${workletsVersion}...`);
-    await $`npm install react-native-worklets@${workletsVersion} --save-exact`
-      .cwd(appDir)
-      .quiet();
-  }
 
   // Install all dependencies
   console.log('📦 Installing all dependencies...');
