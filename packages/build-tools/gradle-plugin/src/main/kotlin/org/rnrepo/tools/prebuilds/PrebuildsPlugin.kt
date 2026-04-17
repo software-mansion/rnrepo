@@ -175,8 +175,26 @@ class PrebuildsPlugin : Plugin<Project> {
     }
 
     private fun addRNRepoRepository(project: Project) {
-        project.repositories.maven { repo ->
-            repo.url = project.uri("https://packages.rnrepo.org/releases")
+        val rnrepoUrl = project.uri("https://packages.rnrepo.org/releases")
+        val alreadyAdded =
+            project.repositories.any { repo ->
+                repo is MavenArtifactRepository && repo.url == rnrepoUrl
+            }
+        if (alreadyAdded) {
+            logger.info("RNRepo maven repository already present, skipping adding url.")
+            return
+        }
+        try {
+            project.repositories.maven { repo ->
+                repo.url = rnrepoUrl
+            }
+        } catch (e: Exception) {
+            logger.warn(
+                "Could not add RNRepo maven repository at the project level.\n" +
+                    "repositoriesMode may be set to FAIL_ON_PROJECT_REPOS or PREFER_SETTINGS.\n" +
+                    "Add it manually to your settings.gradle:\n" +
+                    "  maven { url = uri(\"$rnrepoUrl\") }",
+            )
         }
     }
 
