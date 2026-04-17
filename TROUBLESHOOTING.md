@@ -1,3 +1,4 @@
+
 # Troubleshooting for the RNRepo
 
 ## Common Issues
@@ -145,10 +146,10 @@ If other libraries cause similar issues, please report them so they can be added
 ### `FAIL_ON_PROJECT_REPOS` Set in Gradle
 
 #### Problem Description
-If your Gradle configuration has `FAIL_ON_PROJECT_REPOS` enabled, Gradle will reject any attempt to add repositories at the project level. This prevents the RNRepo plugin from automatically registering the Maven repository, resulting in a build failure.
+If your Gradle configuration has `FAIL_ON_PROJECT_REPOS` or `PREFER_SETTINGS` RepositoryMode enabled, Gradle will reject any attempt to add repositories at the project level. This prevents the RNRepo plugin from automatically registering the Maven repository, resulting in a build failure.
 
 #### Solution
-You need to manually add the RNRepo Maven repository to your `allprojects` block in your root `build.gradle` file:
+You need either to change the Gradle repositoryMode settings or manually add the RNRepo Maven repository to your `allprojects` block in your root `build.gradle` file:
 
 ```groovy
 allprojects {
@@ -157,8 +158,6 @@ allprojects {
     }
 }
 ```
-
-After adding this, the RNRepo plugin will be able to resolve prebuilt packages from the registry without conflicting with the `FAIL_ON_PROJECT_REPOS` setting.
 
 ### No Supported Packages Found or Empty Repository List
 

@@ -176,25 +176,38 @@ class PrebuildsPlugin : Plugin<Project> {
 
     private fun addRNRepoRepository(project: Project) {
         val rnrepoUrl = project.uri("https://packages.rnrepo.org/releases")
-        val alreadyAdded =
-            project.repositories.any { repo ->
-                repo is MavenArtifactRepository && repo.url == rnrepoUrl
-            }
-        if (alreadyAdded) {
-            logger.info("RNRepo maven repository already present, skipping adding url.")
-            return
-        }
         try {
-            project.repositories.maven { repo ->
-                repo.url = rnrepoUrl
+            project.rootProject.allprojects.forEach { currentProject ->
+                val alreadyAdded =
+                    currentProject.repositories.any { repo ->
+                        repo is MavenArtifactRepository && repo.url == rnrepoUrl
+                    }
+                if (alreadyAdded) {
+                    logger.info("RNRepo maven repository already present for project ${currentProject.path}, skipping adding url.")
+                    return@forEach
+                }
+                currentProject.repositories.maven { repo ->
+                    repo.url = rnrepoUrl
+                }
             }
         } catch (e: Exception) {
+            val errorMessage = e.message ?: "No additional details provided."
+            val isRepositoryModeViolation =
+                errorMessage.contains("FAIL_ON_PROJECT_REPOS", ignoreCase = true) ||
+                    errorMessage.contains("PREFER_SETTINGS", ignoreCase = true) ||
+                    errorMessage.contains("repositoriesMode", ignoreCase = true) ||
+                    errorMessage.contains("project repositories", ignoreCase = true)
+            if (!isRepositoryModeViolation) {
+                throw e
+            }
             logger.warn(
-                "Could not add RNRepo maven repository at the project level.\n" +
+                "Could not add RNRepo maven repository to all project repositories.\n" +
                     "repositoriesMode may be set to FAIL_ON_PROJECT_REPOS or PREFER_SETTINGS.\n" +
+                    "Gradle reported: $errorMessage\n" +
                     "Add it manually to your settings.gradle:\n" +
                     "  maven { url = uri(\"$rnrepoUrl\") }",
             )
+            logger.debug("Gradle exception while adding RNRepo repository: ${e.stackTraceToString()}")
         }
     }
 
