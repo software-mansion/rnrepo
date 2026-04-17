@@ -15,6 +15,14 @@ const rnrepoClasspathBlock = `def rnrepoDir = new File(
 `;
 const applyPluginrnrepo = 'apply plugin: "org.rnrepo.tools.prebuilds-plugin"';
 const applyPluginFacebook = 'apply plugin: "com.facebook.react"';
+const applyPluginFacebookRootProject =
+  'apply plugin: "com.facebook.react.rootproject"';
+const mavenAllProjectsBlock = `
+allprojects {
+    repositories {
+        maven { url "https://packages.rnrepo.org/releases" }
+    }
+}`;
 // iOS
 const podfileRequire = `require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
@@ -23,6 +31,22 @@ const podfileRequire = `require Pod::Executable.execute_command('node', ['-p',
 )', __dir__]).strip`;
 const postInstallRegex = /(post_install do \|installer\|)/;
 const postInstallRNRepo = `rnrepo_post_install(installer)`;
+
+function withAllProjectsMavenRepository(config: ExpoConfig) {
+  return withProjectBuildGradle(config, (config) => {
+    const currentContents = config.modResults.contents;
+    const normalizedNewBlock = mavenAllProjectsBlock.replace(/\s+/g, '');
+    const normalizedContents = currentContents.replace(/\s+/g, '');
+
+    if (!normalizedContents.includes(normalizedNewBlock)) {
+      config.modResults.contents = currentContents.replace(
+        applyPluginFacebookRootProject,
+        `${mavenAllProjectsBlock}\n\n${applyPluginFacebookRootProject}`
+      );
+    }
+    return config;
+  });
+}
 
 function withClasspathDependency(config: ExpoConfig) {
   return withProjectBuildGradle(config, (config) => {
@@ -86,6 +110,7 @@ function withRNRepoPodfile(config: ExpoConfig) {
 export default function withRNRepoPlugin(config: ExpoConfig): ExpoConfig {
   config = withClasspathDependency(config);
   config = withRnrepoPluginApplication(config);
+  config = withAllProjectsMavenRepository(config);
   config = withRNRepoPodfile(config);
   return config;
 }

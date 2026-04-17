@@ -34,7 +34,7 @@ describe('withRNRepoPlugin', () => {
   });
 
   describe('Android: Project Build Gradle', () => {
-    it('should add classpath dependency', () => {
+    it('should add classpath dependency and maven repository', () => {
       mockConfig.modResults.contents = `
         buildscript {
             dependencies {
@@ -47,6 +47,8 @@ describe('withRNRepoPlugin', () => {
       withRNRepoPlugin(mockConfig);
 
       expect(mockConfig.modResults.contents).toContain('def rnrepoDir = new File');
+      expect(mockConfig.modResults.contents).toContain('repositories {');
+      expect(mockConfig.modResults.contents).toContain('https://packages.rnrepo.org/releases');
     });
 
     it('should not duplicate classpath if already present', () => {
@@ -71,6 +73,50 @@ describe('withRNRepoPlugin', () => {
 
       const classpathCount = (mockConfig.modResults.contents.match(/def rnrepoDir/g) || []).length;
       expect(classpathCount).toBe(1);
+    });
+
+    it('should add maven repository to allprojects block', () => {
+      mockConfig.modResults.contents = `
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath("com.android.tools.build:gradle:7.4.2")
+            }
+        }
+        apply plugin: "com.facebook.react.rootproject"
+      `;
+
+      withRNRepoPlugin(mockConfig);
+
+      expect(mockConfig.modResults.contents).toContain('allprojects {');
+      expect(mockConfig.modResults.contents).toContain('maven { url "https://packages.rnrepo.org/releases" }');
+    });
+
+    it('should not duplicate maven repository', () => {
+      mockConfig.modResults.contents = `
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        
+        allprojects {
+            repositories {
+                maven { url "https://packages.rnrepo.org/releases" }
+            }
+        }
+        
+        apply plugin: "com.facebook.react.rootproject"
+      `;
+
+      withRNRepoPlugin(mockConfig);
+      const mavenCount = (mockConfig.modResults.contents.match(/packages\.rnrepo\.org/g) || []).length;
+
+      expect(mavenCount).toBe(1);
     });
   });
 
