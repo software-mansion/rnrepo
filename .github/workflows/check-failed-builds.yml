@@ -1,22 +1,22 @@
-name: Run Scheduler
+name: Check Failed Builds
 
 on:
   workflow_dispatch:
     inputs:
-      limit:
-        description: 'Maximum number of jobs to schedule (defaults to 1 if not provided)'
+      write:
+        description: 'Apply changes to the database (dry run if unchecked)'
         required: false
-        type: number
-        default: 1
+        type: boolean
+        default: false
   schedule:
-    # Runs every 4 hours at minute 0 (6 times per day)
-    - cron: '0 */4 * * *'
+    # Runs every day
+    - cron: '0 6 * * *'
 
 jobs:
-  run-scheduler:
+  check-failed-builds:
     runs-on: rnrepo-ubuntu-latest
     permissions:
-      actions: write
+      actions: read
       contents: read
 
     steps:
@@ -39,11 +39,10 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install
 
-      - name: 🔄 Run scheduler
+      - name: 🔍 Check failed builds
         env:
           GITHUB_TOKEN: ${{ secrets.SCHEDULER_GITHUB_PAT }}
-          SCHEDULER_LIMIT: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.limit || 1) || 200 }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: bun run scheduler
-
+        run: |
+          bun run --cwd packages/database src/get-failed-builds.ts ${{ (github.event.inputs.write == 'true' || github.event_name == 'schedule') && '--write' || '' }}

@@ -1,6 +1,6 @@
 import { $ } from 'bun';
 import { createHash } from 'crypto';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { arch, cpus, platform } from 'node:os';
 import { join } from 'path';
 
@@ -227,6 +227,52 @@ export async function installSetup(
   return undefined;
 }
 
+async function simplifyAppTsx(appDir: string): Promise<void> {
+  const appTsxPath = join(appDir, 'App.tsx');
+  if (!existsSync(appTsxPath)) return;
+  console.log('✓ Simplifying App.tsx...');
+  const minimalApp = `import React from 'react';
+import { View } from 'react-native';
+
+function App(): React.JSX.Element {
+  return <View />;
+}
+
+export default App;
+`;
+  writeFileSync(appTsxPath, minimalApp);
+}
+
+async function removeSafeAreaContext(appDir: string): Promise<void> {
+  const packageJsonPath = join(appDir, 'package.json');
+  if (!existsSync(packageJsonPath)) return;
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+  if (!packageJson.dependencies?.['react-native-safe-area-context']) return;
+  console.log(
+    '🧹 Removing unnecessary react-native-safe-area-context from package.json...'
+  );
+  await $`npm uninstall react-native-safe-area-context`.cwd(appDir).quiet();
+}
+
+export async function createReactNativeProject(
+  workDir: string, 
+  reactNativeVersion: string
+): Promise<void> {
+  console.log(
+    `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
+  );
+  // Create work directory if it doesn't exist
+  mkdirSync(workDir, { recursive: true });
+  const appDir = join(workDir, 'rnrepo_build_app');
+
+  await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`
+    .cwd(workDir)
+    .quiet();
+
+  await Promise.all([simplifyAppTsx(appDir), removeSafeAreaContext(appDir)]);
+}
+  
+
 /**
  * Setup React Native project and install library with dependencies
  * Returns appDir, license, and optional gradle script path for Android
@@ -245,25 +291,29 @@ export async function setupReactNativeProject(
   const appDir = join(workDir, 'rnrepo_build_app');
 
   // Create work directory if it doesn't exist
-  const { mkdirSync } = await import('fs');
   mkdirSync(workDir, { recursive: true });
 
-  // Check that app directory doesn't exist yet
+  // If appDir already exists, assume it's a cached RN project and skip setup
   if (existsSync(appDir)) {
-    throw new Error(`App directory ${appDir} already exists.`);
+    console.log(`♻️ Using cached React Native project at ${appDir}`);
+  } else {
+    await createReactNativeProject(workDir, reactNativeVersion);
   }
 
-  // Create RN project in the work directory
-  console.log(
-    `📱 Creating temporary React Native project (RN ${reactNativeVersion})...`
-  );
-
-  await $`bunx @react-native-community/cli@latest init rnrepo_build_app --version ${reactNativeVersion} --skip-install`
-    .cwd(workDir)
-    .quiet();
+  if (!existsSync(join(appDir, 'package.json'))) {
+    throw new Error(`Invalid React Native project at ${appDir}`);
+  }
 
   // Perform any library-specific setup before installing
   await installSetup(appDir, libraryName, 'preInstall');
+
+  // Install react-native-worklets if specified
+  if (workletsVersion) {
+    console.log(`📦 Installing react-native-worklets@${workletsVersion}...`);
+    await $`npm install react-native-worklets@${workletsVersion} --save-exact`
+      .cwd(appDir)
+      .quiet();
+  }
 
   // Install the library
   console.log(`📦 Installing ${libraryName}@${libraryVersion}...`);
@@ -281,14 +331,6 @@ export async function setupReactNativeProject(
     'postInstall'
   );
 
-  // Install react-native-worklets if specified
-  if (workletsVersion) {
-    console.log(`📦 Installing react-native-worklets@${workletsVersion}...`);
-    await $`npm install react-native-worklets@${workletsVersion} --save-exact`
-      .cwd(appDir)
-      .quiet();
-  }
-
   // Install all dependencies
   console.log('📦 Installing all dependencies...');
   await $`npm install`.cwd(appDir).quiet();
@@ -301,4 +343,14 @@ export async function setupReactNativeProject(
     license,
     postinstallGradleScriptPath,
   };
+}
+
+// if script is run directly (from build-library-android.yml or build-library-ios.yml)
+if (import.meta.main) {
+  const [workDir, reactNativeVersion] = process.argv.slice(2);
+  if (!workDir || !reactNativeVersion) {
+    console.error('Usage: bun run build-utils.ts -- <workDir> <reactNativeVersion>');
+    process.exit(1);
+  }
+  await createReactNativeProject(workDir, reactNativeVersion);
 }

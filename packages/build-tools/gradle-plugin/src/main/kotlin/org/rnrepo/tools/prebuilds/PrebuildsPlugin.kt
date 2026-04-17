@@ -459,7 +459,7 @@ class PrebuildsPlugin : Plugin<Project> {
             logger.info("Package $packageName is in deny list, skipping in RNRepo.")
             return false
         }
-        if (packageName.startsWith("expo")) {
+        if (packageName.startsWith("expo") && packageName != "expo-modules-core") {
             logger.info("Package $packageName is an Expo package, skipping in RNRepo.")
             return false
         }
@@ -607,6 +607,26 @@ class PrebuildsPlugin : Plugin<Project> {
         return matchResult?.value ?: version
     }
 
+    private fun isVersionAtLeast(
+        current: String,
+        minimum: String,
+    ): Boolean {
+        val currentParts = current.split(".").map { it.toIntOrNull() ?: 0 }
+        val minParts = minimum.split(".").map { it.toIntOrNull() ?: 0 }
+
+        val maxLength = maxOf(currentParts.size, minParts.size)
+
+        for (i in 0 until maxLength) {
+            val currentPart = currentParts.getOrElse(i) { 0 }
+            val minPart = minParts.getOrElse(i) { 0 }
+
+            if (currentPart > minPart) return true
+            if (currentPart < minPart) return false
+        }
+
+        return true
+    }
+
     private fun getReactNativeVersion(extension: PackagesManager): Boolean {
         // find react-native package.json
         val reactNativePackageJsonFile =
@@ -638,6 +658,8 @@ class PrebuildsPlugin : Plugin<Project> {
     private fun isSpecificCheckPassed(
         packageItem: PackageItem,
         extension: PackagesManager,
+        supportedPackages: Set<PackageItem>,
+        project: Project,
     ): Boolean {
         when (packageItem.name) {
             "react-native-gesture-handler" -> {
@@ -656,6 +678,12 @@ class PrebuildsPlugin : Plugin<Project> {
                     )
                     return true
                 }
+                if (isVersionAtLeast(packageItem.version, "4.3.0")) {
+                    logger.info(
+                        "react-native-reanimated: Version ${packageItem.version} is 4.3.0 or higher, no worklets classifier needed.",
+                    )
+                    return true
+                }
                 val workletsItem = extension.projectPackages.find { it.name == "react-native-worklets" }
                 if (workletsItem != null) {
                     logger.info(
@@ -669,10 +697,19 @@ class PrebuildsPlugin : Plugin<Project> {
                     return false
                 }
             }
+            "expo-modules-core" -> {
+                if (getBuildType(project) == "debug") {
+                    logger.info(
+                        "expo-modules-core: Debug mode is not supported for expo-modules-core, using expo-modules-core from sources.",
+                    )
+                    return false
+                }
+            }
             "react-native-worklets" -> {
                 // In expo@55 and later, react-native-worklets is a dependency of expo, with hardcoded libworklets.so path in cmake file.
                 // https://github.com/expo/expo/blob/b887d67bbe061ac1f75ebcd9d018218868600822/packages/expo-modules-core/android/cmake/main.cmake#L83
-                // So until that will be resolved in expo, we need to deny substitution for react-native-worklets if expo@55 is present in the project.
+                // So until that will be resolved in expo, we need to deny substitution for react-native-worklets if expo@55 is present in the project
+                // and we are building in debug mode.
                 val isExpo55OrLaterPresent =
                     extension.projectPackages.any { pkg ->
                         pkg.name.startsWith("expo") &&
@@ -683,7 +720,7 @@ class PrebuildsPlugin : Plugin<Project> {
                                     ?.toIntOrNull() ?: Int.MAX_VALUE
                             ) >= 55
                     }
-                if (isExpo55OrLaterPresent) {
+                if (isExpo55OrLaterPresent && supportedPackages.find { it.name == "expo-modules-core" } == null) {
                     logger.info(
                         "react-native-worklets: Expo 55 or later found in project, which has react-native-worklets as a dependency with hardcoded native library path, using react-native-worklets from sources.",
                     )
@@ -808,9 +845,10 @@ class PrebuildsPlugin : Plugin<Project> {
         unavailablePackages: MutableSet<PackageItem>,
         supportedPackages: MutableSet<PackageItem>,
         elseClosure: () -> Unit,
+        project: Project,
     ) {
         val isDenied = !isPackageNotDenied(packageItem.name, extension)
-        val checkFailed = !isSpecificCheckPassed(packageItem, extension)
+        val checkFailed = !isSpecificCheckPassed(packageItem, extension, supportedPackages, project)
         val isUnavailable = !isPackageAvailable(packageItem, extension.reactNativeVersion, repositories)
 
         when {
@@ -870,6 +908,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 unavailablePackages,
                 supportedPackages,
                 { supportedPackages.add(packageItem) },
+                project,
             )
         }
         dependentList.parallelStream().forEach { packageItem ->
@@ -880,7 +919,15 @@ class PrebuildsPlugin : Plugin<Project> {
                 )
                 checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages, extension.projectPackages)
             }
-            checkIfPackageIsSupported(packageItem, project.repositories, extension, unavailablePackages, supportedPackages, elseClosure)
+            checkIfPackageIsSupported(
+                packageItem,
+                project.repositories,
+                extension,
+                unavailablePackages,
+                supportedPackages,
+                elseClosure,
+                project,
+            )
         }
 
         extension.supportedPackages = supportedPackages
