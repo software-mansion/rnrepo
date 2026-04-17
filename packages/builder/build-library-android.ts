@@ -247,20 +247,24 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
       `.cwd(androidPath);
 
       console.log('📦 Publishing codegen version...');
-      await $`./gradlew :${gradleProjectName}:publishToMavenLocal \
-        --no-daemon \
-        --init-script ${addPublishingGradleScriptPath} \
-        --init-script ${addPrefabReduceGradleScriptPath} \
-        ${postinstallGradleScriptPath ? { raw: "--init-script " + postinstallGradleScriptPath} : ""} \
-        -PrnrepoArtifactId=${gradleProjectName} \
-        -PrnrepoPublishVersion=${libraryVersion} \
-        -PrnrepoClassifier=${classifier} \
-        -PrnrepoCpuInfo=${getCpuInfo()} \
-        -PrnrepoBuildUrl=${GITHUB_BUILD_URL} \
-        -PrnrepoLicenseName=${license} \
-        -PrnrepoLicenseUrl=https://opensource.org/license/${license} \
-        -PrnrepoCodegenName=${packageJson.codegenConfig.name}
-      `.cwd(androidPath);
+      const args = [
+        `:${gradleProjectName}:publishToMavenLocal`,
+        '--no-daemon',
+        '--init-script', addPublishingGradleScriptPath,
+        '--init-script', addPrefabReduceGradleScriptPath,
+        ...(postinstallGradleScriptPath
+          ? ['--init-script', postinstallGradleScriptPath]
+          : []),
+        `-PrnrepoArtifactId=${gradleProjectName}`,
+        `-PrnrepoPublishVersion=${libraryVersion}`,
+        `-PrnrepoClassifier=${classifier}`,
+        `-PrnrepoCpuInfo=${getCpuInfo()}`,
+        `-PrnrepoBuildUrl=${GITHUB_BUILD_URL}`,
+        `-PrnrepoLicenseName=${license}`,
+        `-PrnrepoLicenseUrl=https://opensource.org/license/${license}`,
+        `-PrnrepoCodegenName=${packageJson.codegenConfig.name}`
+      ];
+      await $`./gradlew ${args}`.cwd(androidPath);
 
       // verify codegen version .pom and .aar
       const pomPath = join(
