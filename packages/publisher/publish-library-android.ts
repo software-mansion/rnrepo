@@ -122,13 +122,25 @@ async function main() {
 
     const baseFileName = `${mavenLibraryName}-${libraryVersion}`;
     const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
-    const classifier = `rn${reactNativeVersion}${
+    let classifier = `rn${reactNativeVersion}${
       workletsVersion ? `-worklets${workletsVersion}` : ''
     }`;
-    const aarFile = join(
+    let aarFile = join(
       artifactsBasePath,
       `${baseFileName}-${classifier}.aar`
     );
+    if (!existsSync(aarFile)) {
+      classifier += '-codegen';
+      aarFile = join(
+        artifactsBasePath,
+        `${baseFileName}-${classifier}.aar`
+      );
+      if (!existsSync(aarFile)) {
+        throw new Error(
+          `AAR file not found in ${artifactsBasePath} matching ${baseFileName}-${classifier}.aar`
+        );
+      }
+    }
 
     // Deploy POM separately (may return 409 if already published, which is acceptable)
     try {
