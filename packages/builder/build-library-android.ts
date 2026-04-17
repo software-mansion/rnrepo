@@ -227,24 +227,34 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
       console.log('✓ Simple aar version published successfully');
     } else {
       console.log('🔨 Building Android app in debug mode to generate debug codegen static libraries');
-      await $`./gradlew assembleDebug \
-        --no-daemon \
-        --init-script ${addPublishingGradleScriptPath} \
-        --init-script ${codegenBuildGradleScriptPath} \
-        -PrnrepoCodegenName=${packageJson.codegenConfig.name}
-      `.cwd(androidPath);
+      const assembleDebugArgs = [
+        'assembleDebug',
+        '--no-daemon',
+        '--init-script', addPublishingGradleScriptPath,
+        '--init-script', codegenBuildGradleScriptPath,
+        ...(postinstallGradleScriptPath
+          ? ['--init-script', postinstallGradleScriptPath]
+          : []),
+        `-PrnrepoCodegenName=${packageJson.codegenConfig.name}`,
+      ];
+      await $`./gradlew ${assembleDebugArgs}`.cwd(androidPath);
 
       // Clean .cxx folder between builds to avoid conflicts
       console.log(`🧹 Cleaning .cxx and build folders between builds...`);
       await $`rm -rf ./app/.cxx ./app/build`.cwd(androidPath);
 
       console.log('🔨 Building Android app in release mode to generate release codegen static libraries');
-      await $`./gradlew assembleRelease \
-        --no-daemon \
-        --init-script ${addPublishingGradleScriptPath} \
-        --init-script ${codegenBuildGradleScriptPath} \
-        -PrnrepoCodegenName=${packageJson.codegenConfig.name}
-      `.cwd(androidPath);
+      const assembleReleaseArgs = [
+        'assembleRelease',
+        '--no-daemon',
+        '--init-script', addPublishingGradleScriptPath,
+        '--init-script', codegenBuildGradleScriptPath,
+        ...(postinstallGradleScriptPath
+          ? ['--init-script', postinstallGradleScriptPath]
+          : []),
+        `-PrnrepoCodegenName=${packageJson.codegenConfig.name}`,
+      ];
+      await $`./gradlew ${assembleReleaseArgs}`.cwd(androidPath);
 
       console.log('📦 Publishing codegen version...');
       const args = [
