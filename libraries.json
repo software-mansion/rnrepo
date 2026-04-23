@@ -84,7 +84,7 @@
       },
       {
         "versionMatcher": ">=4.2.2 <4.3.0",
-        "reactNativeVersion": ">=0.80",
+        "reactNativeVersion": ">=0.80 <0.85",
         "withWorkletsVersion": ["0.7"],
         "publishedAfterDate": "2025-01-01"
       },
@@ -145,7 +145,7 @@
       },
       {
         "versionMatcher": ">=4.2.2 <4.3.0",
-        "reactNativeVersion": ">=0.80",
+        "reactNativeVersion": ">=0.80 <0.85",
         "withWorkletsVersion": ["0.7"],
         "publishedAfterDate": "2025-01-01"
       },
