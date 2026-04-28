@@ -157,7 +157,7 @@ async function main() {
     // Sign and deploy AAR using gpg:sign-and-deploy-file (signs and deploys in one step)
     // The task uses MAVEN_GPG_KEY and MAVEN_GPG_PASSPHRASE environment variables to sign the artifact
     let publishStatus = 'failed' as 'failed' | 'completed';
-    const result = await $`mvn org.apache.maven.plugins:maven-gpg-plugin:3.1.3:sign-and-deploy-file \
+    const result = await $`mvn org.apache.maven.plugins:maven-gpg-plugin:3.2.8:sign-and-deploy-file \
         -Dfile=${aarFile} \
         -DgroupId=org.rnrepo.public \
         -DartifactId=${mavenLibraryName} \
