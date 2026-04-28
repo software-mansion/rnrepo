@@ -47,13 +47,13 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
 
   if (outputAction.includes('The job has exceeded the maximum execution time while awaiting a runner')) {
     return 'buildable';
-  } else if (!outputAction.includes('X build-library-android') && !outputAction.includes('X build-library-ios')) {
-    // failed something else than building process
-    return 'fixable';
   } else if (outputAction.includes('No space left on device')) {
     return 'buildable';
   } else if (outputAction.includes('The hosted runner lost communication with the server')) {
     return 'buildable';
+  } else if (!outputAction.includes('X build-library-android') && !outputAction.includes('X build-library-ios')) {
+    // failed something else than building process
+    return 'fixable';
   } else if (outputAction.includes('To see what failed, try:')) {
     const jobId = getIdFromOutput(outputAction);
     const outputJob = await $`gh run view ${jobId} --repo software-mansion/rnrepo --log-failed`.text();
