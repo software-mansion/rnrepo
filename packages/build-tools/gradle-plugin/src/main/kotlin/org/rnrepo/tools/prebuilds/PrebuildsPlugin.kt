@@ -620,13 +620,12 @@ class PrebuildsPlugin : Plugin<Project> {
         extension.projectPackages =
             allprojects
                 .map { it.projectDir }
-                .filter { it.absolutePath.contains("node_modules") }
                 .map { File(it.parentFile, "package.json") }
                 .filter { it.exists() }
                 .mapNotNull { getPackageNameAndVersion(it) }
                 .toSet()
         logger.info(
-            "Detected ${extension.projectPackages.size} packages in project under node_modules: " +
+            "Detected ${extension.projectPackages.size} packages in project: " +
                 extension.projectPackages.joinToString("") { "\n  - ${it.name}@${it.version}" },
         )
     }
@@ -694,7 +693,9 @@ class PrebuildsPlugin : Plugin<Project> {
     ): Boolean {
         when (packageItem.name) {
             "react-native-gesture-handler" -> {
-                val isReanimatedPresent = extension.projectPackages.any { it.name == "react-native-reanimated" }
+                val isReanimatedPresent =
+                    extension.projectPackages.any { it.name == "react-native-reanimated" } ||
+                        project.rootProject.allprojects.any { it.name == "react-native-reanimated" }
                 if (!isReanimatedPresent) {
                     logger.info(
                         "react-native-gesture-handler: react-native-reanimated not found in project, using react-native-gesture-handler from sources.",
