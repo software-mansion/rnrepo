@@ -131,7 +131,7 @@ async function main() {
       // Deploy the XCFramework zip to Maven repository
       // Using the same Maven infrastructure as Android for cross-platform compatibility
       console.log('\n🚀 Deploying to Maven repository...');
-      await $`mvn deploy:deploy-file \
+      await $`mvn org.apache.maven.plugins:maven-deploy-plugin:3.1.4:deploy-file \
           -Dfile=${xcframeworkPath} \
           -DgroupId=org.rnrepo.public \
           -DartifactId=${sanitizedLibraryName} \
