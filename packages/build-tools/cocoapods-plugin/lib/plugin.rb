@@ -368,6 +368,17 @@ module Pod
   end
 end
 
+def append_build_setting(build_settings, key, value)
+  existing = build_settings[key] || '$(inherited)'
+
+  if existing.is_a?(Array)
+    base = existing.empty? ? ['$(inherited)'] : existing
+    build_settings[key] = base + [value]
+  else
+    build_settings[key] = "#{existing} #{value}"
+  end
+end
+
 def rnrepo_post_install(installer_context)
   # Check if plugin is disabled via environment variable
   if ENV['DISABLE_RNREPO']
@@ -450,19 +461,16 @@ def rnrepo_post_install(installer_context)
       module_map = "-fmodule-map-file=\"$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/RNWorklets.framework/Modules/module.modulemap\""
 
       target.build_configurations.each do |config|
+        build_settings = config.build_settings
         
         # --- HEADER SEARCH PATHS ---
-        build_settings = config.build_settings
-        build_settings['HEADER_SEARCH_PATHS'] ||= '$(inherited)'
-        build_settings['HEADER_SEARCH_PATHS'] += " #{worklets_root}/Common/cpp/**"
+        append_build_setting(build_settings, 'HEADER_SEARCH_PATHS', "#{worklets_root}/Common/cpp/**")
 
         # --- CUSTOM COMPILER FLAGS (C/C++) ---
-        build_settings['OTHER_CFLAGS'] ||= '$(inherited)'
-        build_settings['OTHER_CFLAGS'] += " #{module_map}"
+        append_build_setting(build_settings, 'OTHER_CFLAGS', module_map)
 
         # --- OTHER SWIFT FLAGS ---
-        build_settings['OTHER_SWIFT_FLAGS'] ||= '$(inherited)'
-        build_settings['OTHER_SWIFT_FLAGS'] += " -Xcc #{module_map}"
+        append_build_setting(build_settings, 'OTHER_SWIFT_FLAGS', "-Xcc #{module_map}")
       end
 
       break
