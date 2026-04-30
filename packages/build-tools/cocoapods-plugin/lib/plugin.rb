@@ -369,11 +369,12 @@ module Pod
 end
 
 def append_build_setting(build_settings, key, value)
-  existing = build_settings[key] || '$(inherited)'
+  existing = build_settings[key]
 
   if existing.is_a?(Array)
-    base = existing.empty? ? ['$(inherited)'] : existing
-    build_settings[key] = base + [value]
+    build_settings[key] = existing + [value]
+  elsif existing.nil? || (existing.is_a?(String) && existing.empty?)
+    build_settings[key] = "$(inherited) #{value}"
   else
     build_settings[key] = "#{existing} #{value}"
   end
