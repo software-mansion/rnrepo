@@ -34,7 +34,7 @@ function buildArtifactUrl(
 
   const variants = build.platform === 'android' 
     ? ['.aar'] 
-    : ['-debug.zip', '-release.zip'];
+    : ['-debug.xcframework.zip', '-release.xcframework.zip'];
   return variants.map(suffix => `${commonPath}/${encodeURIComponent(fileName + suffix)}`);
 }
 
