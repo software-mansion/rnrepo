@@ -83,7 +83,7 @@ class PrebuildsPlugin : Plugin<Project> {
         if (shouldPluginExecute(project, extension)) {
             // Check what packages are in project and which are we supporting
             addRNRepoRepository(project)
-            getProjectPackages(project.rootProject.allprojects, extension)
+            getProjectPackages(project.rootProject.subprojects, extension)
             loadDenyList(extension)
             determineSupportedPackages(project, extension)
 
@@ -620,13 +620,12 @@ class PrebuildsPlugin : Plugin<Project> {
         extension.projectPackages =
             allprojects
                 .map { it.projectDir }
-                .filter { it.absolutePath.contains("node_modules") }
                 .map { File(it.parentFile, "package.json") }
                 .filter { it.exists() }
                 .mapNotNull { getPackageNameAndVersion(it) }
                 .toSet()
         logger.info(
-            "Detected ${extension.projectPackages.size} packages in project under node_modules: " +
+            "Detected ${extension.projectPackages.size} packages in project: " +
                 extension.projectPackages.joinToString("") { "\n  - ${it.name}@${it.version}" },
         )
     }
