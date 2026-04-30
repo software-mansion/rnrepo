@@ -83,7 +83,7 @@ class PrebuildsPlugin : Plugin<Project> {
         if (shouldPluginExecute(project, extension)) {
             // Check what packages are in project and which are we supporting
             addRNRepoRepository(project)
-            getProjectPackages(project.rootProject.allprojects, extension)
+            getProjectPackages(project.rootProject.subprojects, extension)
             loadDenyList(extension)
             determineSupportedPackages(project, extension)
 
@@ -693,9 +693,7 @@ class PrebuildsPlugin : Plugin<Project> {
     ): Boolean {
         when (packageItem.name) {
             "react-native-gesture-handler" -> {
-                val isReanimatedPresent =
-                    extension.projectPackages.any { it.name == "react-native-reanimated" } ||
-                        project.rootProject.allprojects.any { it.name == "react-native-reanimated" }
+                val isReanimatedPresent = extension.projectPackages.any { it.name == "react-native-reanimated" }
                 if (!isReanimatedPresent) {
                     logger.info(
                         "react-native-gesture-handler: react-native-reanimated not found in project, using react-native-gesture-handler from sources.",
