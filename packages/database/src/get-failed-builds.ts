@@ -72,6 +72,12 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
     } else if (outputJob.includes('VideoEventEmitter.kt:293:63 Argument type mismatch: actual type is \'Int\'')) {
       // react-native-video@6.X issue
       return 'unbuildable';
+    } else if (outputJob.includes('[Reanimated] `react-native-worklets` library not found')) {
+      // old issue in ci where worklets were not properly installed
+      return 'fixable';
+    } else if (outputJob.includes('Unable to find a specification for `RNWorklets` depended upon by `RNReanimated`')) {
+      // old issue in ci where worklets were not properly installed
+      return 'fixable';
     } else {
       // todo: add more cases in future
     }
