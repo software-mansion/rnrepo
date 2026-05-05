@@ -64,7 +64,7 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
       return 'buildable';
     } else if (/\[Reanimated\] React Native .* version is not compatible with Reanimated .*/.test(outputJob)) {
       return 'unbuildable';
-    } else if (outputJob.includes('[Worklets] Your installed version of React Native is not compatible')) {
+    } else if (outputJob.includes('[Worklets] Your installed version of React Native')) {
       return 'unbuildable';
     } else if (outputJob.includes('Could not get unknown property \'destinationDir\' for task \':shopify')) {
       // fails on gradle@9.0.0 - https://github.com/Shopify/react-native-skia/pull/3332
