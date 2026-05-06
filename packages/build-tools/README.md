@@ -100,6 +100,10 @@ For issues, questions, or feature requests, please visit:
 - 📚 [Documentation](https://github.com/software-mansion/rnrepo/blob/main/README.md)
 - 🆘 [Troubleshooting Guide](https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md)
 
+## Claude Code Integration
+
+RNRepo ships a dedicated [Claude Code skill](https://github.com/software-mansion-labs/skills) maintained by Software Mansion. The skill lets you set up, configure, and troubleshoot RNRepo directly from the Claude Code CLI.
+
 ## RNRepo is created by Software Mansion
 
 Since 2012 [Software Mansion](https://swmansion.com/) is a software agency with experience in building web and mobile apps. We are Core React Native Contributors and experts in dealing with all kinds of React Native issues. We can help you build your next dream product – [Hire us](https://swmansion.com/contact).

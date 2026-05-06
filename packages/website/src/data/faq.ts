@@ -45,6 +45,11 @@ export const faqItems: FAQItem[] = [
       "Security is a top priority. All builds run in isolated GitHub workflows that are fully transparent — you can inspect any build's logs and source. Every artifact is GPG-signed, allowing you to verify authenticity. When downloading, you can trace any artifact back to its exact build workflow.",
   },
   {
+    question: 'Is there a Claude Code skill for RNRepo?',
+    answer:
+      'Yes! Software Mansion maintains a dedicated RNRepo skill for Claude Code. It lets you set up, configure, and troubleshoot RNRepo directly from the Claude Code CLI. You can find it in the <a href="https://github.com/software-mansion-labs/skills" class="text-rnrGrey-0 underline hover:text-rnrGrey-30 transition-colors">Software Mansion skills repository</a>.',
+  },
+  {
     question: 'Do library maintainers need to do anything?',
     answer:
       "No! RNRepo doesn't require any action from library maintainers. We build and publish libraries using our own GitHub Action workflows, pulling source code from the official repositories. It's completely transparent to library authors.",
