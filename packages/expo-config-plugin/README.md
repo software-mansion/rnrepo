@@ -71,7 +71,7 @@ For issues, questions, or feature requests, please visit:
 
 ## Claude Code Integration
 
-RNRepo ships a dedicated [Claude Code skill](https://github.com/software-mansion-labs/skills) maintained by Software Mansion. The skill lets you set up, configure, and troubleshoot RNRepo directly from the Claude Code CLI.
+Software Mansion provides a dedicated [Claude Code skill](https://github.com/software-mansion-labs/skills) for RNRepo. The skill lets you set up, configure, and troubleshoot RNRepo directly from the Claude Code CLI.
 
 ## RNRepo is created by Software Mansion
 
