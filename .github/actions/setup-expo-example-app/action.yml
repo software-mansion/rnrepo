@@ -1,0 +1,43 @@
+name: Setup Expo Example App
+description: Creates an Expo app, installs dependencies, and adds @rnrepo/expo-config-plugin
+
+inputs:
+  example_app:
+    description: 'Name of the Expo app directory to create'
+    required: true
+  expo_sdk_major_version:
+    description: 'Expo SDK major version used in `create-expo-app@latest --template default@sdk-<major_version>`'
+    required: false
+    type: string
+    default: '55'
+
+runs:
+  using: composite
+  steps:
+    - name: 🏗 Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: 📦 Install dependencies
+      shell: bash
+      run: bun install
+
+    - name: 🏗 Create Expo App
+      shell: bash
+      run: bunx create-expo-app@latest ${{ inputs.example_app }} --no-install --template "default@sdk-${{ inputs.expo_sdk_major_version }}"
+
+    - name: 📦 Install app dependencies
+      shell: bash
+      run: bun install
+      working-directory: ${{ inputs.example_app }}
+
+    - name: 📦 Install @rnrepo/expo-config-plugin
+      shell: bash
+      run: bun add ../packages/expo-config-plugin
+      working-directory: ${{ inputs.example_app }}
+
+    - name: 🔧 Add plugin to app.json
+      shell: bash
+      run: jq '.expo.plugins |= (. + ["@rnrepo/expo-config-plugin"] | unique)' app.json > app.json.tmp && mv app.json.tmp app.json
+      working-directory: ${{ inputs.example_app }}
