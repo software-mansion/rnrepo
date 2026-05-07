@@ -10,6 +10,11 @@ inputs:
     required: false
     type: string
     default: '55'
+  disable_rnrepo:
+    description: 'Disable rnrepo config plugin'
+    required: false
+    type: boolean
+    default: false
 
 runs:
   using: composite
@@ -32,12 +37,17 @@ runs:
       run: bun install
       working-directory: ${{ inputs.example_app }}
 
-    - name: 📦 Install @rnrepo/expo-config-plugin
+    - name: 📦 Install @rnrepo/build-tools and @rnrepo/expo-config-plugin
       shell: bash
-      run: bun add ../packages/expo-config-plugin
+      run: bun add ../packages/build-tools ../packages/expo-config-plugin
       working-directory: ${{ inputs.example_app }}
 
     - name: 🔧 Add plugin to app.json
       shell: bash
       run: jq '.expo.plugins |= (. + ["@rnrepo/expo-config-plugin"] | unique)' app.json > app.json.tmp && mv app.json.tmp app.json
       working-directory: ${{ inputs.example_app }}
+
+    - name: 🔧 Set RNRepo Env Variable
+      if: ${{ inputs.disable_rnrepo }}
+      shell: bash
+      run: echo "DISABLE_RNREPO=${{ inputs.disable_rnrepo }}" >> $GITHUB_ENV

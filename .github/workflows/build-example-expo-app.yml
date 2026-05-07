@@ -26,6 +26,11 @@ on:
         required: false
         type: boolean
         default: false
+      disable_rnrepo:
+        description: 'Disable rnrepo config plugin'
+        required: false
+        type: boolean
+        default: false
 
 env:
   EXPO_SDK_MAJOR_VERSION: ${{ github.event.inputs.expo_sdk_major_version || '55' }}
@@ -86,6 +91,7 @@ jobs:
         with:
           example_app: ${{ env.EXAMPLE_APP }}
           expo_sdk_major_version: ${{ env.EXPO_SDK_MAJOR_VERSION }}
+          disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
 
       - name: 🛠 Prebuild for Android
         run: bunx expo prebuild --platform android --clean
@@ -128,6 +134,7 @@ jobs:
         with:
           example_app: ${{ env.EXAMPLE_APP }}
           expo_sdk_major_version: ${{ env.EXPO_SDK_MAJOR_VERSION }}
+          disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
 
       - name: 🛠 Prebuild for iOS
         run: bunx expo prebuild --platform ios --clean
