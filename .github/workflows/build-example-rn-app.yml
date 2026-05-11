@@ -98,12 +98,16 @@ jobs:
           disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
           libraries: ${{ env.LIBRARIES }}
 
+      - name: 🏗 Build Gradle Plugin JAR
+        run: ./gradlew build
+        working-directory: packages/build-tools/gradle-plugin
+
       - name: 🏗 Build RN App for Android (Debug)
-        run: ./gradlew :app:assembleDebug --info
+        run: ./gradlew :app:assembleDebug
         working-directory: ${{ env.EXAMPLE_APP }}/android
 
       - name: 🏗 Build RN App for Android (Release)
-        run: ./gradlew :app:assembleRelease --info
+        run: ./gradlew :app:assembleRelease
         working-directory: ${{ env.EXAMPLE_APP }}/android
 
   build-example-rn-app-ios:
