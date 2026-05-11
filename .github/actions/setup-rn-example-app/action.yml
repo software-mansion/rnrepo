@@ -12,12 +12,10 @@ inputs:
   disable_rnrepo:
     description: 'Disable rnrepo plugin'
     required: false
-    type: boolean
-    default: false
+    default: 'false'
   libraries:
     description: 'libraries with versions to install, format: libraryName1@version1<space>libraryName2@version2'
     required: false
-    type: string
     default: ''
 
 runs:
@@ -63,9 +61,9 @@ runs:
 
     - name: 🛠 Add RNRepo to Android gradle
       shell: bash
-      run: bun run .github/workflows/scripts/applyRNRepoAndroid.ts ${{ inputs.example_app }}/android ${{ inputs.example_app }}/ios
+      run: bun run .github/workflows/scripts/applyRNRepo.ts ${{ inputs.example_app }}/android ${{ inputs.example_app }}/ios
 
     - name: 🔧 Set RNRepo Env Variable
-      if: ${{ inputs.disable_rnrepo }}
+      if: ${{ inputs.disable_rnrepo == 'true' }}
       shell: bash
       run: echo "DISABLE_RNREPO=${{ inputs.disable_rnrepo }}" >> $GITHUB_ENV

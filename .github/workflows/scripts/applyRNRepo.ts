@@ -38,7 +38,7 @@ function modifyProjectBuildGradle(projectBuildGradlePath: string): void {
   console.log('\n📝 Modifying project build.gradle...');
 
   try {
-    let content = fs.readFileSync(projectBuildGradlePath, 'utf8');
+    const content = fs.readFileSync(projectBuildGradlePath, 'utf8');
     const normalizedNewBlock = rnrepoClasspathBlock.replace(/\s+/g, '');
     const normalizedContents = content.replace(/\s+/g, '');
     
@@ -72,7 +72,7 @@ function modifyAppBuildGradle(appBuildGradlePath: string): void {
   console.log('\n📝 Modifying app build.gradle...');
 
   try {
-    let content = fs.readFileSync(appBuildGradlePath, 'utf8');
+    const content = fs.readFileSync(appBuildGradlePath, 'utf8');
     if (content.includes(applyPluginRNRepo)) {
       console.log('  ✓ RNRepo plugin already applied');
       return;
@@ -97,9 +97,9 @@ function modifyAppBuildGradle(appBuildGradlePath: string): void {
 }
 
 function checkIfPathExists(paths: string[]): void {
-  paths.forEach((path) => {
-    if (!fs.existsSync(path)) {
-      console.error(`❌ Path ${path} does not exist`);
+  paths.forEach((filePath) => {
+    if (!fs.existsSync(filePath)) {
+      console.error(`❌ Path ${filePath} does not exist`);
       process.exit(1);
     }
   });
@@ -145,7 +145,7 @@ function iosRNRepoConfig(iosDir: string): void {
 
     const updated = content.replace(
       postInstallRegex,
-      `${postInstallRNRepo}\n\n$1`
+      `$1\n  ${postInstallRNRepo}`
     );
 
     console.log('  ✓ Added Podfile requirement');
