@@ -1,6 +1,6 @@
-name: Build Example Expo App
+name: Build Example RN App
 
-run-name: Build Example Expo App (Android + iOS)
+run-name: Build Example RN App (Android + iOS)
 
 on:
   push:
@@ -11,11 +11,11 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      expo_sdk_major_version:
-        description: 'Expo SDK major version used in `create-expo-app@latest --template default@sdk-<major_version>`'
+      rn_version:
+        description: 'React Native version used in `@react-native-community/cli@latest init --version <rn_version>`'
         required: false
         type: string
-        default: '55'
+        default: '0.85.0'
       request_android:
         description: 'Request android build'
         required: false
@@ -27,14 +27,14 @@ on:
         type: boolean
         default: false
       disable_rnrepo:
-        description: 'Disable rnrepo config plugin'
+        description: 'Disable rnrepo plugin'
         required: false
         type: boolean
         default: false
 
 env:
-  EXPO_SDK_MAJOR_VERSION: ${{ github.event.inputs.expo_sdk_major_version || '55' }}
-  EXAMPLE_APP: expoExampleApp
+  RN_VERSION: ${{ github.event.inputs.rn_version || '0.85.0' }}
+  EXAMPLE_APP: rnExampleApp
 
 jobs:
   check-changes:
@@ -56,16 +56,14 @@ jobs:
           filters: |
             android:
               - 'packages/build-tools/gradle-plugin/**'
-              - '.github/workflows/build-example-expo-app.yml'
-              - 'packages/expo-config-plugin/**'
+              - '.github/workflows/build-example-rn-app.yml'
               - '!**/*.md'
             ios:
               - 'packages/build-tools/cocoapods-plugin/**'
-              - '.github/workflows/build-example-expo-app.yml'
-              - 'packages/expo-config-plugin/**'
+              - '.github/workflows/build-example-rn-app.yml'
               - '!**/*.md'
 
-  build-example-expo-app-android:
+  build-example-rn-app-android:
     needs: check-changes
     if: needs.check-changes.outputs.android == 'true' || github.event.inputs.request_android == 'true'
     runs-on: rnrepo-builder-ubuntu-latest
@@ -74,7 +72,7 @@ jobs:
       actions: read
       contents: read
     concurrency:
-      group: build-example-expo-app-android-${{ github.ref }}
+      group: build-example-rn-app-android-${{ github.ref }}
       cancel-in-progress: true
     steps:
       - name: 🏗 Checkout repository
@@ -86,27 +84,22 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: 🔧 Setup Expo Example App
-        uses: ./.github/actions/setup-expo-example-app
+      - name: 🔧 Setup RN Example App
+        uses: ./.github/actions/setup-rn-example-app
         with:
           example_app: ${{ env.EXAMPLE_APP }}
-          expo_sdk_major_version: ${{ env.EXPO_SDK_MAJOR_VERSION }}
+          rn_version: ${{ env.RN_VERSION }}
           disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
 
-      - name: 🛠 Prebuild for Android
-        run: bunx expo prebuild --platform android --clean
-        working-directory: ${{ env.EXAMPLE_APP }}
-
-      # --configure-on-demand is used in expo by default
-      - name: 🏗 Build Expo App for Android (Debug)
-        run: ./gradlew :app:assembleDebug --info --configure-on-demand
+      - name: 🏗 Build RN App for Android (Debug)
+        run: ./gradlew :app:assembleDebug --info
         working-directory: ${{ env.EXAMPLE_APP }}/android
 
-      - name: 🏗 Build Expo App for Android (Release)
-        run: ./gradlew :app:assembleRelease --info --configure-on-demand
+      - name: 🏗 Build RN App for Android (Release)
+        run: ./gradlew :app:assembleRelease --info
         working-directory: ${{ env.EXAMPLE_APP }}/android
 
-  build-example-expo-app-ios:
+  build-example-rn-app-ios:
     needs: check-changes
     if: needs.check-changes.outputs.ios == 'true' || github.event.inputs.request_ios == 'true'
     runs-on: [self-hosted, macOS, ARM64, ephemeral]
@@ -115,7 +108,7 @@ jobs:
       actions: read
       contents: read
     concurrency:
-      group: build-example-expo-app-ios-${{ github.ref }}
+      group: build-example-rn-app-ios-${{ github.ref }}
       cancel-in-progress: true
 
     steps:
@@ -130,18 +123,18 @@ jobs:
       - name: Install CocoaPods
         run: gem install cocoapods -v 1.15.2
 
-      - name: 🔧 Setup Expo Example App
-        uses: ./.github/actions/setup-expo-example-app
+      - name: 🔧 Setup RN Example App
+        uses: ./.github/actions/setup-rn-example-app
         with:
           example_app: ${{ env.EXAMPLE_APP }}
-          expo_sdk_major_version: ${{ env.EXPO_SDK_MAJOR_VERSION }}
+          rn_version: ${{ env.RN_VERSION }}
           disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
 
-      - name: 🛠 Prebuild for iOS
-        run: bunx expo prebuild --platform ios --clean
-        working-directory: ${{ env.EXAMPLE_APP }}
+      - name: 📦 Install CocoaPods dependencies
+        run: pod install
+        working-directory: ${{ env.EXAMPLE_APP }}/ios
 
-      - name: 🏗 Build Expo App for iOS (Debug)
+      - name: 🏗 Build RN App for iOS (Debug)
         run: |
           xcodebuild \
             -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
@@ -153,7 +146,7 @@ jobs:
             build
         working-directory: ${{ env.EXAMPLE_APP }}/ios
 
-      - name: 🏗 Build Expo App for iOS (Release)
+      - name: 🏗 Build RN App for iOS (Release)
         run: |
           xcodebuild \
             -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \

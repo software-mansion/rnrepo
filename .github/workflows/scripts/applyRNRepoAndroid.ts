@@ -1,97 +1,35 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Get android directory, RNRepo prebuilds-plugin version, and maven repository type from command line arguments
-if (process.argv.length < 5) {
-  console.error('❌ Usage: bun run applyRNRepoAndroid.ts <android_directory> <rnrepo_plugin_version> <maven_repository_type>');
+// Get android and ios directories from command line arguments
+if (process.argv.length < 4) {
+  console.error('❌ Usage: bun run applyRNRepoAndroid.ts <android_directory> <ios_directory>');
   process.exit(1);
 }
 const androidDir = process.argv[2];
-const rnrepoPluginVersion = process.argv[3];
-const mavenRepositoryType = process.argv[4] as 'releases' | 'snapshots';
+const iosDir = process.argv[3];
 
-// Configuration constants
+// Android
 const classpathRegex = /(classpath.*)/;
-const rnrepoClasspath = `classpath("org.rnrepo.tools:prebuilds-plugin:${rnrepoPluginVersion}")`;
-const mavenCentralRepository = `mavenCentral()`;
-const mavenRepositoryBlock = `
-    maven { url "https://packages.rnrepo.org/${mavenRepositoryType}" }`;
+const rnrepoClasspathBlock = `def rnrepoDir = new File(
+     providers.exec {
+       workingDir(rootDir)
+       commandLine("node", "--print", "require.resolve('@rnrepo/build-tools/package.json')")
+     }.standardOutput.asText.get().trim()
+   ).getParentFile().absolutePath
+   classpath fileTree(dir: "\${rnrepoDir}/gradle-plugin/build/libs", include: ["prebuilds-plugin.jar"])
+`;
 const applyPluginRNRepo = 'apply plugin: "org.rnrepo.tools.prebuilds-plugin"';
 const applyPluginFacebook = 'apply plugin: "com.facebook.react"';
-const applyPluginFacebookRootProject =
-  'apply plugin: "com.facebook.react.rootproject"';
-const mavenAllProjectsBlock = `
-allprojects {
-    repositories {
-        maven { url "https://packages.rnrepo.org/${mavenRepositoryType}" }
-    }
-}`;
 
-// Apply RNRepo configuration
-applyRNRepoConfiguration(androidDir);
-
-/**
- * Add classpath dependency to project build.gradle
- */
-function addClasspathDependency(content: string): string {
-  if (content.includes(rnrepoClasspath)) {
-    console.log('  ✓ Classpath dependency already exists');
-    return content;
-  }
-
-  const updated = content.replace(classpathRegex, `$1\n    ${rnrepoClasspath}`);
-  if (updated !== content) {
-    console.log('  ✓ Added classpath dependency');
-    return updated;
-  }
-
-  console.log('  ⚠ Could not add classpath dependency - no classpath found');
-  return content;
-}
-
-/**
- * Add maven repository to project build.gradle
- */
-function addMavenRepository(content: string): string {
-  if (content.includes('https://packages.rnrepo.org/')) {
-    console.log('  ✓ RNRepo maven repository already exists');
-    return content;
-  }
-
-  if (!content.includes(mavenCentralRepository)) {
-    console.log('  ⚠ Could not add maven repository - no mavenCentral() found');
-    return content;
-  }
-
-  const updated = content.replace(
-    mavenCentralRepository,
-    `${mavenCentralRepository}${mavenRepositoryBlock}`
-  );
-  console.log('  ✓ Added maven repository');
-  return updated;
-}
-
-/**
- * Add allprojects block to project build.gradle
- */
-function addAllProjectsBlock(content: string): string {
-  if (content.includes('allprojects {')) {
-    console.log('  ✓ allprojects block already exists');
-    return content;
-  }
-
-  if (!content.includes(applyPluginFacebookRootProject)) {
-    console.log('  ⚠ Could not add allprojects block - no rootproject plugin found');
-    return content;
-  }
-
-  const updated = content.replace(
-    applyPluginFacebookRootProject,
-    `${mavenAllProjectsBlock}\n\n${applyPluginFacebookRootProject}`
-  );
-  console.log('  ✓ Added allprojects block');
-  return updated;
-}
+// iOS
+const podfileRequire = `require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+  "@rnrepo/build-tools/cocoapods-plugin/lib/plugin.rb",
+  {paths: [process.argv[1]]},
+)', __dir__]).strip`;
+const postInstallRegex = /(post_install do \|installer\|)/;
+const postInstallRNRepo = `rnrepo_post_install(installer)`;
 
 /**
  * Modify project build.gradle file
@@ -101,40 +39,30 @@ function modifyProjectBuildGradle(projectBuildGradlePath: string): void {
 
   try {
     let content = fs.readFileSync(projectBuildGradlePath, 'utf8');
+    const normalizedNewBlock = rnrepoClasspathBlock.replace(/\s+/g, '');
+    const normalizedContents = content.replace(/\s+/g, '');
+    
+    if (normalizedContents.includes(normalizedNewBlock)) {
+      console.log('  ✓ Classpath dependency already exists');
+      return;
+    }
 
-    // Apply modifications
-    content = addClasspathDependency(content);
-    content = addMavenRepository(content);
-    content = addAllProjectsBlock(content);
+    if (!classpathRegex.test(content)) {
+      console.log('  ⚠ Could not add classpath dependency - no classpath found');
+      return;
+    }
 
-    // Write back to file
-    fs.writeFileSync(projectBuildGradlePath, content, 'utf8');
+    const updated = content.replace(
+      classpathRegex,
+      `$1\n${rnrepoClasspathBlock}`
+    );
+
+    console.log('  ✓ Added classpath dependency');
+    fs.writeFileSync(projectBuildGradlePath, updated, 'utf8');
   } catch (error) {
     console.error(`❌ Error modifying project build.gradle: ${error}`);
     throw error;
   }
-}
-
-/**
- * Add RNRepo plugin to app build.gradle
- */
-function addRNRepoPlugin(content: string): string {
-  if (content.includes(applyPluginRNRepo)) {
-    console.log('  ✓ RNRepo plugin already applied');
-    return content;
-  }
-
-  if (!content.includes(applyPluginFacebook)) {
-    console.log('  ⚠ Could not add RNRepo plugin - no facebook react plugin found');
-    return content;
-  }
-
-  const updated = content.replace(
-    applyPluginFacebook,
-    `${applyPluginFacebook}\n${applyPluginRNRepo}`
-  );
-  console.log('  ✓ Added RNRepo plugin');
-  return updated;
 }
 
 /**
@@ -145,37 +73,44 @@ function modifyAppBuildGradle(appBuildGradlePath: string): void {
 
   try {
     let content = fs.readFileSync(appBuildGradlePath, 'utf8');
+    if (content.includes(applyPluginRNRepo)) {
+      console.log('  ✓ RNRepo plugin already applied');
+      return;
+    }
 
-    // Apply modifications
-    content = addRNRepoPlugin(content);
+    if (!content.includes(applyPluginFacebook)) {
+      console.log('  ⚠ Could not add RNRepo plugin - no facebook react plugin found');
+      return;
+    }
 
-    // Write back to file
-    fs.writeFileSync(appBuildGradlePath, content, 'utf8');
+    const updated = content.replace(
+      applyPluginFacebook,
+      `${applyPluginFacebook}\n${applyPluginRNRepo}`
+    );
+
+    console.log('  ✓ Added RNRepo plugin');
+    fs.writeFileSync(appBuildGradlePath, updated, 'utf8');
   } catch (error) {
     console.error(`❌ Error modifying app build.gradle: ${error}`);
     throw error;
   }
 }
 
-/**
- * Main function - apply RNRepo configuration to Android project
- */
-function applyRNRepoConfiguration(androidDir: string): void {
+function checkIfPathExists(paths: string[]): void {
+  paths.forEach((path) => {
+    if (!fs.existsSync(path)) {
+      console.error(`❌ Path ${path} does not exist`);
+      process.exit(1);
+    }
+  });
+}
+
+function androidRNRepoConfig(androidDir: string): void {
   console.log(`🛠 Applying RNRepo configuration to: ${androidDir}`);
 
   const projectBuildGradlePath = path.join(androidDir, 'build.gradle');
   const appBuildGradlePath = path.join(androidDir, 'app', 'build.gradle');
-
-  // Validate paths exist
-  if (!fs.existsSync(projectBuildGradlePath)) {
-    console.error(`❌ Project build.gradle not found at: ${projectBuildGradlePath}`);
-    process.exit(1);
-  }
-
-  if (!fs.existsSync(appBuildGradlePath)) {
-    console.error(`❌ App build.gradle not found at: ${appBuildGradlePath}`);
-    process.exit(1);
-  }
+  checkIfPathExists([projectBuildGradlePath, appBuildGradlePath]);
 
   try {
     modifyProjectBuildGradle(projectBuildGradlePath);
@@ -186,3 +121,41 @@ function applyRNRepoConfiguration(androidDir: string): void {
     process.exit(1);
   }
 }
+
+function iosRNRepoConfig(iosDir: string): void {
+  console.log(`🛠 Applying RNRepo configuration to: ${iosDir}`);
+
+  const podfilePath = path.join(iosDir, 'Podfile');
+  checkIfPathExists([podfilePath]);
+
+  try {
+    let content = fs.readFileSync(podfilePath, 'utf8');
+    const normalizedNewBlock = podfileRequire.replace(/\s+/g, '');
+    const normalizedContents = content.replace(/\s+/g, '');
+
+    if (normalizedContents.includes(normalizedNewBlock)) {
+      console.log('  ✓ Podfile requirement already exists');
+      return;
+    }
+
+    // add podfileRequire
+    if (!content.includes(podfileRequire)) {
+      content = `${podfileRequire}\n\n${content}`;
+    } 
+
+    const updated = content.replace(
+      postInstallRegex,
+      `${postInstallRNRepo}\n\n$1`
+    );
+
+    console.log('  ✓ Added Podfile requirement');
+    fs.writeFileSync(podfilePath, updated, 'utf8');
+  } catch (error) {
+    console.error(`❌ Error modifying Podfile: ${error}`);
+    throw error;
+  }
+}
+
+// run main function
+androidRNRepoConfig(androidDir);
+iosRNRepoConfig(iosDir);

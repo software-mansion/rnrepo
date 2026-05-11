@@ -1,0 +1,51 @@
+name: Setup React Native Example App
+description: Creates a React Native CLI app, installs dependencies, and integrates @rnrepo/build-tools
+
+inputs:
+  example_app:
+    description: 'Name of the RN app directory to create'
+    required: true
+  rn_version:
+    description: 'React Native version used in `@react-native-community/cli@latest init --version <rn_version>`'
+    required: false
+    default: '0.85.0'
+  disable_rnrepo:
+    description: 'Disable rnrepo plugin'
+    required: false
+    type: boolean
+    default: false
+
+runs:
+  using: composite
+  steps:
+    - name: 🏗 Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: 📦 Install monorepo dependencies
+      shell: bash
+      run: bun install
+
+    - name: 🏗 Create React Native App
+      shell: bash
+      run: bunx @react-native-community/cli@latest init ${{ inputs.example_app }} --version ${{ inputs.rn_version }} --skip-install
+
+    - name: 📦 Install app dependencies
+      shell: bash
+      run: bun install
+      working-directory: ${{ inputs.example_app }}
+
+    - name: 📦 Install @rnrepo/build-tools
+      shell: bash
+      run: bun add ../packages/build-tools
+      working-directory: ${{ inputs.example_app }}
+
+    - name: 🛠 Add RNRepo to Android gradle
+      shell: bash
+      run: bun run .github/workflows/scripts/applyRNRepoAndroid.ts ${{ inputs.example_app }}/android ${{ inputs.example_app }}/ios
+
+    - name: 🔧 Set RNRepo Env Variable
+      if: ${{ inputs.disable_rnrepo }}
+      shell: bash
+      run: echo "DISABLE_RNREPO=${{ inputs.disable_rnrepo }}" >> $GITHUB_ENV
