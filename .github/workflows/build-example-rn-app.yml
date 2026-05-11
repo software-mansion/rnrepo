@@ -31,10 +31,16 @@ on:
         required: false
         type: boolean
         default: false
+      libraries:
+        description: 'libraries with versions to install, format: libraryName1@version1<space>libraryName2@version2'
+        required: false
+        type: string
+        default: ''
 
 env:
   RN_VERSION: ${{ github.event.inputs.rn_version || '0.85.0' }}
   EXAMPLE_APP: rnExampleApp
+  LIBRARIES: ${{ github.event.inputs.libraries || 'react-native-worklets@0.8.1 react-native-reanimated@4.3.0 react-native-gesture-handler@2.31.2' }}
 
 jobs:
   check-changes:
@@ -90,6 +96,7 @@ jobs:
           example_app: ${{ env.EXAMPLE_APP }}
           rn_version: ${{ env.RN_VERSION }}
           disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
+          libraries: ${{ env.LIBRARIES }}
 
       - name: 🏗 Build RN App for Android (Debug)
         run: ./gradlew :app:assembleDebug --info
@@ -129,6 +136,7 @@ jobs:
           example_app: ${{ env.EXAMPLE_APP }}
           rn_version: ${{ env.RN_VERSION }}
           disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
+          libraries: ${{ env.LIBRARIES }}
 
       - name: 📦 Install CocoaPods dependencies
         run: pod install

@@ -14,6 +14,11 @@ inputs:
     required: false
     type: boolean
     default: false
+  libraries:
+    description: 'libraries with versions to install, format: libraryName1@version1<space>libraryName2@version2'
+    required: false
+    type: string
+    default: ''
 
 runs:
   using: composite
@@ -34,6 +39,12 @@ runs:
     - name: 📦 Install app dependencies
       shell: bash
       run: bun install
+      working-directory: ${{ inputs.example_app }}
+
+    - name: 📦 Install additional libraries
+      if: ${{ inputs.libraries }}
+      shell: bash
+      run: bun add ${{ inputs.libraries }}
       working-directory: ${{ inputs.example_app }}
 
     - name: 📦 Install @rnrepo/build-tools
