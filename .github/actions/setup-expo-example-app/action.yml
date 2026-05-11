@@ -17,15 +17,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: ♻️ Cache bun packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.bun/install/cache
-        key: bun-${{ runner.os }}-${{ inputs.expo_sdk_major_version }}-${{ hashFiles('**/bun.lockb') }}
-        restore-keys: |
-          bun-${{ runner.os }}-${{ inputs.expo_sdk_major_version }}-
-          bun-${{ runner.os }}-
-
     - name: 🏗 Setup Bun
       uses: oven-sh/setup-bun@v1
       with:
