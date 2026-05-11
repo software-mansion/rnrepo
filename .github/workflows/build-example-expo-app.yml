@@ -90,6 +90,17 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: ♻️ Cache Gradle files
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-expo-${{ env.EXPO_SDK_MAJOR_VERSION }}
+          restore-keys: |
+            gradle-${{ runner.os }}-expo-
+            gradle-${{ runner.os }}-
+
       - name: 🔧 Setup Expo Example App
         uses: ./.github/actions/setup-expo-example-app
         with:
@@ -137,6 +148,15 @@ jobs:
 
       - name: Install CocoaPods
         run: gem install cocoapods -v 1.15.2
+
+      - name: ♻️ Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ~/.cocoapods
+          key: cocoapods-${{ runner.os }}-expo-${{ env.EXPO_SDK_MAJOR_VERSION }}
+          restore-keys: |
+            cocoapods-${{ runner.os }}-expo-
+            cocoapods-${{ runner.os }}-
 
       - name: 🔧 Setup Expo Example App
         uses: ./.github/actions/setup-expo-example-app
