@@ -62,10 +62,14 @@ jobs:
           filters: |
             android:
               - 'packages/build-tools/gradle-plugin/**'
+              - '.github/actions/setup-rn-example-app/**'
+              - '.github/workflows/scripts/**'
               - '.github/workflows/build-example-rn-app.yml'
               - '!**/*.md'
             ios:
               - 'packages/build-tools/cocoapods-plugin/**'
+              - '.github/actions/setup-rn-example-app/**'
+              - '.github/workflows/scripts/**'
               - '.github/workflows/build-example-rn-app.yml'
               - '!**/*.md'
 

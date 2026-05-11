@@ -3,7 +3,7 @@ import * as path from 'path';
 
 // Get android and ios directories from command line arguments
 if (process.argv.length < 4) {
-  console.error('❌ Usage: bun run applyRNRepoAndroid.ts <android_directory> <ios_directory>');
+  console.error('❌ Usage: bun run applyRNRepo.ts <android_directory> <ios_directory>');
   process.exit(1);
 }
 const androidDir = process.argv[2];

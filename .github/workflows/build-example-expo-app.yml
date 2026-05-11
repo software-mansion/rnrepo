@@ -57,11 +57,15 @@ jobs:
             android:
               - 'packages/build-tools/gradle-plugin/**'
               - '.github/workflows/build-example-expo-app.yml'
+              - '.github/actions/setup-expo-example-app/**'
+              - '.github/workflows/scripts/**'
               - 'packages/expo-config-plugin/**'
               - '!**/*.md'
             ios:
               - 'packages/build-tools/cocoapods-plugin/**'
               - '.github/workflows/build-example-expo-app.yml'
+              - '.github/actions/setup-expo-example-app/**'
+              - '.github/workflows/scripts/**'
               - 'packages/expo-config-plugin/**'
               - '!**/*.md'
 
