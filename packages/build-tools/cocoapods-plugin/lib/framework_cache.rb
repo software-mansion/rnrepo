@@ -14,19 +14,24 @@ module CocoapodsRnrepo
       node_modules_path = File.expand_path(source_path, workspace_root)
       Logger.log "Package directory: #{node_modules_path}"
 
-      # Create .rnrepo-cache directory
-      cache_dir = File.join(node_modules_path, '.rnrepo-cache')
+      # When RNREPO_CACHE_DIR is set, artifacts live there and symlinks are created
+      # in node_modules/<package>/.rnrepo-cache so CocoaPods can find them.
+      # Without it, artifacts are stored directly inside the package directory.
+      if ENV['RNREPO_CACHE_DIR']
+        cache_dir = File.join(ENV['RNREPO_CACHE_DIR'], pod_name)
+        cache_dir_symlink = File.join(node_modules_path, '.rnrepo-cache')
+        FileUtils.mkdir_p(cache_dir_symlink)
+      else
+        cache_dir = File.join(node_modules_path, '.rnrepo-cache')
+        cache_dir_symlink = nil
+      end
       FileUtils.mkdir_p(cache_dir)
       Logger.log "Cache directory: #{cache_dir}"
 
-      # Check if both Debug and Release frameworks are already cached
-      debug_cache_dir = File.join(cache_dir, 'Debug')
-      release_cache_dir = File.join(cache_dir, 'Release')
-
-      debug_exists = Dir.exist?(debug_cache_dir) && !Dir.glob(File.join(debug_cache_dir, "*.xcframework")).empty?
-      release_exists = Dir.exist?(release_cache_dir) && !Dir.glob(File.join(release_cache_dir, "*.xcframework")).empty?
-
-      if debug_exists && release_exists
+      if %w[Debug Release].all? { |c|
+           xcframework_exists?(File.join(cache_dir, c)) &&
+           (cache_dir_symlink.nil? || xcframework_exists?(File.join(cache_dir_symlink, c)))
+         }
         Logger.log "Pre-built frameworks already exist (Debug & Release)"
         return { status: :cached, message: "Already cached locally" }
       end
@@ -41,49 +46,35 @@ module CocoapodsRnrepo
 
       # Track which configurations were successfully obtained
       configs_available = []
+      anything_downloaded = false
 
-      # Download and extract Debug configuration
-      unless debug_exists
-        Logger.log "Downloading Debug configuration..."
-        debug_result = download_and_extract_config(
-          cache_dir,
-          debug_cache_dir,
-          sanitized_name,
-          version,
-          rn_version,
-          'debug',
-          pod_name,
-          worklets_version
-        )
-        if debug_result[:status] == :downloaded || debug_result[:status] == :cached
-          configs_available << 'Debug'
-        else
-          Logger.log "⚠️  Debug configuration not available"
-        end
-      else
-        configs_available << 'Debug'
-      end
+      %w[Debug Release].each do |config|
+        config_cache_dir = File.join(cache_dir, config)
+        symlink_path = cache_dir_symlink && File.join(cache_dir_symlink, config)
 
-      # Download and extract Release configuration
-      unless release_exists
-        Logger.log "Downloading Release configuration..."
-        release_result = download_and_extract_config(
-          cache_dir,
-          release_cache_dir,
-          sanitized_name,
-          version,
-          rn_version,
-          'release',
-          pod_name,
-          worklets_version
-        )
-        if release_result[:status] == :downloaded || release_result[:status] == :cached
-          configs_available << 'Release'
+        if xcframework_exists?(config_cache_dir)
+          ensure_symlink(config_cache_dir, symlink_path) if symlink_path
+          configs_available << config
         else
-          Logger.log "⚠️  Release configuration not available"
+          Logger.log "Downloading #{config} configuration..."
+          result = download_and_extract_config(
+            cache_dir,
+            config_cache_dir,
+            sanitized_name,
+            version,
+            rn_version,
+            config.downcase,
+            pod_name,
+            worklets_version
+          )
+          if result[:status] == :downloaded
+            anything_downloaded = true
+            ensure_symlink(config_cache_dir, symlink_path) if symlink_path
+            configs_available << config
+          else
+            Logger.log "⚠️  #{config} configuration not available"
+          end
         end
-      else
-        configs_available << 'Release'
       end
 
       # Check if both configurations are available
@@ -93,11 +84,27 @@ module CocoapodsRnrepo
         return { status: :unavailable, message: "Missing configuration(s), found: #{print_list}" }
       end
 
-      Logger.log "Successfully downloaded pre-built XCFrameworks (Debug & Release)!"
-      return { status: :downloaded, message: "Downloaded and extracted successfully" }
+      if anything_downloaded
+        Logger.log "Successfully downloaded pre-built XCFrameworks (Debug & Release)!"
+        return { status: :downloaded, message: "Downloaded and extracted successfully" }
+      else
+        Logger.log "Pre-built frameworks already exist (Debug & Release)"
+        return { status: :cached, message: "Already cached locally" }
+      end
     end
 
     private
+
+    def self.xcframework_exists?(dir)
+      Dir.exist?(dir) && !Dir.glob(File.join(dir, "*.xcframework")).empty?
+    end
+
+    def self.ensure_symlink(target, symlink_path)
+      # rm_rf handles both symlinks and real directories (the latter can exist
+      # when switching from the default node_modules cache to RNREPO_CACHE_DIR mode)
+      FileUtils.rm_rf(symlink_path)
+      FileUtils.ln_s(target, symlink_path)
+    end
 
     # Download and extract a specific configuration (debug or release)
     def self.download_and_extract_config(cache_dir, config_cache_dir, sanitized_name, version, rn_version, config, pod_name, worklets_version = nil)
