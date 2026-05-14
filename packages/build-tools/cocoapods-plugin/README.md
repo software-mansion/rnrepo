@@ -61,7 +61,9 @@ The plugin hooks into the CocoaPods lifecycle:
 
 ### Framework Storage
 
-Pre-built frameworks are cached locally with separate Debug and Release configurations:
+Pre-built frameworks are cached locally with separate Debug and Release configurations.
+
+By default, artifacts are stored directly inside each package's directory:
 
 ```
 node_modules/
@@ -73,3 +75,17 @@ node_modules/
           │   └── {package-name}.xcframework/
           └── Current/  (symlink created at build time → Debug or Release)
 ```
+
+### Custom Cache Directory (`RNREPO_CACHE_DIR`)
+
+If you want to store downloaded artifacts outside of `node_modules` (for example to share them across projects, keep them in CI cache, or avoid committing them to version control), set the `RNREPO_CACHE_DIR` environment variable to a directory of your choice:
+
+```bash
+RNREPO_CACHE_DIR=/path/to/shared/cache pod install
+```
+
+When this variable is set, artifacts are stored under `$RNREPO_CACHE_DIR/.rnrepo-cache/{package-name}/` and a symlink is created at `node_modules/{package-name}/.rnrepo-cache` pointing to that location so CocoaPods can still locate the frameworks. The layout inside is the same as above.
+
+This is particularly useful in CI environments where you can restore/save `$RNREPO_CACHE_DIR` between runs to avoid re-downloading unchanged frameworks.
+
+> **Switching cache modes:** If you switch between using `RNREPO_CACHE_DIR` and the default mode, existing cached directories in `node_modules` will be replaced with symlinks (or vice versa) automatically on the next `pod install`.

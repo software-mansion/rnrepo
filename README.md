@@ -163,6 +163,18 @@ If you're unsure whether RNRepo has been set up correctly in your project, check
 
 For troubleshooting Android builds, before reporting an issue, we recommend passing the `--scan` flag to Gradle (e.g., `./gradlew app:assembleDebug --scan`). This flag generates a report of all tasks performed during the build along with their execution times, which can be useful for investigating issues such as when certain prebuilt libraries weren't loaded from the repository.
 
+### Artifact caching
+
+**Android:** The Gradle plugin relies on Gradle's built-in dependency cache. Downloaded `.aar` artifacts are stored automatically in `~/.gradle/caches/` and reused across builds and projects without any extra configuration. To warm the cache in CI, save and restore the `~/.gradle/caches/` directory between runs.
+
+**iOS:** By default, downloaded xcframeworks are stored inside `node_modules/{package-name}/.rnrepo-cache/`. To move the cache outside of `node_modules` (useful for CI or monorepos), set the `RNREPO_CACHE_DIR` environment variable:
+
+```bash
+RNREPO_CACHE_DIR=/path/to/shared/cache pod install
+```
+
+Artifacts will be stored under `$RNREPO_CACHE_DIR/.rnrepo-cache/{package-name}/` and symlinked back into `node_modules` so CocoaPods can find them. See the [CocoaPods plugin README](packages/build-tools/cocoapods-plugin/README.md) for details.
+
 ### Temporarily disabling RNRepo for troubleshooting
 
 To temporarily disable RNRepo for a specific build (for example, to debug build issues or test local changes), you can use the `DISABLE_RNREPO` environment variable:

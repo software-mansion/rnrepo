@@ -18,7 +18,7 @@ module CocoapodsRnrepo
       # in node_modules/<package>/.rnrepo-cache so CocoaPods can find them.
       # Without it, artifacts are stored directly inside the package directory.
       if ENV['RNREPO_CACHE_DIR']
-        cache_dir = File.join(ENV['RNREPO_CACHE_DIR'], pod_name)
+        cache_dir = File.join(File.expand_path(ENV['RNREPO_CACHE_DIR'], workspace_root), '.rnrepo-cache', pod_name)
         cache_dir_symlink = File.join(node_modules_path, '.rnrepo-cache')
         FileUtils.mkdir_p(cache_dir_symlink)
       else
@@ -130,7 +130,8 @@ module CocoapodsRnrepo
         return { status: :unavailable, message: "Not available on Maven" }
       end
 
-      # Create config-specific directory
+      # Create config-specific directory, remove stale symlink if present
+      FileUtils.rm_rf(config_cache_dir) if File.symlink?(config_cache_dir)
       FileUtils.mkdir_p(config_cache_dir)
 
       # Extract the zip file to config-specific directory
