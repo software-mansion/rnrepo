@@ -167,13 +167,21 @@ For troubleshooting Android builds, before reporting an issue, we recommend pass
 
 **Android:** The Gradle plugin relies on Gradle's built-in dependency cache. Downloaded `.aar` artifacts are stored automatically in `~/.gradle/caches/` and reused across builds and projects without any extra configuration. To warm the cache in CI, save and restore the `~/.gradle/caches/` directory between runs.
 
-**iOS:** By default, downloaded xcframeworks are stored inside `node_modules/{package-name}/.rnrepo-cache/`. To move the cache outside of `node_modules` (useful for CI or monorepos), set the `RNREPO_CACHE_DIR` environment variable:
+**iOS:** By default, downloaded xcframeworks are stored inside `node_modules/{package-name}/.rnrepo-cache/`. To move the cache outside of `node_modules` (useful for CI or monorepos), set `cacheDir` in `rnrepo.config.json`:
+
+```json
+{
+  "cacheDir": "/path/to/shared/cache"
+}
+```
+
+Alternatively, you can set the `RNREPO_CACHE_DIR` environment variable for one-off overrides (it takes priority over `cacheDir`):
 
 ```bash
 RNREPO_CACHE_DIR=/path/to/shared/cache pod install
 ```
 
-Artifacts will be stored under `$RNREPO_CACHE_DIR/.rnrepo-cache/{package-name}/` and symlinked back into `node_modules` so CocoaPods can find them. See the [CocoaPods plugin README](packages/build-tools/cocoapods-plugin/README.md) for details.
+Artifacts will be stored under `<cache-dir>/.rnrepo-cache/{package-name}/` and symlinked back into `node_modules` so CocoaPods can find them. See the [CocoaPods plugin README](packages/build-tools/cocoapods-plugin/README.md) for details.
 
 ### Temporarily disabling RNRepo for troubleshooting
 

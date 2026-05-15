@@ -76,16 +76,28 @@ node_modules/
           └── Current/  (symlink created at build time → Debug or Release)
 ```
 
-### Custom Cache Directory (`RNREPO_CACHE_DIR`)
+### Custom Cache Directory
 
-If you want to store downloaded artifacts outside of `node_modules` (for example to share them across projects, keep them in CI cache, or avoid committing them to version control), set the `RNREPO_CACHE_DIR` environment variable to a directory of your choice:
+If you want to store downloaded artifacts outside of `node_modules` (for example to share them across projects, keep them in CI cache, or avoid committing them to version control), you can configure a custom cache directory in two ways:
+
+**Option 1 — `rnrepo.config.json`** (recommended for permanent configuration):
+
+```json
+{
+  "cacheDir": "/path/to/shared/cache"
+}
+```
+
+**Option 2 — `RNREPO_CACHE_DIR` environment variable** (useful for one-off overrides or CI pipelines):
 
 ```bash
 RNREPO_CACHE_DIR=/path/to/shared/cache pod install
 ```
 
-When this variable is set, artifacts are stored under `$RNREPO_CACHE_DIR/.rnrepo-cache/{package-name}/` and a symlink is created at `node_modules/{package-name}/.rnrepo-cache` pointing to that location so CocoaPods can still locate the frameworks. The layout inside is the same as above.
+When either is set, artifacts are stored under `<cache-dir>/.rnrepo-cache/{package-name}/` and a symlink is created at `node_modules/{package-name}/.rnrepo-cache` pointing to that location so CocoaPods can still locate the frameworks. The layout inside is the same as above.
 
-This is particularly useful in CI environments where you can restore/save `$RNREPO_CACHE_DIR` between runs to avoid re-downloading unchanged frameworks.
+The `RNREPO_CACHE_DIR` environment variable takes priority over `cacheDir` in `rnrepo.config.json`.
 
-> **Switching cache modes:** If you switch between using `RNREPO_CACHE_DIR` and the default mode, existing cached directories in `node_modules` will be replaced with symlinks (or vice versa) automatically on the next `pod install`.
+This is particularly useful in CI environments where you can restore/save the cache directory between runs to avoid re-downloading unchanged frameworks.
+
+> **Switching cache modes:** If you switch between a custom cache directory and the default mode, existing cached directories in `node_modules` will be replaced with symlinks (or vice versa) automatically on the next `pod install`.

@@ -2,7 +2,7 @@ module CocoapodsRnrepo
   class FrameworkCache
     # Download and cache pre-built frameworks (both Debug and Release)
     # Returns: { status: :cached | :downloaded | :unavailable | :failed, message: String }
-    def self.fetch_framework(installer, pod_info, workspace_root)
+    def self.fetch_framework(installer, pod_info, workspace_root, cache_dir_override: nil)
       pod_name = pod_info[:name]
       version = pod_info[:version]
       source_path = pod_info[:source]
@@ -30,11 +30,16 @@ module CocoapodsRnrepo
       # Xcframeworks always live in a version-keyed subdirectory. Both modes expose
       # them to CocoaPods via symlinks at node_modules/<pkg>/.rnrepo-cache/Debug|Release,
       # so the CocoaPods-visible path is stable while the backing store is versioned.
+      # Priority: RNREPO_CACHE_DIR env var > cacheDir in rnrepo.config.json > default (node_modules)
       node_modules_cache = File.join(node_modules_path, '.rnrepo-cache')
-      if ENV['RNREPO_CACHE_DIR']
-        cache_dir = File.join(File.expand_path(ENV['RNREPO_CACHE_DIR'], workspace_root), '.rnrepo-cache', pod_name, cache_key)
+      effective_cache_dir = ENV['RNREPO_CACHE_DIR'] || cache_dir_override
+      if effective_cache_dir
+        cache_dir = File.join(File.expand_path(effective_cache_dir, workspace_root), '.rnrepo-cache', pod_name, cache_key)
+        source = ENV['RNREPO_CACHE_DIR'] ? 'RNREPO_CACHE_DIR env var' : 'rnrepo.config.json'
+        Logger.log "Cache dir source: #{source} (#{effective_cache_dir})"
       else
         cache_dir = File.join(node_modules_cache, cache_key)
+        Logger.log "Cache dir source: default (node_modules)"
       end
       cache_dir_symlink = node_modules_cache
       FileUtils.mkdir_p(cache_dir)

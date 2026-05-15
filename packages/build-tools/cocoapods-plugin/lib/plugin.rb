@@ -39,6 +39,11 @@ def get_ios_denylist(workspace_root)
   denylist_config['ios'] || []
 end
 
+def get_ios_cache_dir(workspace_root)
+  config = load_rnrepo_config(workspace_root)
+  config['cacheDir'] || config['cachedir']
+end
+
 def is_version_at_least(current_version, minimum_version)
   current_version ||= '0.0.0'
   current_core = current_version.match(/^\d+(\.\d+)*/)&.to_s || '0.0.0'
@@ -109,13 +114,16 @@ def rnrepo_pre_install(installer_context)
   # Add expo pod to installer context for later use in post_install
   Pod::Installer.expo_pod = rn_pods.find { |pod| pod[:name] == 'Expo' }
 
+  config_cache_dir = get_ios_cache_dir(workspace_root)
+
   # Download and cache pre-built frameworks in parallel
   threads = rn_pods.map do |pod_info|
     Thread.new do
       result = CocoapodsRnrepo::FrameworkCache.fetch_framework(
         installer_context,
         pod_info,
-        workspace_root
+        workspace_root,
+        cache_dir_override: config_cache_dir
       )
 
       # Thread-safe result collection
