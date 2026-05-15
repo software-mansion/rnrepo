@@ -63,6 +63,42 @@ def configureCodegenTasks(project) {
     def extractDebugTask = createExtractCodegenBinariesTask(project, codegenName, "Debug")
     def extractReleaseTask = createExtractCodegenBinariesTask(project, codegenName, "Release")
 
+    def packageCodegenCMakeTask = project.tasks.register("packageCodegenCMake") {
+        onlyIf { codegenName != null }
+
+        doLast {
+            def cmakeDestDir = file("${project.projectDir}/src/main/assets/cmake")
+            cmakeDestDir.mkdirs()
+
+            file("${cmakeDestDir}/CMakeLists.txt").text = """
+cmake_minimum_required(VERSION 3.13)
+set(CMAKE_VERBOSE_MAKEFILE on)
+
+if(CMAKE_BUILD_TYPE)
+    string(TOLOWER "\${CMAKE_BUILD_TYPE}" RNREPO_BUILD_TYPE)
+else()
+    set(RNREPO_BUILD_TYPE "debug")
+endif()
+
+set(RNREPO_CODEGEN_ROOT "\${CMAKE_CURRENT_LIST_DIR}/..")
+set(RNREPO_CODEGEN_LIBRARY "\${RNREPO_CODEGEN_ROOT}/\${RNREPO_BUILD_TYPE}/\${ANDROID_ABI}/libreact_codegen_${codegenName}.a")
+
+if(NOT EXISTS "\${RNREPO_CODEGEN_LIBRARY}")
+    message(FATAL_ERROR "RNRepo: Missing prebuilt codegen library: \${RNREPO_CODEGEN_LIBRARY}")
+endif()
+
+add_library(react_codegen_${codegenName} STATIC IMPORTED GLOBAL)
+set_target_properties(react_codegen_${codegenName} PROPERTIES
+    IMPORTED_LOCATION "\${RNREPO_CODEGEN_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "\${RNREPO_CODEGEN_ROOT}/headers;\${RNREPO_CODEGEN_ROOT}/headers/react/renderer/components/${codegenName}"
+    INTERFACE_LINK_LIBRARIES "fbjni;jsi;reactnative"
+)
+""".trim()
+
+            println "📦 Packaged codegen CMakeLists.txt to assets/cmake"
+        }
+    }
+
     // Task to package headers - must run after codegen generation
     def packageHeadersTask = project.tasks.register("packageCppHeaders") {
         onlyIf { codegenName != null }
@@ -129,10 +165,11 @@ def configureCodegenTasks(project) {
         }
     }
 
-    // Hook into mergeReleaseAssets to ensure headers are copied before AGP scans assets
+    // Hook into mergeReleaseAssets to ensure codegen assets are copied before AGP scans assets
     def mergeAssetsTask = project.tasks.findByName('mergeReleaseAssets')
     if (mergeAssetsTask) {
         mergeAssetsTask.dependsOn(packageHeadersTask)
+        mergeAssetsTask.dependsOn(packageCodegenCMakeTask)
     }
 
     try {
@@ -147,7 +184,7 @@ def configureCodegenTasks(project) {
         println "Warning: Could not configure Android settings for ${project.name}: ${e.message}"
     }
 
-    return [codegenName: codegenName, packageHeadersTask: packageHeadersTask]
+    return [codegenName: codegenName, packageHeadersTask: packageHeadersTask, packageCodegenCMakeTask: packageCodegenCMakeTask]
 }
 
 gradle.projectsEvaluated {
