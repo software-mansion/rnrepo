@@ -46,7 +46,7 @@ jobs:
         run: npm install -g npm@latest
 
       - name: 📦 Install dependencies
-        run: bun install
+        run: bun install --ignore-scripts
 
       - name: 🔨 Build plugin
         run: bun run build

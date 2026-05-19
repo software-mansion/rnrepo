@@ -37,7 +37,7 @@ runs:
 
     - name: 📦 Install monorepo dependencies
       shell: bash
-      run: bun install
+      run: bun install --ignore-scripts
 
     - name: 🏗 Create React Native App
       shell: bash
@@ -45,7 +45,7 @@ runs:
 
     - name: 📦 Install app dependencies
       shell: bash
-      run: bun install
+      run: bun install --ignore-scripts
       working-directory: ${{ inputs.example_app }}
 
     - name: 📦 Install additional libraries
