@@ -1,9 +1,9 @@
 name: Configure npm Security Settings
-description: Configures npm security settings (min-release-age and ignore-scripts)
+description: Appends repo root .npmrc to ~/.npmrc for commands run outside the repo tree
 
 runs:
   using: composite
   steps:
     - name: 🔒 Configure npm security settings
       shell: bash
-      run: printf "min-release-age=7d\nignore-scripts=true\n" >> ~/.npmrc
+      run: cat .npmrc >> ~/.npmrc
