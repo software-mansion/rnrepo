@@ -117,7 +117,7 @@ jobs:
           EOF
 
       - name: 📤 Publish library
-        run: bun run packages/publisher/publish-library-ios.ts -- "${ WORKFLOW_RUN_ID }"
+        run: bun run packages/publisher/publish-library-ios.ts -- "${WORKFLOW_RUN_ID}"
         env:
           WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
