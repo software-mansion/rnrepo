@@ -62,7 +62,7 @@ jobs:
             ${{ runner.os }}-bun-gradle-
 
       - name: 📦 Install dependencies
-        run: bun install
+        run: bun install --ignore-scripts
 
       - name: 🔍 Lint kotlin
         if: ${{ steps.filter.outputs.kotlin == 'true' }}

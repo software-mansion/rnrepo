@@ -1,0 +1,9 @@
+name: Configure npm Security Settings
+description: Appends repo root .npmrc to ~/.npmrc for commands run outside the repo tree
+
+runs:
+  using: composite
+  steps:
+    - name: 🔒 Configure npm security settings
+      shell: bash
+      run: printf '\n' >> ~/.npmrc && cat "$GITHUB_WORKSPACE/.npmrc" >> ~/.npmrc && printf '\nignore-scripts=true\n' >> ~/.npmrc

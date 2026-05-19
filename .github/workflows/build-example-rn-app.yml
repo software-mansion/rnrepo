@@ -1,0 +1,187 @@
+name: Build Example RN App
+
+run-name: Build Example RN App (Android + iOS)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      rn_version:
+        description: 'React Native version used in `@react-native-community/cli@latest init --version <rn_version>`'
+        required: false
+        type: string
+        default: '0.85.0'
+      request_android:
+        description: 'Request android build'
+        required: false
+        type: boolean
+        default: false
+      request_ios:
+        description: 'Request ios build'
+        required: false
+        type: boolean
+        default: false
+      disable_rnrepo:
+        description: 'Disable rnrepo plugin'
+        required: false
+        type: boolean
+        default: false
+      libraries:
+        description: 'libraries with versions to install, format: libraryName1@version1<space>libraryName2@version2'
+        required: false
+        type: string
+        default: ''
+
+env:
+  RN_VERSION: ${{ github.event.inputs.rn_version || '0.85.0' }}
+  EXAMPLE_APP: rnExampleApp
+  LIBRARIES: ${{ github.event.inputs.libraries || 'react-native-worklets@0.8.1 react-native-reanimated@4.3.0 react-native-gesture-handler@2.31.2' }}
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      contents: read
+    outputs:
+      android: ${{ steps.filter.outputs.android }}
+      ios: ${{ steps.filter.outputs.ios }}
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check for file changes
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            android:
+              - 'packages/build-tools/gradle-plugin/**'
+              - '.github/actions/setup-rn-example-app/**'
+              - '.github/workflows/scripts/**'
+              - '.github/workflows/build-example-rn-app.yml'
+              - '!**/*.md'
+            ios:
+              - 'packages/build-tools/cocoapods-plugin/**'
+              - '.github/actions/setup-rn-example-app/**'
+              - '.github/workflows/scripts/**'
+              - '.github/workflows/build-example-rn-app.yml'
+              - '!**/*.md'
+
+  build-example-rn-app-android:
+    needs: check-changes
+    if: needs.check-changes.outputs.android == 'true' || github.event.inputs.request_android == 'true'
+    runs-on: rnrepo-builder-ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    concurrency:
+      group: build-example-rn-app-android-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🤖 Setup Android environment
+        uses: ./.github/actions/setup-android
+
+      - name: ♻️ Cache Gradle files
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-rn-${{ env.RN_VERSION }}
+          restore-keys: |
+            gradle-${{ runner.os }}-rn-
+            gradle-${{ runner.os }}-
+
+      - name: 🔧 Setup RN Example App
+        uses: ./.github/actions/setup-rn-example-app
+        with:
+          example_app: ${{ env.EXAMPLE_APP }}
+          rn_version: ${{ env.RN_VERSION }}
+          disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
+          libraries: ${{ env.LIBRARIES }}
+
+      - name: 🏗 Build Gradle Plugin JAR
+        run: ./gradlew build
+        working-directory: packages/build-tools/gradle-plugin
+
+      - name: 🏗 Build RN App for Android (Debug)
+        run: ./gradlew :app:assembleDebug
+        working-directory: ${{ env.EXAMPLE_APP }}/android
+
+      - name: 🏗 Build RN App for Android (Release)
+        run: ./gradlew :app:assembleRelease
+        working-directory: ${{ env.EXAMPLE_APP }}/android
+
+  build-example-rn-app-ios:
+    needs: check-changes
+    if: needs.check-changes.outputs.ios == 'true' || github.event.inputs.request_ios == 'true'
+    runs-on: [self-hosted, macOS, ARM64, ephemeral]
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    concurrency:
+      group: build-example-rn-app-ios-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🍎 Setup iOS environment
+        uses: ./.github/actions/setup-ios
+
+      - name: ♻️ Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ~/.cocoapods
+          key: cocoapods-${{ runner.os }}-rn-${{ env.RN_VERSION }}
+          restore-keys: |
+            cocoapods-${{ runner.os }}-rn-
+            cocoapods-${{ runner.os }}-
+
+      - name: 🔧 Setup RN Example App
+        uses: ./.github/actions/setup-rn-example-app
+        with:
+          example_app: ${{ env.EXAMPLE_APP }}
+          rn_version: ${{ env.RN_VERSION }}
+          disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
+          libraries: ${{ env.LIBRARIES }}
+
+      - name: 📦 Install CocoaPods dependencies
+        run: pod install
+        working-directory: ${{ env.EXAMPLE_APP }}/ios
+
+      - name: 🏗 Build RN App for iOS (Debug)
+        run: |
+          xcodebuild \
+            -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
+            -scheme ${{ env.EXAMPLE_APP }} \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+        working-directory: ${{ env.EXAMPLE_APP }}/ios
+
+      - name: 🏗 Build RN App for iOS (Release)
+        run: |
+          xcodebuild \
+            -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
+            -scheme ${{ env.EXAMPLE_APP }} \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+        working-directory: ${{ env.EXAMPLE_APP }}/ios
