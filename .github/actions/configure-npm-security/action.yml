@@ -6,4 +6,4 @@ runs:
   steps:
     - name: 🔒 Configure npm security settings
       shell: bash
-      run: cat .npmrc >> ~/.npmrc
+      run: printf '\n' >> ~/.npmrc && cat "$GITHUB_WORKSPACE/.npmrc" >> ~/.npmrc
