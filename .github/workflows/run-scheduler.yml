@@ -19,6 +19,7 @@ concurrency:
 jobs:
   run-scheduler:
     runs-on: rnrepo-ubuntu-latest
+    timeout-minutes: 60
     permissions:
       actions: write
       contents: read

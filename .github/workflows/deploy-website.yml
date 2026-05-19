@@ -21,6 +21,7 @@ concurrency:
 jobs:
   build:
     runs-on: rnrepo-ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -18,6 +18,7 @@ concurrency:
 jobs:
   check-react-native-version:
     runs-on: rnrepo-ubuntu-latest
+    timeout-minutes: 15
     name: Check for new React Native versions
 
     steps:

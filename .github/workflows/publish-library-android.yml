@@ -10,6 +10,7 @@ on:
 jobs:
   handle-build-completion:
     runs-on: rnrepo-ubuntu-latest
+    timeout-minutes: 60
     permissions:
       actions: read
       contents: read
@@ -49,6 +50,7 @@ jobs:
 
   publish-library:
     runs-on: rnrepo-ubuntu-latest
+    timeout-minutes: 60
     permissions:
       actions: read
       contents: read

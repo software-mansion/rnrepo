@@ -19,6 +19,7 @@ concurrency:
 jobs:
   check-failed-builds:
     runs-on: rnrepo-ubuntu-latest
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read

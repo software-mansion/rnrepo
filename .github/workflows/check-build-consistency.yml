@@ -6,6 +6,7 @@ on:
 jobs:
   check-build-consistency:
     runs-on: rnrepo-ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
 
