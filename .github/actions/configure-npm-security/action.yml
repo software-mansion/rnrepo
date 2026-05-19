@@ -1,0 +1,9 @@
+name: Configure npm Security Settings
+description: Configures npm security settings (min-release-age and ignore-scripts)
+
+runs:
+  using: composite
+  steps:
+    - name: 🔒 Configure npm security settings
+      shell: bash
+      run: printf "min-release-age=7d\nignore-scripts=true\n" >> ~/.npmrc

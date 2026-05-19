@@ -1,0 +1,37 @@
+name: Setup Android Environment
+description: Sets up Java JDK and optionally Android SDK with licenses, plus npm security settings
+
+inputs:
+  java-version:
+    description: 'Java version to install'
+    required: false
+    default: '17'
+  java-distribution:
+    description: 'Java distribution to use'
+    required: false
+    default: 'zulu'
+  setup-sdk:
+    description: 'Whether to install Android SDK and accept licenses'
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: 🔒 Configure npm security settings
+      uses: ./.github/actions/configure-npm-security
+
+    - name: ☕ Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: ${{ inputs.java-distribution }}
+        java-version: ${{ inputs.java-version }}
+
+    - name: 📱 Setup Android SDK
+      if: ${{ inputs.setup-sdk == 'true' }}
+      uses: android-actions/setup-android@v3
+
+    - name: ✅ Accept Android Licenses
+      if: ${{ inputs.setup-sdk == 'true' }}
+      shell: bash
+      run: yes | sdkmanager --licenses || true

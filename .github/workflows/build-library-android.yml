@@ -36,18 +36,10 @@ jobs:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Java JDK
-        uses: actions/setup-java@v4
+      - name: 🤖 Setup Android environment
+        uses: ./.github/actions/setup-android
         with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: 📱 Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: ✅ Accept Android Licenses
-        run: |
-          yes | sdkmanager --licenses || true
+          setup-sdk: 'true'
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1

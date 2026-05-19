@@ -36,14 +36,9 @@ jobs:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use latest stable Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '26.1'
-      
-      - name: Install Ruby gems
-        run: gem install cocoapods -v 1.15.2
-      
+      - name: 🍎 Setup iOS environment
+        uses: ./.github/actions/setup-ios
+
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
