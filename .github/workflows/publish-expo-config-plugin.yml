@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -52,6 +54,7 @@ jobs:
         run: bun run build
 
       - name: 🚀 Publish to npm
-        run: npm publish --tag ${{ github.event.inputs.beta_or_latest }}
+        run: npm publish --tag ${GITHUB_EVENT_INPUTS_BETA_OR_LATEST}
         env:
           CI: true  # Runs tests without watcher
+          GITHUB_EVENT_INPUTS_BETA_OR_LATEST: ${{ github.event.inputs.beta_or_latest }}

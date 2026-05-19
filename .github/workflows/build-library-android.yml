@@ -31,10 +31,14 @@ jobs:
   build-library-android:
     runs-on: rnrepo-builder-ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
 
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 🤖 Setup Android environment
         uses: ./.github/actions/setup-android
@@ -58,7 +62,10 @@ jobs:
 
       - name: 📱 Create RN project (cache miss)
         if: steps.rn-project-cache.outputs.cache-hit != 'true'
-        run: bun run packages/builder/build-utils.ts -- "${{ runner.temp }}" "${{ inputs.react_native_version }}"
+        run: bun run packages/builder/build-utils.ts -- "$RUNNER_TEMP" "$INPUTS_REACT_NATIVE_VERSION"
+        env:
+          RUNNER_TEMP: ${{ runner.temp }}
+          INPUTS_REACT_NATIVE_VERSION: ${{ inputs.react_native_version }}
 
       - name: 💾 Save RN project cache (clean)
         if: steps.rn-project-cache.outputs.cache-hit != 'true'
@@ -68,7 +75,13 @@ jobs:
           key: ${{ runner.os }}-rn-project-cache-${{ inputs.react_native_version }}
 
       - name: 🔨 Build library for Android
-        run: bun run packages/builder/build-library-android.ts -- "${{ inputs.library_name }}" "${{ inputs.library_version }}" "${{ inputs.react_native_version }}" "${{ runner.temp }}" "${{ inputs.worklets_version }}"
+        run: bun run packages/builder/build-library-android.ts -- "${INPUTS_LIBRARY_NAME}" "${INPUTS_LIBRARY_VERSION}" "${INPUTS_REACT_NATIVE_VERSION}" "$RUNNER_TEMP" "${INPUTS_WORKLETS_VERSION}"
+        env:
+          RUNNER_TEMP: ${{ runner.temp }}
+          INPUTS_LIBRARY_NAME: ${{ inputs.library_name }}
+          INPUTS_LIBRARY_VERSION: ${{ inputs.library_version }}
+          INPUTS_REACT_NATIVE_VERSION: ${{ inputs.react_native_version }}
+          INPUTS_WORKLETS_VERSION: ${{ inputs.worklets_version }}
 
       - name: 📋 List artifacts with checksums
         run: |

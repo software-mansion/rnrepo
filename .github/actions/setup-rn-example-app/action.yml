@@ -41,7 +41,10 @@ runs:
 
     - name: 🏗 Create React Native App
       shell: bash
-      run: bunx @react-native-community/cli@latest init ${{ inputs.example_app }} --version ${{ inputs.rn_version }} --skip-install
+      run: bunx @react-native-community/cli@latest init ${INPUTS_EXAMPLE_APP} --version ${INPUTS_RN_VERSION} --skip-install
+      env:
+        INPUTS_EXAMPLE_APP: ${{ inputs.example_app }}
+        INPUTS_RN_VERSION: ${{ inputs.rn_version }}
 
     - name: 📦 Install app dependencies
       shell: bash
@@ -51,8 +54,10 @@ runs:
     - name: 📦 Install additional libraries
       if: ${{ inputs.libraries }}
       shell: bash
-      run: bun add ${{ inputs.libraries }}
+      run: bun add ${INPUTS_LIBRARIES}
       working-directory: ${{ inputs.example_app }}
+      env:
+        INPUTS_LIBRARIES: ${{ inputs.libraries }}
 
     - name: 📦 Install @rnrepo/build-tools
       shell: bash
@@ -61,9 +66,13 @@ runs:
 
     - name: 🛠 Add RNRepo to Android gradle
       shell: bash
-      run: bun run .github/workflows/scripts/applyRNRepo.ts ${{ inputs.example_app }}/android ${{ inputs.example_app }}/ios
+      run: bun run .github/workflows/scripts/applyRNRepo.ts ${INPUTS_EXAMPLE_APP}/android ${INPUTS_EXAMPLE_APP}/ios
+      env:
+        INPUTS_EXAMPLE_APP: ${{ inputs.example_app }}
 
     - name: 🔧 Set RNRepo Env Variable
       if: ${{ inputs.disable_rnrepo == 'true' }}
       shell: bash
-      run: echo "DISABLE_RNREPO=${{ inputs.disable_rnrepo }}" >> $GITHUB_ENV
+      run: echo "DISABLE_RNREPO=${INPUTS_DISABLE_RNREPO}" >> $GITHUB_ENV
+      env:
+        INPUTS_DISABLE_RNREPO: ${{ inputs.disable_rnrepo }}

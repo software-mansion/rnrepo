@@ -11,6 +11,10 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-react-native-version:
     runs-on: rnrepo-ubuntu-latest
@@ -19,6 +23,8 @@ jobs:
     steps:
       - name: 🏗 Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1

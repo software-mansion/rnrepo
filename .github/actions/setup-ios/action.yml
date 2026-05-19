@@ -24,4 +24,6 @@ runs:
 
     - name: 💎 Install CocoaPods
       shell: bash
-      run: gem install cocoapods -v ${{ inputs.cocoapods-version }}
+      run: gem install cocoapods -v ${INPUTS_COCOAPODS_VERSION}
+      env:
+        INPUTS_COCOAPODS_VERSION: ${{ inputs.cocoapods-version }}

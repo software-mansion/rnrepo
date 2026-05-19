@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
+          persist-credentials: false
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -38,8 +39,9 @@ jobs:
         run: bun install --ignore-scripts
 
       - name: 📝 Update build status (failure)
-        run: bun run packages/publisher/update-build-status.ts -- "${{ github.event.workflow_run.id }}" "failed"
+        run: bun run packages/publisher/update-build-status.ts -- "${WORKFLOW_RUN_ID}" "failed"
         env:
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -57,6 +59,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
+          persist-credentials: false
 
       - name: 📥 Download framework artifacts
         uses: actions/download-artifact@v4
@@ -83,11 +86,16 @@ jobs:
         run: bun install --ignore-scripts
 
       - name: 🔐 Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
           gpg --list-secret-keys --keyid-format LONG
 
       - name: 🔐 Generate Maven settings.xml
+        env:
+          RNREPO_SWM_PUBLISHER_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}
+          RNREPO_SWM_PUBLISHER_TOKEN: ${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}
         run: |
           mkdir -p ~/.m2
           cat > ~/.m2/settings.xml <<EOF
@@ -99,16 +107,17 @@ jobs:
             <servers>
               <server>
                 <id>RNRepo</id>
-                <username>${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}</username>
-                <password><![CDATA[${{ secrets.RNREPO_SWM_PUBLISHER_TOKEN }}]]></password>
+                <username>${RNREPO_SWM_PUBLISHER_USERNAME}</username>
+                <password><![CDATA[${RNREPO_SWM_PUBLISHER_TOKEN}]]></password>
               </server>
             </servers>
           </settings>
           EOF
 
       - name: 📤 Publish library
-        run: bun run packages/publisher/publish-library-ios.ts -- "${{ github.event.workflow_run.id }}"
+        run: bun run packages/publisher/publish-library-ios.ts -- "${ WORKFLOW_RUN_ID }"
         env:
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           MAVEN_USERNAME: ${{ secrets.RNREPO_SWM_PUBLISHER_USERNAME }}

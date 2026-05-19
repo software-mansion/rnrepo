@@ -37,7 +37,10 @@ runs:
 
     - name: 🏗 Create Expo App
       shell: bash
-      run: bunx create-expo-app@latest ${{ inputs.example_app }} --no-install --template "default@sdk-${{ inputs.expo_sdk_major_version }}"
+      run: bunx create-expo-app@latest ${INPUTS_EXAMPLE_APP} --no-install --template "default@sdk-${INPUTS_EXPO_SDK_MAJOR_VERSION}"
+      env:
+        INPUTS_EXAMPLE_APP: ${{ inputs.example_app }}
+        INPUTS_EXPO_SDK_MAJOR_VERSION: ${{ inputs.expo_sdk_major_version }}
 
     - name: 📦 Install app dependencies
       shell: bash
@@ -57,4 +60,6 @@ runs:
     - name: 🔧 Set RNRepo Env Variable
       if: ${{ inputs.disable_rnrepo == 'true' }}
       shell: bash
-      run: echo "DISABLE_RNREPO=${{ inputs.disable_rnrepo }}" >> $GITHUB_ENV
+      run: echo "DISABLE_RNREPO=${INPUTS_DISABLE_RNREPO}" >> $GITHUB_ENV
+      env:
+        INPUTS_DISABLE_RNREPO: ${{ inputs.disable_rnrepo }}

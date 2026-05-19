@@ -54,6 +54,8 @@ jobs:
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 🔍 Check for file changes
         uses: dorny/paths-filter@v2
@@ -87,6 +89,8 @@ jobs:
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 🤖 Setup Android environment
         uses: ./.github/actions/setup-android
@@ -137,6 +141,8 @@ jobs:
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 🍎 Setup iOS environment
         uses: ./.github/actions/setup-ios
@@ -165,8 +171,8 @@ jobs:
       - name: 🏗 Build RN App for iOS (Debug)
         run: |
           xcodebuild \
-            -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
-            -scheme ${{ env.EXAMPLE_APP }} \
+            -workspace ${EXAMPLE_APP}.xcworkspace \
+            -scheme ${EXAMPLE_APP} \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
@@ -177,8 +183,8 @@ jobs:
       - name: 🏗 Build RN App for iOS (Release)
         run: |
           xcodebuild \
-            -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
-            -scheme ${{ env.EXAMPLE_APP }} \
+            -workspace ${EXAMPLE_APP}.xcworkspace \
+            -scheme ${EXAMPLE_APP} \
             -configuration Release \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \

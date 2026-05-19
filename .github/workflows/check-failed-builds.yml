@@ -12,6 +12,10 @@ on:
     # Runs every day
     - cron: '0 6 * * *'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-failed-builds:
     runs-on: rnrepo-ubuntu-latest
@@ -22,6 +26,8 @@ jobs:
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 🏗 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -44,5 +50,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.SCHEDULER_GITHUB_PAT }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SHOULD_WRITE: ${{ (github.event.inputs.write == 'true' || github.event_name == 'schedule') && '--write' || '' }}
         run: |
-          bun run --cwd packages/database src/get-failed-builds.ts ${{ (github.event.inputs.write == 'true' || github.event_name == 'schedule') && '--write' || '' }}
+          bun run --cwd packages/database src/get-failed-builds.ts "$SHOULD_WRITE"
