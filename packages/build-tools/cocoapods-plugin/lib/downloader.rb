@@ -1,6 +1,7 @@
 module CocoapodsRnrepo
   class Downloader
     @@repo_url = "https://packages.rnrepo.org/releases"
+    @@cache_dir = File.expand_path('~/.rnrepo-cache')
 
     def self.validate_artifact_spec(artifact_spec, required_keys)
       missing_keys = required_keys.select { |key| !artifact_spec.key?(key) || artifact_spec[key].nil? }
@@ -26,12 +27,28 @@ module CocoapodsRnrepo
       required_keys = [:sanitized_name, :version, :rn_version, :configuration, :destination]
       return nil unless validate_artifact_spec(artifact_spec, required_keys)
 
+      if artifact_spec[:allow_cache_in_homedir]
+        artifact_cache_path = File.join(@@cache_dir, artifact_spec[:sanitized_name], artifact_spec[:version], File.basename(artifact_spec[:destination]))
+
+        if File.exist?(artifact_cache_path)
+          Logger.log "Found in #{artifact_cache_path}, copying..."
+          FileUtils.cp(artifact_cache_path, artifact_spec[:destination])
+          return artifact_spec[:destination]
+        end
+      end
+
       url = build_artifact_url(artifact_spec)
       Logger.log "Downloading from #{url}..."
 
       success = system("curl", "-s", "-S", "-f", "-L", "--connect-timeout", "15", "--max-time", "300", "-o", artifact_spec[:destination], url)
 
       if success
+        if artifact_spec[:allow_cache_in_homedir]
+          artifact_cache_path = File.join(@@cache_dir, artifact_spec[:sanitized_name], artifact_spec[:version], File.basename(artifact_spec[:destination]))
+          FileUtils.mkdir_p(File.dirname(artifact_cache_path))
+          FileUtils.cp(artifact_spec[:destination], artifact_cache_path)
+          Logger.log "Saved to cache at #{artifact_cache_path}"
+        end
         return artifact_spec[:destination]
       elsif success.nil?
         Logger.error "Error: 'curl' command not found or could not be executed. Please ensure curl is installed and in your PATH."

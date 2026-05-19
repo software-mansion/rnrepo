@@ -7,12 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Added `RNREPO_CACHE_DIR` environment variable to store iOS xcframework artifacts outside `node_modules`, enabling persistent caching across builds and workflow-level caching
-
 ### Changed
 - Resolve Gradle repositories once instead of per-package check for improved build performance (#337)
 - Handle Xcode settings in both array and string formats (#330)
+- By default cache the iOS xcframework artifacts in `~/.rnrepo-cache` directory that can be saved in runners cache (#338)
 
 ## [0.1.3-beta.0] - 2026-04-30
 

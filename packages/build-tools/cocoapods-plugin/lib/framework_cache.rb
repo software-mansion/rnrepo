@@ -2,17 +2,10 @@ module CocoapodsRnrepo
   class FrameworkCache
     # Download and cache pre-built frameworks (both Debug and Release)
     # Returns: { status: :cached | :downloaded | :unavailable | :failed, message: String }
-    def self.fetch_framework(installer, pod_info, workspace_root, cache_dir_override: nil)
+    def self.fetch_framework(installer, pod_info, workspace_root, allow_cache_in_homedir: true)
       pod_name = pod_info[:name]
       version = pod_info[:version]
       source_path = pod_info[:source]
-      npm_package_name = pod_info[:npm_package_name] || pod_name
-      rn_version = pod_info[:rn_version]
-      worklets_version = pod_info[:worklets_version]
-
-      # Sanitize package name for filename (remove @ and replace / with _)
-      # Matches sanitizePackageName() in @rnrepo/config
-      sanitized_name = npm_package_name.gsub(/^@/, '').gsub('/', '_')
 
       Logger.log "Processing: #{pod_name} v#{version}".bold
 
@@ -21,71 +14,78 @@ module CocoapodsRnrepo
       node_modules_path = File.expand_path(source_path, workspace_root)
       Logger.log "Package directory: #{node_modules_path}"
 
-      # Cache key encodes every dimension that determines which artifact is downloaded.
-      # Without this, a cached pod for one version/RN/worklets combination would be
-      # reused for a different one, wiring CocoaPods to stale or incompatible binaries.
-      worklets_suffix = worklets_version ? "-worklets#{worklets_version}" : ''
-      cache_key = "#{version}-rn#{rn_version}#{worklets_suffix}"
-
-      # Xcframeworks always live in a version-keyed subdirectory. Both modes expose
-      # them to CocoaPods via symlinks at node_modules/<pkg>/.rnrepo-cache/Debug|Release,
-      # so the CocoaPods-visible path is stable while the backing store is versioned.
-      # Priority: RNREPO_CACHE_DIR env var > cacheDir in rnrepo.config.json > default (node_modules)
-      node_modules_cache = File.join(node_modules_path, '.rnrepo-cache')
-      effective_cache_dir = ENV['RNREPO_CACHE_DIR'] || cache_dir_override
-      if effective_cache_dir
-        cache_dir = File.join(File.expand_path(effective_cache_dir, workspace_root), '.rnrepo-cache', pod_name, cache_key)
-        source = ENV['RNREPO_CACHE_DIR'] ? 'RNREPO_CACHE_DIR env var' : 'rnrepo.config.json'
-        Logger.log "Cache dir source: #{source} (#{effective_cache_dir})"
-      else
-        cache_dir = File.join(node_modules_cache, cache_key)
-        Logger.log "Cache dir source: default (node_modules)"
-      end
-      cache_dir_symlink = node_modules_cache
+      # Create .rnrepo-cache directory
+      cache_dir = File.join(node_modules_path, '.rnrepo-cache')
       FileUtils.mkdir_p(cache_dir)
-      FileUtils.mkdir_p(cache_dir_symlink)
       Logger.log "Cache directory: #{cache_dir}"
 
-      if %w[Debug Release].all? { |c|
-           config_cache_dir = File.join(cache_dir, c)
-           xcframework_exists?(config_cache_dir) &&
-           symlink_points_to?(File.join(cache_dir_symlink, c), config_cache_dir)
-         }
+      # Check if both Debug and Release frameworks are already cached
+      debug_cache_dir = File.join(cache_dir, 'Debug')
+      release_cache_dir = File.join(cache_dir, 'Release')
+
+      debug_exists = Dir.exist?(debug_cache_dir) && !Dir.glob(File.join(debug_cache_dir, "*.xcframework")).empty?
+      release_exists = Dir.exist?(release_cache_dir) && !Dir.glob(File.join(release_cache_dir, "*.xcframework")).empty?
+
+      if debug_exists && release_exists
         Logger.log "Pre-built frameworks already exist (Debug & Release)"
         return { status: :cached, message: "Already cached locally" }
       end
 
+      npm_package_name = pod_info[:npm_package_name] || pod_name
+      rn_version = pod_info[:rn_version]
+      worklets_version = pod_info[:worklets_version]
+
+      # Sanitize package name for filename (remove @ and replace / with _)
+      # Matches sanitizePackageName() in @rnrepo/config
+      sanitized_name = npm_package_name.gsub(/^@/, '').gsub('/', '_')
+
       # Track which configurations were successfully obtained
       configs_available = []
-      anything_downloaded = false
 
-      %w[Debug Release].each do |config|
-        config_cache_dir = File.join(cache_dir, config)
-        symlink_path = File.join(cache_dir_symlink, config)
-
-        if xcframework_exists?(config_cache_dir)
-          ensure_symlink(config_cache_dir, symlink_path)
-          configs_available << config
+      # Download and extract Debug configuration
+      unless debug_exists
+        Logger.log "Downloading Debug configuration..."
+        debug_result = download_and_extract_config(
+          cache_dir,
+          debug_cache_dir,
+          sanitized_name,
+          version,
+          rn_version,
+          'debug',
+          pod_name,
+          worklets_version,
+          allow_cache_in_homedir
+        )
+        if debug_result[:status] == :downloaded || debug_result[:status] == :cached
+          configs_available << 'Debug'
         else
-          Logger.log "Downloading #{config} configuration..."
-          result = download_and_extract_config(
-            cache_dir,
-            config_cache_dir,
-            sanitized_name,
-            version,
-            rn_version,
-            config.downcase,
-            pod_name,
-            worklets_version
-          )
-          if result[:status] == :downloaded
-            anything_downloaded = true
-            ensure_symlink(config_cache_dir, symlink_path)
-            configs_available << config
-          else
-            Logger.log "⚠️  #{config} configuration not available"
-          end
+          Logger.log "⚠️  Debug configuration not available"
         end
+      else
+        configs_available << 'Debug'
+      end
+
+      # Download and extract Release configuration
+      unless release_exists
+        Logger.log "Downloading Release configuration..."
+        release_result = download_and_extract_config(
+          cache_dir,
+          release_cache_dir,
+          sanitized_name,
+          version,
+          rn_version,
+          'release',
+          pod_name,
+          worklets_version,
+          allow_cache_in_homedir
+        )
+        if release_result[:status] == :downloaded || release_result[:status] == :cached
+          configs_available << 'Release'
+        else
+          Logger.log "⚠️  Release configuration not available"
+        end
+      else
+        configs_available << 'Release'
       end
 
       # Check if both configurations are available
@@ -95,34 +95,14 @@ module CocoapodsRnrepo
         return { status: :unavailable, message: "Missing configuration(s), found: #{print_list}" }
       end
 
-      if anything_downloaded
-        Logger.log "Successfully downloaded pre-built XCFrameworks (Debug & Release)!"
-        return { status: :downloaded, message: "Downloaded and extracted successfully" }
-      else
-        Logger.log "Pre-built frameworks already exist (Debug & Release)"
-        return { status: :cached, message: "Already cached locally" }
-      end
+      Logger.log "Successfully downloaded pre-built XCFrameworks (Debug & Release)!"
+      return { status: :downloaded, message: "Downloaded and extracted successfully" }
     end
 
     private
 
-    def self.xcframework_exists?(dir)
-      Dir.exist?(dir) && !Dir.glob(File.join(dir, "*.xcframework")).empty?
-    end
-
-    def self.symlink_points_to?(symlink_path, expected_target)
-      File.symlink?(symlink_path) && File.readlink(symlink_path) == expected_target
-    end
-
-    def self.ensure_symlink(target, symlink_path)
-      # rm_rf handles both symlinks and real directories (the latter can exist
-      # when switching from the default node_modules cache to RNREPO_CACHE_DIR mode)
-      FileUtils.rm_rf(symlink_path)
-      FileUtils.ln_s(target, symlink_path)
-    end
-
     # Download and extract a specific configuration (debug or release)
-    def self.download_and_extract_config(cache_dir, config_cache_dir, sanitized_name, version, rn_version, config, pod_name, worklets_version = nil)
+    def self.download_and_extract_config(cache_dir, config_cache_dir, sanitized_name, version, rn_version, config, pod_name, worklets_version = nil, allow_cache_in_homedir = true)
       # Filename format: npm-package-name-version-rnX.Y.Z[-workletsX.Y.Z]-config.xcframework.zip
       worklets_suffix = worklets_version ? "-worklets#{worklets_version}" : ''
       zip_filename = "#{sanitized_name}-#{version}-rn#{rn_version}#{worklets_suffix}-#{config}.xcframework.zip"
@@ -136,7 +116,8 @@ module CocoapodsRnrepo
           rn_version: rn_version,
           worklets_version: worklets_version,
           configuration: config,
-          destination: zip_path
+          destination: zip_path,
+          allow_cache_in_homedir: allow_cache_in_homedir
         }
       )
       unless downloaded_file
@@ -145,8 +126,7 @@ module CocoapodsRnrepo
         return { status: :unavailable, message: "Not available on Maven" }
       end
 
-      # Create config-specific directory, remove stale symlink if present
-      FileUtils.rm_rf(config_cache_dir) if File.symlink?(config_cache_dir)
+      # Create config-specific directory
       FileUtils.mkdir_p(config_cache_dir)
 
       # Extract the zip file to config-specific directory

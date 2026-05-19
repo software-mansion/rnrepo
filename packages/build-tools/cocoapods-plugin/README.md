@@ -47,7 +47,7 @@ The plugin hooks into the CocoaPods lifecycle:
 
    - Scans Podfile dependencies for React Native packages
    - Downloads **both Debug and Release** pre-built xcframeworks from RNRepo's Maven repository `https://packages.rnrepo.org/`
-   - Extracts frameworks to a versioned subdirectory inside `.rnrepo-cache/` (keyed by package version, React Native version, and optionally worklets version) and creates `Debug/` and `Release/` symlinks pointing there
+   - Extracts frameworks to `node_modules/{package-name}/.rnrepo-cache/Debug/` and `.rnrepo-cache/Release/`
    - If only one configuration is available, creates a symlink so both build types work
 
 2. **Dependency Resolution** (modifies pod specs):
@@ -61,48 +61,25 @@ The plugin hooks into the CocoaPods lifecycle:
 
 ### Framework Storage
 
-Pre-built frameworks are cached locally with separate Debug and Release configurations.
-
-Artifacts are stored in a versioned subdirectory keyed by the package version, React Native version, and (when applicable) worklets version. `Debug/` and `Release/` inside `.rnrepo-cache/` are symlinks that point into this versioned subdirectory:
+Pre-built frameworks are cached locally with separate Debug and Release configurations:
 
 ```
 node_modules/
   └── {package-name}/
       └── .rnrepo-cache/
-          ├── {version}-rn{rn-version}/       ← actual storage
-          │   ├── Debug/
-          │   │   └── {package-name}.xcframework/
-          │   └── Release/
-          │       └── {package-name}.xcframework/
-          ├── Debug/    → (symlink → {version}-rn{rn-version}/Debug/)
-          ├── Release/  → (symlink → {version}-rn{rn-version}/Release/)
-          └── Current/  → (symlink created at build time → Debug or Release)
+          ├── Debug/
+          │   └── {package-name}.xcframework/
+          ├── Release/
+          │   └── {package-name}.xcframework/
+          └── Current/  (symlink created at build time → Debug or Release)
 ```
 
-Multiple versions can coexist under `.rnrepo-cache/`; only the active version is symlinked.
+### Cache directory
 
-### Custom Cache Directory
-
-If you want to store downloaded artifacts outside of `node_modules` (for example to share them across projects, keep them in CI cache, or avoid committing them to version control), you can configure a custom cache directory in two ways:
-
-**Option 1 — `rnrepo.config.json`** (recommended for permanent configuration and CI):
+By default, the plugin downloads artifacts to `~/.rnrepo-cache` directory. This can be overridden by setting `iOSAllowHomeDirCache` to `false` in `rnrepo.config.json`.
 
 ```json
 {
-  "cacheDir": "/path/to/shared/cache"
+  "iOSAllowHomeDirCache": false
 }
 ```
-
-**Option 2 — `RNREPO_CACHE_DIR` environment variable**:
-
-```bash
-RNREPO_CACHE_DIR=/path/to/shared/cache pod install
-```
-
-When either is set, artifacts are stored under `<cache-dir>/.rnrepo-cache/{package-name}/{version}-rn{rn-version}/`. Symlinks at `node_modules/{package-name}/.rnrepo-cache/Debug/` and `.../Release/` point into that versioned directory so CocoaPods can still locate the frameworks.
-
-The `RNREPO_CACHE_DIR` environment variable takes priority over `cacheDir` in `rnrepo.config.json`.
-
-This is particularly useful in CI environments where you can restore/save the cache directory between runs to avoid re-downloading unchanged frameworks.
-
-> **Switching cache modes:** If you switch between a custom cache directory and the default mode, existing cached directories in `node_modules` will be replaced with symlinks (or vice versa) automatically on the next `pod install`.
