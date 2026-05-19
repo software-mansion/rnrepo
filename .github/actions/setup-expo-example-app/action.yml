@@ -1,0 +1,60 @@
+name: Setup Expo Example App
+description: Creates an Expo app, installs dependencies, and adds @rnrepo/expo-config-plugin
+
+inputs:
+  example_app:
+    description: 'Name of the Expo app directory to create'
+    required: true
+  expo_sdk_major_version:
+    description: 'Expo SDK major version used in `create-expo-app@latest --template default@sdk-<major_version>`'
+    required: false
+    default: '55'
+  disable_rnrepo:
+    description: 'Disable rnrepo config plugin'
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: ♻️ Cache bun packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: bun-${{ runner.os }}-${{ inputs.expo_sdk_major_version }}-${{ hashFiles('**/bun.lockb') }}
+        restore-keys: |
+          bun-${{ runner.os }}-${{ inputs.expo_sdk_major_version }}-
+          bun-${{ runner.os }}-
+
+    - name: 🏗 Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: 📦 Install dependencies
+      shell: bash
+      run: bun install
+
+    - name: 🏗 Create Expo App
+      shell: bash
+      run: bunx create-expo-app@latest ${{ inputs.example_app }} --no-install --template "default@sdk-${{ inputs.expo_sdk_major_version }}"
+
+    - name: 📦 Install app dependencies
+      shell: bash
+      run: bun install
+      working-directory: ${{ inputs.example_app }}
+
+    - name: 📦 Install @rnrepo/build-tools and @rnrepo/expo-config-plugin
+      shell: bash
+      run: bun add ../packages/build-tools ../packages/expo-config-plugin
+      working-directory: ${{ inputs.example_app }}
+
+    - name: 🔧 Add plugin to app.json
+      shell: bash
+      run: jq '.expo.plugins |= (. + ["@rnrepo/expo-config-plugin"] | unique)' app.json > app.json.tmp && mv app.json.tmp app.json
+      working-directory: ${{ inputs.example_app }}
+
+    - name: 🔧 Set RNRepo Env Variable
+      if: ${{ inputs.disable_rnrepo == 'true' }}
+      shell: bash
+      run: echo "DISABLE_RNREPO=${{ inputs.disable_rnrepo }}" >> $GITHUB_ENV
