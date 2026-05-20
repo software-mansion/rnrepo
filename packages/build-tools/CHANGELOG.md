@@ -5,14 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [Unreleased]
+
+### Changed
+- Resolve Gradle repositories once instead of per-package check for improved build performance (#337)
+- Handle Xcode settings in both array and string formats (#330)
+
+## [0.1.3-beta.0] - 2026-04-30
 
 ### Added
 - Added support for ExpoModulesCore in Android release builds (#301)
+- Allow Android packages to be resolved from locations beyond `node_modules` (#328)
 
 ### Changed
 - Worklets classifier is no longer added in reanimated@4.3.0+ artifacts (#317)
 - Incorporate RNRepo maven url inside gradle plugin (#270)
+- iOS plugin looks now for artifacts named '<>.xcframework.zip' (#327)
 
 ### Fixed
 - Added dummy header for iOS pods source_files (#311)

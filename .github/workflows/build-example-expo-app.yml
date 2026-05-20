@@ -1,0 +1,186 @@
+name: Build Example Expo App
+
+run-name: Build Example Expo App (Android + iOS)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      expo_sdk_major_version:
+        description: 'Expo SDK major version used in `create-expo-app@latest --template default@sdk-<major_version>`'
+        required: false
+        type: string
+        default: '55'
+      request_android:
+        description: 'Request android build'
+        required: false
+        type: boolean
+        default: false
+      request_ios:
+        description: 'Request ios build'
+        required: false
+        type: boolean
+        default: false
+      disable_rnrepo:
+        description: 'Disable rnrepo config plugin'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  EXPO_SDK_MAJOR_VERSION: ${{ github.event.inputs.expo_sdk_major_version || '55' }}
+  EXAMPLE_APP: expoExampleApp
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      contents: read
+    outputs:
+      android: ${{ steps.filter.outputs.android }}
+      ios: ${{ steps.filter.outputs.ios }}
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check for file changes
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            android:
+              - 'packages/build-tools/gradle-plugin/**'
+              - '.github/workflows/build-example-expo-app.yml'
+              - '.github/actions/setup-expo-example-app/**'
+              - '.github/workflows/scripts/**'
+              - 'packages/expo-config-plugin/**'
+              - '!**/*.md'
+            ios:
+              - 'packages/build-tools/cocoapods-plugin/**'
+              - '.github/workflows/build-example-expo-app.yml'
+              - '.github/actions/setup-expo-example-app/**'
+              - '.github/workflows/scripts/**'
+              - 'packages/expo-config-plugin/**'
+              - '!**/*.md'
+
+  build-example-expo-app-android:
+    needs: check-changes
+    if: needs.check-changes.outputs.android == 'true' || github.event.inputs.request_android == 'true'
+    runs-on: rnrepo-builder-ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    concurrency:
+      group: build-example-expo-app-android-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🤖 Setup Android environment
+        uses: ./.github/actions/setup-android
+
+      - name: ♻️ Cache Gradle files
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-expo-${{ env.EXPO_SDK_MAJOR_VERSION }}
+          restore-keys: |
+            gradle-${{ runner.os }}-expo-
+            gradle-${{ runner.os }}-
+
+      - name: 🔧 Setup Expo Example App
+        uses: ./.github/actions/setup-expo-example-app
+        with:
+          example_app: ${{ env.EXAMPLE_APP }}
+          expo_sdk_major_version: ${{ env.EXPO_SDK_MAJOR_VERSION }}
+          disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
+
+      - name: 🏗 Build Gradle Plugin JAR
+        run: ./gradlew build
+        working-directory: packages/build-tools/gradle-plugin
+
+      - name: 🛠 Prebuild for Android
+        run: bunx expo prebuild --platform android --clean
+        working-directory: ${{ env.EXAMPLE_APP }}
+
+      # --configure-on-demand is used in expo by default
+      - name: 🏗 Build Expo App for Android (Debug)
+        run: ./gradlew :app:assembleDebug --configure-on-demand
+        working-directory: ${{ env.EXAMPLE_APP }}/android
+
+      - name: 🏗 Build Expo App for Android (Release)
+        run: ./gradlew :app:assembleRelease --configure-on-demand
+        working-directory: ${{ env.EXAMPLE_APP }}/android
+
+  build-example-expo-app-ios:
+    needs: check-changes
+    if: needs.check-changes.outputs.ios == 'true' || github.event.inputs.request_ios == 'true'
+    runs-on: [self-hosted, macOS, ARM64, ephemeral]
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    concurrency:
+      group: build-example-expo-app-ios-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: 🏗 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🍎 Setup iOS environment
+        uses: ./.github/actions/setup-ios
+
+      - name: ♻️ Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ~/.cocoapods
+          key: cocoapods-${{ runner.os }}-expo-${{ env.EXPO_SDK_MAJOR_VERSION }}
+          restore-keys: |
+            cocoapods-${{ runner.os }}-expo-
+            cocoapods-${{ runner.os }}-
+
+      - name: 🔧 Setup Expo Example App
+        uses: ./.github/actions/setup-expo-example-app
+        with:
+          example_app: ${{ env.EXAMPLE_APP }}
+          expo_sdk_major_version: ${{ env.EXPO_SDK_MAJOR_VERSION }}
+          disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
+
+      - name: 🛠 Prebuild for iOS
+        run: bunx expo prebuild --platform ios --clean
+        working-directory: ${{ env.EXAMPLE_APP }}
+
+      - name: 🏗 Build Expo App for iOS (Debug)
+        run: |
+          xcodebuild \
+            -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
+            -scheme ${{ env.EXAMPLE_APP }} \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+        working-directory: ${{ env.EXAMPLE_APP }}/ios
+
+      - name: 🏗 Build Expo App for iOS (Release)
+        run: |
+          xcodebuild \
+            -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
+            -scheme ${{ env.EXAMPLE_APP }} \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+        working-directory: ${{ env.EXAMPLE_APP }}/ios

@@ -47,6 +47,10 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
 
   if (outputAction.includes('The job has exceeded the maximum execution time while awaiting a runner')) {
     return 'buildable';
+  } else if (outputAction.includes('No space left on device')) {
+    return 'buildable';
+  } else if (outputAction.includes('The hosted runner lost communication with the server')) {
+    return 'buildable';
   } else if (!outputAction.includes('X build-library-android') && !outputAction.includes('X build-library-ios')) {
     // failed something else than building process
     return 'fixable';
@@ -60,7 +64,7 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
       return 'buildable';
     } else if (/\[Reanimated\] React Native .* version is not compatible with Reanimated .*/.test(outputJob)) {
       return 'unbuildable';
-    } else if (outputJob.includes('[Worklets] Your installed version of React Native is not compatible')) {
+    } else if (outputJob.includes('[Worklets] Your installed version of React Native')) {
       return 'unbuildable';
     } else if (outputJob.includes('Could not get unknown property \'destinationDir\' for task \':shopify')) {
       // fails on gradle@9.0.0 - https://github.com/Shopify/react-native-skia/pull/3332
@@ -68,6 +72,12 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
     } else if (outputJob.includes('VideoEventEmitter.kt:293:63 Argument type mismatch: actual type is \'Int\'')) {
       // react-native-video@6.X issue
       return 'unbuildable';
+    } else if (outputJob.includes('[Reanimated] `react-native-worklets` library not found')) {
+      // old issue in ci where worklets were not properly installed
+      return 'fixable';
+    } else if (outputJob.includes('Unable to find a specification for `RNWorklets` depended upon by `RNReanimated`')) {
+      // old issue in ci where worklets were not properly installed
+      return 'fixable';
     } else {
       // todo: add more cases in future
     }

@@ -115,7 +115,7 @@ class PrebuildsPlugin : Plugin<Project> {
 
             // Check what packages are in project and which are we supporting
             addRNRepoRepository(project)
-            getProjectPackages(project.rootProject.allprojects, extension)
+            getProjectPackages(project.rootProject.subprojects, extension)
             loadDenyList(extension)
             determineSupportedPackages(project, extension)
 
@@ -546,6 +546,25 @@ class PrebuildsPlugin : Plugin<Project> {
         return true
     }
 
+    private fun resolveRNRepoRepositories(repositories: RepositoryHandler): List<MavenArtifactRepository> {
+        val resolved =
+            repositories.mapNotNull { repoUnchecked ->
+                val repo = repoUnchecked as? MavenArtifactRepository ?: return@mapNotNull null
+                logger.info("Found maven repository: ${repo.name} with URL: ${repo.url}")
+                if (repo.url.scheme != "http" && repo.url.scheme != "https") return@mapNotNull null
+                val host = repo.url.host
+                if (host == null || (!host.endsWith(".rnrepo.org") && host != "rnrepo.org")) return@mapNotNull null
+                repo
+            }
+        logger.info("HTTP RNRepo repositories to check: ${resolved.joinToString("") { "\n - ${it.url}" }}")
+        if (resolved.isEmpty()) {
+            logger.warn(
+                "No RNRepo maven repository found to check for packages. Check your gradle configuration (https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md#no-supported-packages-found-or-empty-repository-list).",
+            )
+        }
+        return resolved
+    }
+
     /**
      * Checks if a specific package is available in the remote repository or local cache.
      *
@@ -558,14 +577,14 @@ class PrebuildsPlugin : Plugin<Project> {
      *
      * @param packageItem The package to check (with name, version, and classifier)
      * @param RNVersion The React Native version that the package is intended for.
-     * @param repositories The repository handler to check against
+     * @param httpRepositories Pre-resolved list of RNRepo HTTP/HTTPS repositories to check against
      *
      * @return True if the package is available in any repository, false otherwise.
      */
     private fun isPackageAvailable(
         packageItem: PackageItem,
         RNVersion: String,
-        repositories: RepositoryHandler,
+        httpRepositories: List<MavenArtifactRepository>,
     ): Boolean {
         val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
         val artifactDir =
@@ -596,22 +615,7 @@ class PrebuildsPlugin : Plugin<Project> {
             logger.debug("Artifact directory does not exist in cache: ${artifactDir.absolutePath}")
         }
 
-        // Collect all HTTP/HTTPS repositories to check
-        val httpRepositories =
-            repositories.mapNotNull { repoUnchecked ->
-                val repo = repoUnchecked as? MavenArtifactRepository ?: return@mapNotNull null
-                logger.info("Found maven repository: ${repo.name} with URL: ${repo.url}")
-                if (repo.url.scheme != "http" && repo.url.scheme != "https") return@mapNotNull null
-                val host = repo.url.host
-                if (host == null || (!host.endsWith(".rnrepo.org") && host != "rnrepo.org")) return@mapNotNull null
-                // This is an HTTP/HTTPS RNRepo repository
-                repo
-            }
-        logger.info("HTTP RNRepo repositories to check: ${httpRepositories.joinToString("") { "\n - ${it.url}" }}")
         if (httpRepositories.isEmpty()) {
-            logger.warn(
-                "No RNRepo maven repository found to check for packages. Check your gradle configuration (https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md#no-supported-packages-found-or-empty-repository-list).",
-            )
             return false
         }
 
@@ -694,13 +698,12 @@ class PrebuildsPlugin : Plugin<Project> {
         extension.projectPackages =
             allprojects
                 .map { it.projectDir }
-                .filter { it.absolutePath.contains("node_modules") }
                 .map { File(it.parentFile, "package.json") }
                 .filter { it.exists() }
                 .mapNotNull { getPackageNameAndVersion(it) }
                 .toSet()
         logger.info(
-            "Detected ${extension.projectPackages.size} packages in project under node_modules: " +
+            "Detected ${extension.projectPackages.size} packages in project: " +
                 extension.projectPackages.joinToString("") { "\n  - ${it.name}@${it.version}" },
         )
     }
@@ -959,7 +962,7 @@ class PrebuildsPlugin : Plugin<Project> {
 
     private fun checkIfPackageIsSupported(
         packageItem: PackageItem,
-        repositories: RepositoryHandler,
+        httpRepositories: List<MavenArtifactRepository>,
         extension: PackagesManager,
         unavailablePackages: MutableSet<PackageItem>,
         supportedPackages: MutableSet<PackageItem>,
@@ -968,7 +971,7 @@ class PrebuildsPlugin : Plugin<Project> {
     ) {
         val isDenied = !isPackageNotDenied(packageItem.name, extension)
         val checkFailed = !isSpecificCheckPassed(packageItem, extension, supportedPackages, project)
-        val isUnavailable = !isPackageAvailable(packageItem, extension.reactNativeVersion, repositories)
+        val isUnavailable = !isPackageAvailable(packageItem, extension.reactNativeVersion, httpRepositories)
 
         when {
             isDenied || checkFailed || isUnavailable -> {
@@ -1018,11 +1021,12 @@ class PrebuildsPlugin : Plugin<Project> {
         val unavailablePackages =
             java.util.concurrent.ConcurrentHashMap
                 .newKeySet<PackageItem>()
+        val httpRepositories = resolveRNRepoRepositories(project.repositories)
         val (dependentList, otherPackages) = extension.projectPackages.partition { PACKAGES_WITH_CPP.containsKey(it.name) }
         otherPackages.parallelStream().forEach { packageItem ->
             checkIfPackageIsSupported(
                 packageItem,
-                project.repositories,
+                httpRepositories,
                 extension,
                 unavailablePackages,
                 supportedPackages,
@@ -1040,7 +1044,7 @@ class PrebuildsPlugin : Plugin<Project> {
             }
             checkIfPackageIsSupported(
                 packageItem,
-                project.repositories,
+                httpRepositories,
                 extension,
                 unavailablePackages,
                 supportedPackages,
