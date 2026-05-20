@@ -22,14 +22,14 @@ runs:
       uses: ./.github/actions/configure-npm-security
 
     - name: ☕ Setup Java JDK
-      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
       with:
         distribution: ${{ inputs.java-distribution }}
         java-version: ${{ inputs.java-version }}
 
     - name: 📱 Setup Android SDK
       if: ${{ inputs.setup-sdk == 'true' }}
-      uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+      uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
 
     - name: ✅ Accept Android Licenses
       if: ${{ inputs.setup-sdk == 'true' }}
