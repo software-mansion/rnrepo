@@ -39,6 +39,7 @@ env:
 jobs:
   check-changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       pull-requests: read
       contents: read
@@ -47,10 +48,12 @@ jobs:
       ios: ${{ steps.filter.outputs.ios }}
     steps:
       - name: 🏗 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
 
       - name: 🔍 Check for file changes
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
         id: filter
         with:
           filters: |
@@ -82,13 +85,15 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: 🏗 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
 
       - name: 🤖 Setup Android environment
         uses: ./.github/actions/setup-android
 
       - name: ♻️ Cache Gradle files
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.gradle/caches
@@ -136,13 +141,15 @@ jobs:
 
     steps:
       - name: 🏗 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
 
       - name: 🍎 Setup iOS environment
         uses: ./.github/actions/setup-ios
 
       - name: ♻️ Cache CocoaPods
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cocoapods
           key: cocoapods-${{ runner.os }}-expo-${{ env.EXPO_SDK_MAJOR_VERSION }}
@@ -164,8 +171,8 @@ jobs:
       - name: 🏗 Build Expo App for iOS (Debug)
         run: |
           xcodebuild \
-            -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
-            -scheme ${{ env.EXAMPLE_APP }} \
+            -workspace ${EXAMPLE_APP}.xcworkspace \
+            -scheme ${EXAMPLE_APP} \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
@@ -176,8 +183,8 @@ jobs:
       - name: 🏗 Build Expo App for iOS (Release)
         run: |
           xcodebuild \
-            -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
-            -scheme ${{ env.EXAMPLE_APP }} \
+            -workspace ${EXAMPLE_APP}.xcworkspace \
+            -scheme ${EXAMPLE_APP} \
             -configuration Release \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
