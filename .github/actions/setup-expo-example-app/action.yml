@@ -47,9 +47,11 @@ runs:
       run: bun install --ignore-scripts
       working-directory: ${{ inputs.example_app }}
 
+      # runs npm due to `error: @rnrepo/build-tools@<not-existing-version> failed to resolve`
+      # testing before release after the version bump was impossible
     - name: 📦 Install @rnrepo/build-tools and @rnrepo/expo-config-plugin
       shell: bash
-      run: bun add ../packages/build-tools ../packages/expo-config-plugin
+      run: npm install ../packages/build-tools ../packages/expo-config-plugin
       working-directory: ${{ inputs.example_app }}
 
     - name: 🔧 Add plugin to app.json
