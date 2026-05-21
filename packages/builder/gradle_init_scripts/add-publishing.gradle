@@ -23,6 +23,50 @@ allprojects { project ->
     }
 }
 
+def generateCMakeContent(codegenName) {
+    // Uses CMAKE_CURRENT_LIST_DIR-relative paths so the file works wherever it is extracted.
+    // Groovy \$ produces a literal $ in the output (cmake variable reference).
+    //
+    // STATIC IMPORTED targets cannot be used with non-INTERFACE keyword in target_link_libraries,
+    // which RN's ReactNative-application.cmake does internally. A real STATIC target (with a
+    // generated placeholder source) works correctly in all CMake linking contexts.
+    return """cmake_minimum_required(VERSION 3.13)
+
+if(CMAKE_BUILD_TYPE)
+    string(TOLOWER "\${CMAKE_BUILD_TYPE}" RNREPO_BUILD_TYPE)
+    # plain Release maps to relwithdebinfo artifacts (relwithdebinfo works with release, the other way round not)
+    if(RNREPO_BUILD_TYPE STREQUAL "release")
+        set(RNREPO_BUILD_TYPE "relwithdebinfo")
+    endif()
+else()
+    set(RNREPO_BUILD_TYPE "relwithdebinfo")
+endif()
+
+set(_rnrepo_src_${codegenName} "\${CMAKE_CURRENT_BINARY_DIR}/rnrepo_placeholder_${codegenName}.cpp")
+if(NOT EXISTS "\${_rnrepo_src_${codegenName}}")
+    file(WRITE "\${_rnrepo_src_${codegenName}}" "// RNRepo placeholder\\n")
+endif()
+
+add_library(react_codegen_${codegenName} STATIC "\${_rnrepo_src_${codegenName}}")
+
+target_include_directories(react_codegen_${codegenName} PUBLIC
+    "\${CMAKE_CURRENT_LIST_DIR}/../headers"
+    "\${CMAKE_CURRENT_LIST_DIR}/../headers/react/renderer/components/${codegenName}"
+)
+
+target_link_libraries(react_codegen_${codegenName}
+    "\${CMAKE_CURRENT_LIST_DIR}/../\${RNREPO_BUILD_TYPE}/\${ANDROID_ABI}/libreact_codegen_${codegenName}.a"
+    fbjni
+    jsi
+    reactnative
+)
+
+if(COMMAND target_compile_reactnative_options)
+    target_compile_reactnative_options(react_codegen_${codegenName} PRIVATE)
+endif()
+"""
+}
+
 def createExtractCodegenBinariesTask(libraryProject, codegenName, buildType) {
     return libraryProject.tasks.register("extractCodegenBinaries${buildType}") {
         onlyIf { codegenName != null }
@@ -35,7 +79,8 @@ def createExtractCodegenBinariesTask(libraryProject, codegenName, buildType) {
                 def staticLib = fileTree(dir: appCxxDir, include: "**/$moduleFolder/**/libreact_codegen_${codegenName}.a")
                     .find { it.path.contains(arch) }
                 if (staticLib) {
-                    def destDir = file("${libraryProject.projectDir}/src/main/assets/${buildType.toLowerCase()}/$arch")
+                    def assetBuildType = buildType == "Release" ? "relwithdebinfo" : buildType.toLowerCase()
+                    def destDir = file("${libraryProject.projectDir}/src/main/assets/${assetBuildType}/$arch")
                     destDir.mkdirs()
                     copy { from staticLib; into destDir }
                     println "📦 Copied ${buildType} codegen library for $arch from ${staticLib.path}"
@@ -43,11 +88,17 @@ def createExtractCodegenBinariesTask(libraryProject, codegenName, buildType) {
                     println "⚠️  Warning: Codegen library not found for $arch in ${appCxxDir.absolutePath}"
                 }
             }
-            // Metadata for the consumer (only for release to avoid duplication)
+            // Metadata — written once (Release only to avoid duplication)
             if (buildType == "Release") {
                 def metaDir = file("${libraryProject.projectDir}/src/main/assets/meta")
                 metaDir.mkdirs()
                 file("${metaDir}/codegen_name.txt").text = codegenName
+                // npm_name.txt lets the consumer map the Gradle artifact ID back to the npm
+                // package name for logging (e.g. @expensify/react-native-live-markdown)
+                def npmName = libraryProject.findProperty('rnrepoNpmName') ?: ''
+                if (npmName) {
+                    file("${metaDir}/npm_name.txt").text = npmName
+                }
             }
         }
     }
@@ -112,6 +163,16 @@ def configureCodegenTasks(project) {
         }
     }
 
+    def packageCodegenCMakeTask = project.tasks.register("packageCodegenCMake") {
+        onlyIf { codegenName != null }
+        doLast {
+            def cmakeDir = file("${project.projectDir}/src/main/assets/cmake")
+            cmakeDir.mkdirs()
+            file("${cmakeDir}/CMakeLists.txt").text = generateCMakeContent(codegenName)
+            println "📦 Packaged codegen CMakeLists.txt to assets/cmake"
+        }
+    }
+
     // Hook extract tasks to app's assemble tasks
     project.rootProject.subprojects.each { subproject ->
         if (subproject.name == 'app') {
@@ -120,7 +181,7 @@ def configureCodegenTasks(project) {
                 assembleDebugTask.finalizedBy(extractDebugTask)
                 println "🔗 Linked extractCodegenBinariesDebug to app's assembleDebug"
             }
-            
+
             def assembleReleaseTask = subproject.tasks.findByName('assembleRelease')
             if (assembleReleaseTask) {
                 assembleReleaseTask.finalizedBy(extractReleaseTask)
@@ -129,16 +190,17 @@ def configureCodegenTasks(project) {
         }
     }
 
-    // Hook into mergeReleaseAssets to ensure headers are copied before AGP scans assets
+    // Hook into mergeReleaseAssets to ensure assets are packaged before AGP scans them
     def mergeAssetsTask = project.tasks.findByName('mergeReleaseAssets')
     if (mergeAssetsTask) {
         mergeAssetsTask.dependsOn(packageHeadersTask)
+        mergeAssetsTask.dependsOn(packageCodegenCMakeTask)
     }
 
     try {
         if (project.hasProperty('android')) {
             def android = project.android
-            
+
             android.sourceSets.main {
                 assets.srcDirs += ["src/main/assets"]
             }
@@ -147,7 +209,7 @@ def configureCodegenTasks(project) {
         println "Warning: Could not configure Android settings for ${project.name}: ${e.message}"
     }
 
-    return [codegenName: codegenName, packageHeadersTask: packageHeadersTask]
+    return [codegenName: codegenName, packageHeadersTask: packageHeadersTask, packageCodegenCMakeTask: packageCodegenCMakeTask]
 }
 
 gradle.projectsEvaluated {

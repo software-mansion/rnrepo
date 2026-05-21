@@ -253,6 +253,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
           ? ['--init-script', postinstallGradleScriptPath]
           : []),
         `-PrnrepoCodegenName=${packageJson.codegenConfig.name}`,
+        `-PrnrepoNpmName=${libraryName}`,
       ];
       await $`./gradlew ${assembleReleaseArgs}`.cwd(androidPath);
 
