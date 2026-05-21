@@ -1,5 +1,6 @@
 require 'cocoapods'
 require 'json'
+require 'shellwords'
 require_relative 'logger'
 require_relative 'pod_extractor'
 require_relative 'downloader'
@@ -34,9 +35,9 @@ def find_react_native_root(start_dir)
     current = parent
   end
 
-  rn_package_path = `cd "#{start_dir}" && node --print "require.resolve('react-native/package.json')" 2>/dev/null`.strip
+  rn_package_path = `cd #{Shellwords.escape(start_dir)} && node --print "require.resolve('react-native/package.json')" 2>/dev/null`.strip
   if !rn_package_path.empty? && File.exist?(rn_package_path)
-    return File.expand_path('../..', rn_package_path)
+    return File.expand_path('../..', File.dirname(rn_package_path))
   end
 
   nil
