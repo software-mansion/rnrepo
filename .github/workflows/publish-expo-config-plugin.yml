@@ -17,6 +17,7 @@ on:
 jobs:
   publish-expo-config-plugin:
     runs-on: rnrepo-ubuntu-latest
+    timeout-minutes: 30
     permissions:
       id-token: write  # Required for OIDC
       contents: read
@@ -28,15 +29,17 @@ jobs:
 
     steps:
       - name: 🏗 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
 
       - name: 🏗 Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7 # v1.2.2
         with:
           bun-version: latest
 
       - name: 🏗 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
@@ -52,6 +55,7 @@ jobs:
         run: bun run build
 
       - name: 🚀 Publish to npm
-        run: npm publish --tag ${{ github.event.inputs.beta_or_latest }}
+        run: npm publish --tag ${GITHUB_EVENT_INPUTS_BETA_OR_LATEST}
         env:
           CI: true  # Runs tests without watcher
+          GITHUB_EVENT_INPUTS_BETA_OR_LATEST: ${{ github.event.inputs.beta_or_latest }}
