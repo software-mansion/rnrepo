@@ -19,9 +19,34 @@ require_relative 'framework_cache'
 # +  rnrepo_post_install(installer)
 #
 
+# Walks up the directory tree looking for node_modules/react-native,
+# matching the behavior of the Android Gradle plugin's getReactNativeRoot.
+# Falls back to Node's resolver for non-standard layouts (e.g. monorepos
+# with hoisting disabled).
+def find_react_native_root(start_dir)
+  current = File.expand_path(start_dir)
+  loop do
+    if File.directory?(File.join(current, 'node_modules', 'react-native'))
+      return current
+    end
+    parent = File.dirname(current)
+    break if parent == current
+    current = parent
+  end
+
+  rn_package_path = `cd "#{start_dir}" && node --print "require.resolve('react-native/package.json')" 2>/dev/null`.strip
+  if !rn_package_path.empty? && File.exist?(rn_package_path)
+    return File.expand_path('../..', rn_package_path)
+  end
+
+  nil
+end
+
 # Helper method to load and parse rnrepo.config.json
 def load_rnrepo_config(workspace_root)
-  config_path = File.join(workspace_root, '..', 'rnrepo.config.json')
+  rn_root = find_react_native_root(workspace_root)
+  search_dir = rn_root || File.expand_path('..', workspace_root)
+  config_path = File.join(search_dir, 'rnrepo.config.json')
   CocoapodsRnrepo::Logger.log "Loading rnrepo.config.json from #{config_path}"
   return {} unless File.exist?(config_path)
 
