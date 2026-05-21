@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Support react-native-tvos on iOS by stripping pre-release version suffixes (#345)
+
 ### Changed
 - Resolve Gradle repositories once instead of per-package check for improved build performance (#337)
 - Handle Xcode settings in both array and string formats (#330)
