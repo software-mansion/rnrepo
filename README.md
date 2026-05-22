@@ -297,9 +297,9 @@ Need RNRepo inside a private Maven, behind VPN, or mirrored into an internal art
 - 🔜 Expanded library coverage.
 - 🔜 Production release (general availability).
 
-## Claude Code Integration
+## AI Agent Integration
 
-Software Mansion maintains a dedicated [Claude Code skill for RNRepo](https://github.com/software-mansion-labs/skills). The skill lets you set up, configure, and troubleshoot RNRepo directly from the Claude Code CLI without leaving your terminal.
+Software Mansion provides a dedicated [skill](https://github.com/software-mansion-labs/skills) for RNRepo. The skill lets you set up, configure, and troubleshoot RNRepo directly from your AI assistant.
 
 Install it from the Software Mansion skills repository.
 

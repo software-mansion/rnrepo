@@ -100,9 +100,9 @@ For issues, questions, or feature requests, please visit:
 - 📚 [Documentation](https://github.com/software-mansion/rnrepo/blob/main/README.md)
 - 🆘 [Troubleshooting Guide](https://github.com/software-mansion/rnrepo/blob/main/TROUBLESHOOTING.md)
 
-## Claude Code Integration
+## AI Agent Integration
 
-Software Mansion maintains a dedicated [Claude Code skill](https://github.com/software-mansion-labs/skills) for RNRepo. The skill lets you set up, configure, and troubleshoot RNRepo directly from the Claude Code CLI.
+Software Mansion provides a dedicated [skill](https://github.com/software-mansion-labs/skills) for RNRepo. The skill lets you set up, configure, and troubleshoot RNRepo directly from your AI assistant.
 
 ## RNRepo is created by Software Mansion
 
