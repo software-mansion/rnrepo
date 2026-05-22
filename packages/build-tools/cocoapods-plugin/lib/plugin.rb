@@ -65,9 +65,12 @@ def get_ios_denylist(workspace_root)
   denylist_config['ios'] || []
 end
 
-def allow_cache(workspace_root)
+def get_ios_cache_path(workspace_root)
   config = load_rnrepo_config(workspace_root)
-  config['iOSAllowHomeDirCache'] == false ? false : true
+  return File.expand_path('~/.rnrepo-cache') unless config.key?('iOSCachePath')
+  path = config['iOSCachePath']
+  return nil if !path || path.to_s.strip.empty?
+  File.expand_path(path)
 end
 
 def is_version_at_least(current_version, minimum_version)
@@ -139,7 +142,7 @@ def rnrepo_pre_install(installer_context)
 
   # Add expo pod to installer context for later use in post_install
   Pod::Installer.expo_pod = rn_pods.find { |pod| pod[:name] == 'Expo' }
-  allow_cache_in_homedir = allow_cache(workspace_root)
+  cache_path = get_ios_cache_path(workspace_root)
   # Download and cache pre-built frameworks in parallel
   threads = rn_pods.map do |pod_info|
     Thread.new do
@@ -147,7 +150,7 @@ def rnrepo_pre_install(installer_context)
         installer_context,
         pod_info,
         workspace_root,
-        allow_cache_in_homedir: allow_cache_in_homedir
+        cache_path: cache_path
       )
 
       # Thread-safe result collection

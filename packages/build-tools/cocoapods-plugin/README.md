@@ -76,10 +76,12 @@ node_modules/
 
 ### Cache directory
 
-By default, the plugin downloads artifacts to `~/.rnrepo-cache` directory. This can be overridden by setting `iOSAllowHomeDirCache` to `false` in `rnrepo.config.json`.
+By default, downloaded artifacts are cached in `~/.rnrepo-cache`. To use a custom path, set `iOSCachePath` in `rnrepo.config.json`:
 
 ```json
 {
-  "iOSAllowHomeDirCache": false
+  "iOSCachePath": "/path/to/cache"
 }
 ```
+
+To disable caching entirely, set `iOSCachePath` to `null`:
