@@ -9,6 +9,7 @@ on:
   pull_request:
     branches:
       - main
+    types: [labeled]
   workflow_dispatch:
     inputs:
       rn_version:
@@ -44,6 +45,9 @@ env:
 
 jobs:
   check-changes:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (!github.event.pull_request.draft && contains(fromJSON('["build-android", "build-ios"]'), github.event.label.name))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -78,7 +82,10 @@ jobs:
 
   build-example-rn-app-android:
     needs: check-changes
-    if: needs.check-changes.outputs.android == 'true' || github.event.inputs.request_android == 'true'
+    if: >-
+      (github.event_name == 'push' && needs.check-changes.outputs.android == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.request_android == 'true') ||
+      (github.event_name == 'pull_request' && contains(fromJSON('["build-android"]'), github.event.label.name))
     runs-on: rnrepo-builder-ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -129,7 +136,10 @@ jobs:
 
   build-example-rn-app-ios:
     needs: check-changes
-    if: needs.check-changes.outputs.ios == 'true' || github.event.inputs.request_ios == 'true'
+    if: >-
+      (github.event_name == 'push' && needs.check-changes.outputs.ios == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.request_ios == 'true') ||
+      (github.event_name == 'pull_request' && contains(fromJSON('["build-ios"]'), github.event.label.name))
     runs-on: [self-hosted, macOS, ARM64, ephemeral]
     timeout-minutes: 60
     permissions:

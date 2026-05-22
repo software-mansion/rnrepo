@@ -4,6 +4,7 @@ Please include a summary of the changes and related context. Explain the **why**
 
 [hidden-comment]: <> (Update changelog if needed)
 [hidden-comment]: <> (Mention related issues if applicable)
+[hidden-comment]: <> (To trigger the regression build tests, add `build-android`/`build-ios`/`build-expo` labels to the pull request)
 
 ## 🎯 Type of Change
 
