@@ -45,7 +45,9 @@ env:
 
 jobs:
   check-changes:
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    if: >-
+      github.event_name != 'pull_request' ||
+      (!github.event.pull_request.draft && contains(fromJSON('["build-android", "build-ios"]'), github.event.label.name))
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
