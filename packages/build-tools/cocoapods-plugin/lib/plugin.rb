@@ -43,11 +43,15 @@ def find_react_native_root(start_dir)
   nil
 end
 
-# Helper method to load and parse rnrepo.config.json
-def load_rnrepo_config(workspace_root)
+def find_rnrepo_config_path(workspace_root)
   rn_root = find_react_native_root(workspace_root)
   search_dir = rn_root || File.expand_path('..', workspace_root)
-  config_path = File.join(search_dir, 'rnrepo.config.json')
+  File.join(search_dir, 'rnrepo.config.json')
+end
+
+# Helper method to load and parse rnrepo.config.json
+def load_rnrepo_config(workspace_root)
+  config_path = find_rnrepo_config_path(workspace_root)
   CocoapodsRnrepo::Logger.log "Loading rnrepo.config.json from #{config_path}"
   return {} unless File.exist?(config_path)
 
@@ -70,7 +74,9 @@ def get_ios_cache_path(workspace_root)
   return File.expand_path('~/.rnrepo-cache') unless config.key?('xcframeworksCacheDir')
   path = config['xcframeworksCacheDir']
   return nil if !path || path.to_s.strip.empty?
-  File.expand_path(path)
+  return File.expand_path(path) if path.start_with?('/') || path.start_with?('~')
+  config_dir = File.dirname(find_rnrepo_config_path(workspace_root))
+  File.expand_path(path, config_dir)
 end
 
 def is_version_at_least(current_version, minimum_version)
