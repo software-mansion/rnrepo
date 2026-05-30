@@ -3,7 +3,11 @@ import semver from 'semver';
 
 const COMPATIBILITY_MATRIX = [
   {
-    reanimated: '>=4.3.0',
+    reanimated: '>=4.4.0',
+    worklets: '0.9.1'
+  },
+  {
+    reanimated: '>=4.3.0 <4.4.0',
     worklets: '0.8.1'
   },
 ];
