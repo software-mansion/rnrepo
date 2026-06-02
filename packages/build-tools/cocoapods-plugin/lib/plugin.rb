@@ -509,8 +509,7 @@ def rnrepo_post_install(installer_context)
         raise "RNWorklets not found in podfile, add react-native-worklets to denyList."
       end
       worklets_framework_name = find_prebuilt_framework_name(worklets_pod)
-      worklets_module_map_path = "$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/#{worklets_framework_name}/Modules/module.modulemap"
-      module_map = "-fmodule-map-file=\"#{worklets_module_map_path}\""
+      module_map = "-fmodule-map-file=\"$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/#{worklets_framework_name}/Modules/module.modulemap\""
 
       target.build_configurations.each do |config|
         build_settings = config.build_settings
@@ -529,3 +528,4 @@ def rnrepo_post_install(installer_context)
     end
   end
 end
+
