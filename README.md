@@ -1,5 +1,9 @@
 <img width="1200" height="490" alt="rnrepo banner" src="https://github.com/user-attachments/assets/4fc951d4-a5ef-4a08-b0d2-40fda25c459e" />
 
+[![Ad](https://swm-delivery.com/www/images/zone-gh-rnrepo-1?n=1)](https://swm-delivery.com/www/delivery/ck-slug.php?zoneid=zone-gh-rnrepo-1&n=1)
+[![Ad](https://swm-delivery.com/www/images/zone-gh-rnrepo-2?n=1)](https://swm-delivery.com/www/delivery/ck-slug.php?zoneid=zone-gh-rnrepo-2&n=1)
+[![Ad](https://swm-delivery.com/www/images/zone-gh-rnrepo-3?n=1)](https://swm-delivery.com/www/delivery/ck-slug.php?zoneid=zone-gh-rnrepo-3&n=1)
+
 RNRepo is an infrastructure and tooling project from [Software Mansion](https://swmansion.com) that improves native build times in React Native projects by pre-building and distributing community library artifacts. We maintain both the automated build system that precompiles popular React Native libraries and the distribution network that hosts these artifacts. With seamless integration via build plugins, RNRepo can reduce your build times by up to **2×** with zero infrastructure changes.
 
 > RNRepo is available only for React Native projects using **The New Architecture**. Please give it a try, share your feedback and use [issues](https://github.com/software-mansion/rnrepo/issues) to report any problems with your setup.
