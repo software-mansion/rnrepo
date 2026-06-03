@@ -71,6 +71,29 @@ def is_version_at_least(current_version, minimum_version)
   Gem::Version.new(current_core) >= Gem::Version.new(minimum_version)
 end
 
+def find_framework_name_in_xcframework(xcframework_path)
+  framework_path =
+    Dir.glob(File.join(xcframework_path, '*', '*.framework')).find do |path|
+      File.directory?(path)
+    end
+
+  File.basename(framework_path) if framework_path
+end
+
+def find_prebuilt_framework_name(pod_info)
+  cache_dir = File.join(pod_info[:package_root], '.rnrepo-cache')
+  current_xcframeworks = Dir.glob(File.join(cache_dir, 'Current', '*.xcframework')).sort
+  fallback_xcframeworks = Dir.glob(File.join(cache_dir, '*', '*.xcframework')).sort
+  xcframework_paths = (current_xcframeworks + fallback_xcframeworks).uniq
+
+  framework_name =
+    xcframework_paths
+      .map { |xcframework_path| find_framework_name_in_xcframework(xcframework_path) }
+      .find { |name| !name.nil? }
+
+  framework_name || "#{pod_info[:name]}.framework"
+end
+
 def rnrepo_pre_install(installer_context)
   # Check if plugin is disabled via environment variable
   if ENV['DISABLE_RNREPO']
@@ -485,7 +508,8 @@ def rnrepo_post_install(installer_context)
       if worklets_root == nil
         raise "RNWorklets not found in podfile, add react-native-worklets to denyList."
       end
-      module_map = "-fmodule-map-file=\"$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/RNWorklets.framework/Modules/module.modulemap\""
+      worklets_framework_name = find_prebuilt_framework_name(worklets_pod)
+      module_map = "-fmodule-map-file=\"$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/#{worklets_framework_name}/Modules/module.modulemap\""
 
       target.build_configurations.each do |config|
         build_settings = config.build_settings
