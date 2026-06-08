@@ -95,7 +95,7 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
                 if (hasLib) {
                     foundAnyLib = true
                 } else {
-                    project.logger.warn("RNRepo: No $currentBuildType codegen library found for $abi in $moduleName")
+                    project.logger.info("RNRepo: No $currentBuildType codegen library found for $abi in $moduleName")
                 }
             }
 
@@ -152,20 +152,24 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
     @Suppress("UNCHECKED_CAST")
     private fun transformAutolinkingConfig(cmakeListsByCodegenName: Map<String, File>) {
         val outputFile = transformedAutolinkFile.get().asFile
-        outputFile.parentFile.mkdirs()
+        // Remove any stale output from a previous run. The presence of this file is the signal that
+        // tells PrebuildsPlugin to redirect React Native's autolinking input here, so it must exist
+        // only when we actually rewrote cmake paths below. In every early-return case we leave it
+        // absent so React Native keeps using its own, untouched autolinking.json.
+        if (outputFile.exists()) outputFile.delete()
 
         val inputFile = autolinkInputFile.orNull?.asFile
         if (inputFile == null || !inputFile.exists()) {
             project.logger.warn(
-                "RNRepo: autolinking.json not found, skipping cmake path injection — prebuilt codegen will be ignored, build time will be longer",
+                "RNRepo: autolinking.json not found, skipping cmake path injection — React Native will use its own " +
+                    "autolinking config and prebuilt codegen will be ignored, so the build will be slower",
             )
-            // Always produce the declared output so downstream tasks don't fail on a missing input
-            outputFile.writeText("{\"dependencies\":{}}")
             return
         }
 
         if (cmakeListsByCodegenName.isEmpty()) {
-            inputFile.copyTo(outputFile, overwrite = true)
+            // Nothing to redirect (e.g. every codegen package was header-only); leave React Native on
+            // its own autolinking.json rather than handing it an identical copy.
             return
         }
 
@@ -193,6 +197,7 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
             )
         }
 
+        outputFile.parentFile.mkdirs()
         outputFile.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(json)))
         project.logger.lifecycle("RNRepo: Wrote transformed autolinking.json (${rewrittenLibraries.size} cmake paths redirected)")
     }

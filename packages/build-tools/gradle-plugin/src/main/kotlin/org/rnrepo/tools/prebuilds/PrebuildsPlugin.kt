@@ -1138,7 +1138,17 @@ class PrebuildsPlugin : Plugin<Project> {
                 )
                 false
             } else {
-                property.set(transformedAutolinkFile)
+                // Redirect React Native's autolinking input to our transformed file only when it
+                // actually exists. ExtractPrebuiltsTask writes it solely when it rewrote cmake paths,
+                // so when it is absent (no prebuilt codegen, or autolinking.json was unavailable) we
+                // fall back to React Native's own input instead of an empty/broken config.
+                val originalInput = property.orNull
+                property.set(
+                    task.project.provider {
+                        val transformed = transformedAutolinkFile.get()
+                        if (transformed.asFile.exists() || originalInput == null) transformed else originalInput
+                    },
+                )
                 true
             }
         }.getOrElse { error ->
