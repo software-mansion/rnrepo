@@ -115,9 +115,35 @@ class PrebuildsPlugin : Plugin<Project> {
                         it.transformedAutolinkFile.set(transformedAutolinkFile)
                     }
 
-                // Hook extraction into build lifecycle before native build tasks
-                project.tasks.matching { it.name.startsWith("externalNativeBuild") || it.name == "preBuild" }.all {
-                    it.dependsOn(extractTask)
+                // Hook extraction into build lifecycle before native build tasks and cmake configuration
+                project.tasks
+                    .matching {
+                        it.name.startsWith("externalNativeBuild") ||
+                            it.name.startsWith("configureCMake") ||
+                            it.name == "preBuild"
+                    }.all {
+                        it.dependsOn(extractTask)
+                    }
+
+                // Add extracted headers to the cmake include path so all compilation units can find them,
+                // even when cmake target_include_directories PUBLIC propagation doesn't reach the package's
+                // own source files (e.g. react-native-safe-area-context including its own codegen headers).
+                val headersDir =
+                    project.layout.buildDirectory
+                        .dir("generated/rnrepo/prebuilts/headers")
+                        .get()
+                        .asFile
+                val androidExtension = project.extensions.getByName("android") as? BaseExtension
+                try {
+                    androidExtension
+                        ?.defaultConfig
+                        ?.externalNativeBuild
+                        ?.cmake
+                        ?.cppFlags
+                        ?.add("-I${headersDir.absolutePath}")
+                    logger.lifecycle("Added prebuilt headers to cmake include path: ${headersDir.absolutePath}")
+                } catch (e: Exception) {
+                    logger.warn("Could not add prebuilt headers to cmake include path: ${e.message}")
                 }
 
                 configureReactNativeAutolinkingTask(project, extractTask, transformedAutolinkFile)
@@ -153,8 +179,24 @@ class PrebuildsPlugin : Plugin<Project> {
             // Configure pickFirsts for packages with native libraries that may have duplicates
             configurePickFirsts(project, extension.supportedPackages)
 
-            // Add dependency on generating codegen schema for each library that needs it
-            // Skip packages with hasCodegen=true since they use prebuilt codegen artifacts
+            // Add dependency on generating codegen schema for each library that needs it.
+            //
+            // We run from-source codegen for ALL supported packages, including hasCodegen=true ones.
+            // When a prebuilt-codegen AAR actually ships a compiled libreact_codegen_<name>.a,
+            // ExtractPrebuiltsTask redirects the autolinking cmakeListsPath to the prebuilt cmake, so
+            // the from-source codegen sources are unused and the expensive native C++ compile is still
+            // skipped — only the cheap JS generation runs.
+            //
+            // But some libraries publish header-only codegen AARs that contain headers + a cmake stub
+            // but no .a (e.g. react-native-safe-area-context, whose codegen still emits real sources
+            // such as Props.cpp / EventEmitters.cpp). For those, ExtractPrebuiltsTask finds no .a and
+            // leaves the autolinking entry pointing at the library's own jni/CMakeLists.txt, which
+            // builds react_codegen_<name> from source. That cmake target is compiled in its own
+            // autolinking cmake invocation that does not inherit the app's -I include flags, so it can
+            // only see the generated headers/sources under build/generated/source/codegen/jni. If
+            // codegen never ran from source that directory is empty and the build fails (missing
+            // Props.h / EventEmitters.h, and ultimately the codegen .cpp). Running codegen from source
+            // here is the fallback that keeps those packages building.
             extension.supportedPackages
                 .filter { !it.hasCodegen }
                 .forEach { packageItem ->
