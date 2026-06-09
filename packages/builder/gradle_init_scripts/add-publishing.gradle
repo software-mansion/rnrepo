@@ -173,34 +173,6 @@ def configureCodegenTasks(project) {
         }
     }
 
-    // Package the full generated codegen jni tree (.h + .cpp) so consumers of a header-only
-    // prebuilt (libraries with their own jni CMakeLists that compile the generated sources, e.g.
-    // react-native-safe-area-context) can drop these back into the package's
-    // build/generated/source/codegen/jni and compile them — without re-running the codegen generator.
-    def packageCodegenSourcesTask = project.tasks.register("packageCodegenSources") {
-        onlyIf { codegenName != null }
-
-        def codegenTask = project.tasks.findByName('generateCodegenArtifactsFromSchema')
-        if (codegenTask != null) {
-            dependsOn(codegenTask)
-        }
-
-        doLast {
-            def genJniDir = file("${project.buildDir}/generated/source/codegen/jni")
-            if (genJniDir.exists()) {
-                def destDir = file("${project.projectDir}/src/main/assets/codegen-jni")
-                destDir.mkdirs()
-                project.copy {
-                    from genJniDir
-                    into destDir
-                }
-                println "📦 Packaged generated codegen sources (.h + .cpp) to assets/codegen-jni"
-            } else {
-                println "⚠️  No generated codegen sources found at ${genJniDir.absolutePath}"
-            }
-        }
-    }
-
     // Hook extract tasks to app's assemble tasks
     project.rootProject.subprojects.each { subproject ->
         if (subproject.name == 'app') {
@@ -223,7 +195,6 @@ def configureCodegenTasks(project) {
     if (mergeAssetsTask) {
         mergeAssetsTask.dependsOn(packageHeadersTask)
         mergeAssetsTask.dependsOn(packageCodegenCMakeTask)
-        mergeAssetsTask.dependsOn(packageCodegenSourcesTask)
     }
 
     try {

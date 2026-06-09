@@ -40,9 +40,6 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
         if (outDir.exists()) outDir.deleteRecursively()
         outDir.mkdirs()
 
-        val headersOutputDir = File(outDir, "headers")
-        headersOutputDir.mkdirs()
-
         val abis = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
         val cmakeListsByCodegenName = mutableMapOf<String, File>()
 
@@ -70,19 +67,6 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
             val codegenName = metaFile.readText().trim()
             // release builds use RelWithDebInfo cmake type — artifacts are stored under relwithdebinfo/
             val currentBuildType = if (buildType.get() == "release") "relwithdebinfo" else buildType.get()
-
-            // Merge headers into the shared output directory (kept for packages whose redirected cmake
-            // exposes them via PUBLIC include dirs).
-            val headersSourceDir = File(extractionDir, "assets/headers")
-            if (headersSourceDir.exists()) {
-                project.copy {
-                    it.from(headersSourceDir)
-                    it.into(headersOutputDir)
-                }
-            } else {
-                project.logger.warn("RNRepo: No headers in assets/headers for $moduleName")
-            }
-
             var foundAnyLib = false
 
             abis.forEach { abi ->
@@ -100,37 +84,12 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
             }
 
             if (!foundAnyLib) {
-                // Header-only prebuilt (no compiled .a). The autolinking entry stays pointed at the
-                // package's own jni CMakeLists, which compiles BOTH the package sources and the generated
-                // codegen sources (Props.cpp / EventEmitters.cpp / <name>-generated.cpp …) globbed from
-                // <pkg>/build/generated/source/codegen/jni — the directory codegen would normally populate.
-                // Since we deliberately do not run the codegen generator locally, drop the prebuilt codegen
-                // tree shipped in the AAR (assets/codegen-jni, .h + .cpp) straight into that directory so
-                // the package compiles them. Headers alone are not enough — without the .cpp the linker
-                // fails on undefined codegen symbols.
-                val codegenSrcDir = File(extractionDir, "assets/codegen-jni")
-                if (!codegenSrcDir.exists()) {
-                    throw GradleException(
-                        "RNRepo: header-only codegen prebuilt $moduleName does not contain assets/codegen-jni " +
-                            "(generated codegen sources). Rebuild the AAR with a builder that packages them.",
-                    )
-                }
-                val targetProject = project.rootProject.findProject(":$moduleName")
-                if (targetProject == null) {
-                    throw GradleException(
-                        "RNRepo: $moduleName is a header-only codegen prebuilt but its Gradle project " +
-                            "(:$moduleName) could not be found to place the generated codegen sources",
-                    )
-                }
-                val codegenJniDir = File(targetProject.projectDir, "build/generated/source/codegen/jni")
-                codegenJniDir.mkdirs()
-                project.copy {
-                    it.from(codegenSrcDir)
-                    it.into(codegenJniDir)
-                }
-                project.logger.lifecycle(
-                    "RNRepo: $moduleName has no prebuilt .a — placed prebuilt codegen sources into ${codegenJniDir.absolutePath}",
-                )
+                project.logger.lifecycle("RNRepo: Skipping $moduleName — no .a files found for $currentBuildType")
+                return@forEach
+            }
+
+            if (!File(extractionDir, "assets/headers").exists()) {
+                project.logger.warn("RNRepo: No headers in assets/headers for $moduleName, skipping")
                 return@forEach
             }
 
