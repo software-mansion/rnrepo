@@ -1,3 +1,18 @@
+# Why this patch exists:
+#
+# React Native's codegen emits a CMakeLists.txt that builds the generated
+# `react_codegen_<targetName>` target as an OBJECT library. OBJECT libraries are
+# not standalone, linkable artifacts on disk - CMake only keeps their object
+# files around to be embedded directly into another target at link time, so
+# there is nothing for us to collect, package, and ship.
+#
+# rnrepo prebuilds each library and distributes it as a precompiled AAR. For the
+# codegen output to travel with that AAR, the codegen target must be a real
+# static archive (.a) that we can capture and bundle. Switching OBJECT -> STATIC
+# makes codegen produce that archive, so it can be prebuilt and delivered as a
+# precompiled AAR alongside the library and linked later by the consumer.
+#
+# Patch is applied for all react-native@>=0.81.4 versions.
 diff --git a/node_modules/@react-native/codegen/lib/generators/modules/GenerateModuleJniH.js b/node_modules/@react-native/codegen/lib/generators/modules/GenerateModuleJniH.js
 index 21a02f6..084d7c3 100644
 --- a/node_modules/@react-native/codegen/lib/generators/modules/GenerateModuleJniH.js
