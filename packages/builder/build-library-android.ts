@@ -67,12 +67,16 @@ async function patchCMakeListsToStatic(packagePath: string): Promise<void> {
     cmakeListsPath = cmakeListsPath.replace(/^\.\.\//, '');
     
     // Resolve the path relative to the package
-    const absoluteCMakePath = join(packagePath, cmakeListsPath);
+    let absoluteCMakePath = join(packagePath, cmakeListsPath);
     
     if (!existsSync(absoluteCMakePath)) {
       console.log(`   CMakeLists.txt not found at ${absoluteCMakePath}`);
-      return;
+      absoluteCMakePath = join(packagePath, 'android', cmakeListsPath);
+      if (!existsSync(absoluteCMakePath)) {
+        throw new Error(`   CMakeLists.txt not found at ${absoluteCMakePath}`);
+      }
     }
+    console.log(`   CMakeLists.txt found at ${absoluteCMakePath}`);
 
     // Read CMakeLists.txt
     let cmakeContent = readFileSync(absoluteCMakePath, 'utf-8');
@@ -253,6 +257,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
           ? ['--init-script', postinstallGradleScriptPath]
           : []),
         `-PrnrepoCodegenName=${packageJson.codegenConfig.name}`,
+        `-PrnrepoNpmName=${libraryName}`,
       ];
       await $`./gradlew ${assembleReleaseArgs}`.cwd(androidPath);
 
