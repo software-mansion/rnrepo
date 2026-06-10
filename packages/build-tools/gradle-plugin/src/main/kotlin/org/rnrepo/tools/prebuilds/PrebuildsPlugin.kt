@@ -576,6 +576,22 @@ class PrebuildsPlugin : Plugin<Project> {
     }
 
     /**
+     * Builds the AAR file name for a package, optionally with the `-codegen` classifier suffix.
+     *
+     * @param packageItem The package to build the name for.
+     * @param RNVersion The React Native version the artifact is intended for.
+     * @param withCodegen Whether to append the `-codegen` suffix used by codegen prebuilts.
+     */
+    private fun buildAarFileName(
+        packageItem: PackageItem,
+        RNVersion: String,
+        withCodegen: Boolean,
+    ): String {
+        val codegenSuffix = if (withCodegen) "-codegen" else ""
+        return "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}$codegenSuffix.aar"
+    }
+
+    /**
      * Checks if a specific package is available in the remote repository or local cache.
      *
      * This function is thread-safe and can be called in parallel for multiple packages.
@@ -596,7 +612,8 @@ class PrebuildsPlugin : Plugin<Project> {
         RNVersion: String,
         httpRepositories: List<MavenArtifactRepository>,
     ): Boolean {
-        val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
+        val codegenArtifactName = buildAarFileName(packageItem, RNVersion, withCodegen = true)
+        val regularArtifactName = buildAarFileName(packageItem, RNVersion, withCodegen = false)
         val artifactDir =
             Paths
                 .get(
@@ -610,17 +627,22 @@ class PrebuildsPlugin : Plugin<Project> {
                     "${packageItem.version}",
                 ).toFile()
         if (artifactDir.exists() && artifactDir.isDirectory) {
-            // search for artifactName in all directories inside artifactDir
-            val isArtifactCached =
-                artifactDir.listFiles()?.any { hashDir ->
-                    hashDir.isDirectory && File(hashDir, artifactName).exists()
-                } ?: false
-            if (isArtifactCached) {
-                logger.info("Package ${packageItem.npmName} version ${packageItem.version} is cached in Gradle cache.")
+            // If the codegen variant is cached, use it directly.
+            if (isArtifactCached(artifactDir, codegenArtifactName)) {
+                packageItem.hasCodegen = true
+                logger.info("Package ${packageItem.npmName} version ${packageItem.version} is cached in Gradle cache with codegen.")
                 return true
-            } else {
-                logger.debug("Package ${packageItem.npmName} version ${packageItem.version} not found in Gradle cache.")
             }
+            // The regular variant is cached but the codegen one is not. A codegen variant may have been
+            // published since the regular AAR was cached, so query remotes to prefer it when available.
+            if (isArtifactCached(artifactDir, regularArtifactName)) {
+                logger.info(
+                    "Package ${packageItem.npmName} version ${packageItem.version} regular variant is cached, checking remotes for a codegen variant.",
+                )
+                packageItem.hasCodegen = isArtifactAvailableRemotely(packageItem, RNVersion, httpRepositories, withCodegen = true)
+                return true
+            }
+            logger.debug("Package ${packageItem.npmName} version ${packageItem.version} not found in Gradle cache.")
         } else {
             logger.debug("Artifact directory does not exist in cache: ${artifactDir.absolutePath}")
         }
@@ -629,50 +651,64 @@ class PrebuildsPlugin : Plugin<Project> {
             return false
         }
 
-        return httpRepositories.parallelStream().anyMatch { repo ->
-            // First, try to find version with -codegen classifier
-            val codegenAarUrl =
-                "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}-codegen.aar"
-            var connection: HttpURLConnection? = null
-            try {
-                connection = URL(codegenAarUrl).openConnection() as HttpURLConnection
-                connection.requestMethod = "HEAD"
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
-                logger.info(
-                    "Checking availability of codegen package ${packageItem.npmName} version ${packageItem.version} with -codegen classifier at $codegenAarUrl",
-                )
-                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                    logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} with codegen found at ${repo.url}")
-                    packageItem.hasCodegen = true
-                    return@anyMatch true
-                }
-            } catch (e: Exception) {
-                logger.debug("Codegen classifier not found for ${packageItem.npmName}: ${e.message}")
-            } finally {
-                connection?.disconnect()
-            }
+        // Not cached: query remotes, preferring the codegen variant over the regular one.
+        if (isArtifactAvailableRemotely(packageItem, RNVersion, httpRepositories, withCodegen = true)) {
+            packageItem.hasCodegen = true
+            return true
+        }
+        if (isArtifactAvailableRemotely(packageItem, RNVersion, httpRepositories, withCodegen = false)) {
+            packageItem.hasCodegen = false
+            return true
+        }
+        return false
+    }
 
-            // If codegen version not found, check regular version
-            val aarUrl =
-                "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
-            connection = null
+    /**
+     * Checks whether an AAR matching [artifactName] exists in any of the hash directories under [artifactDir].
+     */
+    private fun isArtifactCached(
+        artifactDir: File,
+        artifactName: String,
+    ): Boolean =
+        artifactDir.listFiles()?.any { hashDir ->
+            hashDir.isDirectory && File(hashDir, artifactName).exists()
+        } ?: false
+
+    /**
+     * Checks whether a given artifact variant is available in any of the [httpRepositories] via parallel HTTP HEAD requests.
+     *
+     * @param withCodegen Whether to check for the `-codegen` variant of the artifact.
+     * @return True if the artifact is available in any repository, false otherwise.
+     */
+    private fun isArtifactAvailableRemotely(
+        packageItem: PackageItem,
+        RNVersion: String,
+        httpRepositories: List<MavenArtifactRepository>,
+        withCodegen: Boolean,
+    ): Boolean {
+        if (httpRepositories.isEmpty()) {
+            return false
+        }
+        val artifactName = buildAarFileName(packageItem, RNVersion, withCodegen)
+        val variantLabel = if (withCodegen) "codegen " else ""
+        return httpRepositories.parallelStream().anyMatch { repo ->
+            val aarUrl = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/$artifactName"
+            var connection: HttpURLConnection? = null
             try {
                 connection = URL(aarUrl).openConnection() as HttpURLConnection
                 connection.requestMethod = "HEAD"
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
-                logger.info("Checking availability of package ${packageItem.npmName} version ${packageItem.version} at $aarUrl")
+                logger.info(
+                    "Checking availability of ${variantLabel}package ${packageItem.npmName} version ${packageItem.version} at $aarUrl",
+                )
                 val isAvailable = connection.responseCode == HttpURLConnection.HTTP_OK
                 if (isAvailable) {
-                    logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} found at ${repo.url}")
-                    packageItem.hasCodegen = false
+                    logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} ${variantLabel} found at ${repo.url}")
                 }
                 isAvailable
             } catch (e: Exception) {
-                logger.error(
-                    "Error checking package availability for ${packageItem.npmName} version ${packageItem.version} at ${repo.url}: ${e.message}",
-                )
+                logger.debug("${variantLabel.ifEmpty { "Package " }}not found for ${packageItem.npmName}: ${e.message}")
                 false
             } finally {
                 connection?.disconnect()
