@@ -9,7 +9,9 @@ allprojects { project ->
                         externalNativeBuild {
                             cmake {
                                 def currentArgs = arguments ?: []
-                                // currentArgs += "-DCMAKE_BUILD_TYPE=Debug"
+                                // Limit debug info to minimal level (-g1) to keep
+                                // codegen native build size and time down while still
+                                // retaining basic line-number info for stack traces.
                                 currentArgs += "-DCMAKE_CXX_FLAGS=-g1"
                                 arguments = currentArgs
                             }
@@ -19,7 +21,9 @@ allprojects { project ->
                         externalNativeBuild {
                             cmake {
                                 def currentArgs = arguments ?: []
-                                // currentArgs += "-DCMAKE_BUILD_TYPE=Release"
+                                // Limit debug info to minimal level (-g1) to keep
+                                // codegen native build size and time down while still
+                                // retaining basic line-number info for stack traces.
                                 currentArgs += "-DCMAKE_CXX_FLAGS=-g1"
                                 arguments = currentArgs
                             }

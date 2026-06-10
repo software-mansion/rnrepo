@@ -194,7 +194,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
   try {
     // If library has codegen, build codegen version as well
     if (!hasCodegenConfig) {
-      console.log('ℹ️ No codegen configuration found, building just standard AAR version');
+      console.log('ℹ️ No codegen configuration found, building standard AAR version');
       const args = [
         `:${gradleProjectName}:publishToMavenLocal`,
         '--no-daemon',
@@ -212,7 +212,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
         `-PrnrepoLicenseUrl=https://opensource.org/license/${license}`,
       ];
       await $`./gradlew ${args}`.cwd(androidPath);
-      // verify that the .pom and .aar files are present aftre the publish command completes
+      // verify that the .pom and .aar files are present after the publish command completes
       const pomPath = join(
         mavenLocalLibraryLocationPath,
         `${gradleProjectName}-${libraryVersion}.pom`
