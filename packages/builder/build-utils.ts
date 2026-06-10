@@ -8,6 +8,9 @@ import { join } from 'path';
  * Common utilities shared between iOS and Android build scripts
  */
 
+// Pinned tool versions to keep builds reproducible (avoid resolving "latest")
+const PATCH_PACKAGE_VERSION = '8.0.0';
+
 export type AllowedLicense =
   | 'MIT'
   | 'Apache-2.0'
@@ -344,7 +347,7 @@ export async function setupReactNativeProject(
   // check if there is patches folder to apply
   if (existsSync(join(appDir, 'patches'))) {
     console.log('📦 Applying patches...');
-    await $`npx patch-package`.cwd(appDir);
+    await $`bunx patch-package@${PATCH_PACKAGE_VERSION}`.cwd(appDir);
   }
 
   // Check if the react-native version is correctly set
