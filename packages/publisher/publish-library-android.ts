@@ -122,24 +122,31 @@ async function main() {
 
     const baseFileName = `${mavenLibraryName}-${libraryVersion}`;
     const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
-    let classifier = `rn${reactNativeVersion}${
+    const baseClassifier = `rn${reactNativeVersion}${
       workletsVersion ? `-worklets${workletsVersion}` : ''
     }`;
-    let aarFile = join(
+    const codegenClassifier = `${baseClassifier}-codegen`;
+
+    const aarFileBase = join(artifactsBasePath, `${baseFileName}-${baseClassifier}.aar`);
+    const aarFileWithCodegen = join(
       artifactsBasePath,
-      `${baseFileName}-${classifier}.aar`
+      `${baseFileName}-${codegenClassifier}.aar`
     );
-    if (!existsSync(aarFile)) {
-      classifier += '-codegen';
-      aarFile = join(
-        artifactsBasePath,
-        `${baseFileName}-${classifier}.aar`
+
+    // Exactly one of the two AAR variants is produced per build, depending on
+    // whether the library uses codegen. Pick whichever was published.
+    let classifier: string;
+    let aarFile: string;
+    if (existsSync(aarFileBase)) {
+      classifier = baseClassifier;
+      aarFile = aarFileBase;
+    } else if (existsSync(aarFileWithCodegen)) {
+      classifier = codegenClassifier;
+      aarFile = aarFileWithCodegen;
+    } else {
+      throw new Error(
+        `AAR file not found in ${artifactsBasePath} matching ${baseFileName}-${baseClassifier}.aar or ${baseFileName}-${codegenClassifier}.aar`
       );
-      if (!existsSync(aarFile)) {
-        throw new Error(
-          `AAR file not found in ${artifactsBasePath} matching ${baseFileName}-${classifier}.aar`
-        );
-      }
     }
 
     // Deploy POM separately (may return 409 if already published, which is acceptable)
