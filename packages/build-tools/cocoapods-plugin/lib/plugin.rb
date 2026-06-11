@@ -429,6 +429,25 @@ def append_build_setting(build_settings, key, value)
   end
 end
 
+# CocoaPods' collision-blind UUID generator can mint our build phases onto UUIDs
+# core objects already hold, corrupting Pods.xcodeproj. Returns a generator that
+# yields free UUIDs in CocoaPods' own 14-char format ('%.6s%07X0'), collision-
+# checking each candidate and walking the counter forward from 0 as CocoaPods
+# does. The cost of scanning past taken slots is negligible (~1ms, paid once
+# since the counter persists across calls).
+# UUID generator in CocoaPods: https://github.com/CocoaPods/CocoaPods/blob/458dd19585c03d706c2dc23238afd3845a4c6000/lib/cocoapods/project.rb#L70
+def build_safe_uuid_generator(pods_project)
+  uuid_prefix = pods_project.root_object.uuid[0, 6]
+  next_uuid_counter = 0
+  lambda do
+    loop do
+      candidate = format('%.6s%07X0', uuid_prefix, next_uuid_counter)
+      next_uuid_counter += 1
+      return candidate unless pods_project.objects_by_uuid.key?(candidate)
+    end
+  end
+end
+
 def rnrepo_post_install(installer_context)
   # Check if plugin is disabled via environment variable
   if ENV['DISABLE_RNREPO']
@@ -473,10 +492,14 @@ def rnrepo_post_install(installer_context)
   prebuilt_pod_names = (Pod::Installer.prebuilt_rnrepo_pods || []).map { |pod| pod[:name] }
   # Run order is alphabetical. This script must run before the '[CP] Copy XCFrameworks` script
   script_name = '[AA RUN FIRST] RNREPO Build Start'
+
+  pods_project = installer_context.pods_project
+  generate_safe_uuid = build_safe_uuid_generator(pods_project)
+
   # Add build phase script ONLY to targets that have prebuilt frameworks
-  installer_context.pods_project.targets.each do |target|
+  pods_project.targets.each do |target|
     target_name = target.name
-    
+
     # Only add build phase to targets that were prebuilt
     matches_prebuilt_pod = prebuilt_pod_names.any? do |pod_name|
       target_name.downcase.start_with?(pod_name.to_s.downcase)
@@ -485,11 +508,18 @@ def rnrepo_post_install(installer_context)
 
     # Remove any existing RNREPO build phase first
     target.build_phases.select { |phase| phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase) && phase.name == script_name }.each(&:remove_from_project)
-    
-    # Create shell script build phase
-    build_phase = target.new_shell_script_build_phase(script_name)
+
+    # Build the phase with a pre-verified UUID instead of target.new_shell_script_build_phase,
+    # which would mint one through CocoaPods' collision-blind generator and risk evicting a
+    # core object. This mirrors what Xcodeproj::Project#new does, minus that generator, see:
+    # https://github.com/CocoaPods/Xcodeproj/blob/c12d2ae619ae42f947a6b07d865f69948c752df5/lib/xcodeproj/project/object/native_target.rb#L304
+    # https://github.com/CocoaPods/Xcodeproj/blob/c12d2ae619ae42f947a6b07d865f69948c752df5/lib/xcodeproj/project.rb#L433
+    build_phase = Xcodeproj::Project::Object::PBXShellScriptBuildPhase.new(pods_project, generate_safe_uuid.call)
+    build_phase.initialize_defaults
+    build_phase.name = script_name
     build_phase.shell_script = script_content
-    
+    target.build_phases << build_phase
+
     CocoapodsRnrepo::Logger.log "  Added build phase to #{target_name}"
   end
 
