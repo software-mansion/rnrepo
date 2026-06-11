@@ -704,7 +704,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 )
                 val isAvailable = connection.responseCode == HttpURLConnection.HTTP_OK
                 if (isAvailable) {
-                    logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} ${variantLabel} found at ${repo.url}")
+                    logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} $variantLabel found at ${repo.url}")
                 }
                 isAvailable
             } catch (e: Exception) {
