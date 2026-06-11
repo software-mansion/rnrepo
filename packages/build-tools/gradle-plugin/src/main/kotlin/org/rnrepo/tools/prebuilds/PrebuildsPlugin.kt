@@ -153,7 +153,11 @@ class PrebuildsPlugin : Plugin<Project> {
             if (getBuildType(project) == "debug") {
                 project.gradle.projectsEvaluated {
                     logger.info("Checking if all dependencies with c++ code have their consumers supported...")
-                    PACKAGES_WITH_CPP.keys.parallelStream().forEach { packageName ->
+                    // Must stay sequential: checkDependencies iterates the subprojects' lazy
+                    // dependency collections, which are not thread-safe to realize concurrently
+                    // (intermittent "Collectors$TypedCollector.collectInto(...) collector is null"
+                    // NPE). See https://github.com/software-mansion/rnrepo/issues/371
+                    PACKAGES_WITH_CPP.keys.forEach { packageName ->
                         val packageItem = extension.projectPackages.find { it.name == packageName }
                         if (packageItem == null) {
                             logger.info("Package $packageName not found in project packages, skipping dependency check.")
