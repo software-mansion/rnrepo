@@ -38,6 +38,10 @@ on:
         type: string
         default: ''
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   RN_VERSION: ${{ github.event.inputs.rn_version || '0.85.0' }}
   EXAMPLE_APP: rnExampleApp
@@ -91,9 +95,6 @@ jobs:
     permissions:
       actions: read
       contents: read
-    concurrency:
-      group: build-example-rn-app-android-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -145,10 +146,6 @@ jobs:
     permissions:
       actions: read
       contents: read
-    concurrency:
-      group: build-example-rn-app-ios-${{ github.ref }}
-      cancel-in-progress: true
-
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
