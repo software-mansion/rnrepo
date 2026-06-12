@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Resolve worklets framework module map (#352)
 - Detect debug configuration using GCC preprocessor definitions (#367)
+- Run C++ dependencies check sequentially instead of in parallel (#372)
 
 ## [0.1.4] - 2026-05-21
 
