@@ -439,6 +439,15 @@
       }
     ]
   },
+  "@react-native-firebase/remote-config": {
+    "postInstallScriptPath": "postInstallScripts/@react-native-firebase/remote-config/react-native-firebase_remote-config.ts",
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
   "@react-native-firebase/perf": {
     "postInstallScriptPath": "postInstallScripts/@react-native-firebase/perf/react-native-firebase_perf.ts",
     "android": [
