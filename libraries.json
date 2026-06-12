@@ -20,13 +20,23 @@
     "postInstallScriptPath": "postInstallScripts/react-native-gesture-handler/react-native-gesture-handler.ts",
     "android": [
       {
-        "versionMatcher": "*",
+        "versionMatcher": "<3.0.0",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=3.0.0",
+        "reactNativeVersion": ">=0.82 <0.86",
         "publishedAfterDate": "2025-01-01"
       }
     ],
     "ios": [
       {
-        "versionMatcher": "*",
+        "versionMatcher": "<3.0.0",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=3.0.0",
+        "reactNativeVersion": ">=0.82 <0.86",
         "publishedAfterDate": "2025-01-01"
       }
     ]

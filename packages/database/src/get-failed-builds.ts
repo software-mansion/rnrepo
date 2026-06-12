@@ -78,6 +78,9 @@ async function checkIssue(build: BuildRow): Promise<IssueResult> {
     } else if (outputJob.includes('Unable to find a specification for `RNWorklets` depended upon by `RNReanimated`')) {
       // old issue in ci where worklets were not properly installed
       return 'fixable';
+    } else if (outputJob.includes('hunks failed--saving rejects')) {
+      // failed patching
+      return 'fixable';
     } else {
       // todo: add more cases in future
     }
