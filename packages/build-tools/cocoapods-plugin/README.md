@@ -73,3 +73,17 @@ node_modules/
           │   └── {package-name}.xcframework/
           └── Current/  (symlink created at build time → Debug or Release)
 ```
+
+### Cache directory
+
+By default, downloaded artifacts are cached in `~/.rnrepo-cache`. To use a custom path, set `xcframeworksCacheDir` in `rnrepo.config.json`:
+
+```json
+{
+  "xcframeworksCacheDir": "/path/to/cache"
+}
+```
+
+A relative path is resolved against the directory containing `rnrepo.config.json`. A path that starts with `/` (absolute) or `~` (home directory) is used as-is.
+
+To disable caching entirely, set `xcframeworksCacheDir` to `null`:

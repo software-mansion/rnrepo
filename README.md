@@ -167,6 +167,20 @@ If you're unsure whether RNRepo has been set up correctly in your project, check
 
 For troubleshooting Android builds, before reporting an issue, we recommend passing the `--scan` flag to Gradle (e.g., `./gradlew app:assembleDebug --scan`). This flag generates a report of all tasks performed during the build along with their execution times, which can be useful for investigating issues such as when certain prebuilt libraries weren't loaded from the repository.
 
+### Artifact caching
+
+**Android:** The Gradle plugin relies on Gradle's built-in dependency cache. Downloaded `.aar` artifacts are stored automatically in `~/.gradle/caches/` and reused across builds and projects without any extra configuration. To warm the cache in CI, save and restore the `~/.gradle/caches/` directory between runs.
+
+**iOS:** Downloaded xcframeworks are cached in `~/.rnrepo-cache` by default, then extracted to `node_modules/{package-name}/.rnrepo-cache` on every `pod install`. To use a custom cache path or disable caching, set `xcframeworksCacheDir` in `rnrepo.config.json`:
+
+```json
+{
+  "xcframeworksCacheDir": "/path/to/cache"
+}
+```
+
+To disable caching entirely, set `xcframeworksCacheDir` to `null`.
+
 ### Temporarily disabling RNRepo for troubleshooting
 
 To temporarily disable RNRepo for a specific build (for example, to debug build issues or test local changes), you can use the `DISABLE_RNREPO` environment variable:

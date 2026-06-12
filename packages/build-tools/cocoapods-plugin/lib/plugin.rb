@@ -43,11 +43,15 @@ def find_react_native_root(start_dir)
   nil
 end
 
-# Helper method to load and parse rnrepo.config.json
-def load_rnrepo_config(workspace_root)
+def find_rnrepo_config_path(workspace_root)
   rn_root = find_react_native_root(workspace_root)
   search_dir = rn_root || File.expand_path('..', workspace_root)
-  config_path = File.join(search_dir, 'rnrepo.config.json')
+  File.join(search_dir, 'rnrepo.config.json')
+end
+
+# Helper method to load and parse rnrepo.config.json
+def load_rnrepo_config(workspace_root)
+  config_path = find_rnrepo_config_path(workspace_root)
   CocoapodsRnrepo::Logger.log "Loading rnrepo.config.json from #{config_path}"
   return {} unless File.exist?(config_path)
 
@@ -63,6 +67,15 @@ def get_ios_denylist(workspace_root)
   config = load_rnrepo_config(workspace_root)
   denylist_config = config['denyList'] || config['denylist'] || {}
   denylist_config['ios'] || []
+end
+
+def get_ios_cache_path(workspace_root)
+  config = load_rnrepo_config(workspace_root)
+  return File.expand_path('~/.rnrepo-cache') unless config.key?('xcframeworksCacheDir')
+  path = config['xcframeworksCacheDir']
+  return nil if !path || path.to_s.strip.empty?
+  config_dir = File.dirname(find_rnrepo_config_path(workspace_root))
+  File.expand_path(path, config_dir)
 end
 
 def is_version_at_least(current_version, minimum_version)
@@ -157,14 +170,15 @@ def rnrepo_pre_install(installer_context)
 
   # Add expo pod to installer context for later use in post_install
   Pod::Installer.expo_pod = rn_pods.find { |pod| pod[:name] == 'Expo' }
-
+  cache_path = get_ios_cache_path(workspace_root)
   # Download and cache pre-built frameworks in parallel
   threads = rn_pods.map do |pod_info|
     Thread.new do
       result = CocoapodsRnrepo::FrameworkCache.fetch_framework(
         installer_context,
         pod_info,
-        workspace_root
+        workspace_root,
+        cache_path: cache_path
       )
 
       # Thread-safe result collection

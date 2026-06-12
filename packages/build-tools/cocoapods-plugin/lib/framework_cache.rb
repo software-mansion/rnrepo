@@ -2,7 +2,7 @@ module CocoapodsRnrepo
   class FrameworkCache
     # Download and cache pre-built frameworks (both Debug and Release)
     # Returns: { status: :cached | :downloaded | :unavailable | :failed, message: String }
-    def self.fetch_framework(installer, pod_info, workspace_root)
+    def self.fetch_framework(installer, pod_info, workspace_root, cache_path: nil)
       pod_name = pod_info[:name]
       version = pod_info[:version]
       source_path = pod_info[:source]
@@ -53,7 +53,8 @@ module CocoapodsRnrepo
           rn_version,
           'debug',
           pod_name,
-          worklets_version
+          worklets_version,
+          cache_path
         )
         if debug_result[:status] == :downloaded || debug_result[:status] == :cached
           configs_available << 'Debug'
@@ -75,7 +76,8 @@ module CocoapodsRnrepo
           rn_version,
           'release',
           pod_name,
-          worklets_version
+          worklets_version,
+          cache_path
         )
         if release_result[:status] == :downloaded || release_result[:status] == :cached
           configs_available << 'Release'
@@ -100,7 +102,7 @@ module CocoapodsRnrepo
     private
 
     # Download and extract a specific configuration (debug or release)
-    def self.download_and_extract_config(cache_dir, config_cache_dir, sanitized_name, version, rn_version, config, pod_name, worklets_version = nil)
+    def self.download_and_extract_config(cache_dir, config_cache_dir, sanitized_name, version, rn_version, config, pod_name, worklets_version = nil, cache_path = nil)
       # Filename format: npm-package-name-version-rnX.Y.Z[-workletsX.Y.Z]-config.xcframework.zip
       worklets_suffix = worklets_version ? "-worklets#{worklets_version}" : ''
       zip_filename = "#{sanitized_name}-#{version}-rn#{rn_version}#{worklets_suffix}-#{config}.xcframework.zip"
@@ -114,7 +116,8 @@ module CocoapodsRnrepo
           rn_version: rn_version,
           worklets_version: worklets_version,
           configuration: config,
-          destination: zip_path
+          destination: zip_path,
+          cache_path: cache_path
         }
       )
       unless downloaded_file
