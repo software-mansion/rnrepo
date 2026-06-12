@@ -463,14 +463,15 @@ def rnrepo_post_install(installer_context)
       CACHE_DIR="${PODS_TARGET_SRCROOT}/.rnrepo-cache"
       CURRENT_LINK="${CACHE_DIR}/Current"
 
-      # Select the appropriate configuration
-      if [ "$CONFIGURATION" == "Debug" ]; then
+      # Select the appropriate configuration based on whether this is a
+      # debuggable build. Matching on the $CONFIGURATION name is unreliable
+      # because projects can define custom configuration names (e.g.
+      # "Staging", "QA") that are neither "Debug" nor "Release". Instead we
+      # detect the DEBUG=1 preprocessor definition, which mirrors how React
+      # Native core selects its prebuilt configuration.
+      TARGET_DIR="Release"
+      if echo "$GCC_PREPROCESSOR_DEFINITIONS" | grep -q "DEBUG=1"; then
         TARGET_DIR="Debug"
-      elif [ "$CONFIGURATION" == "Release" ]; then
-        TARGET_DIR="Release"
-      else
-        echo "warning: Unknown configuration '$CONFIGURATION', defaulting to Release"
-        TARGET_DIR="Release"
       fi
       echo "RNREPO: Switching to ${TARGET_DIR} configuration"
 
