@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Resolve worklets framework module map (#352)
+- Fix corrupted Pods.xcodeproj caused by iOS build-phase UUID collisions (#373)
 
 ## [0.1.4] - 2026-05-21
 
