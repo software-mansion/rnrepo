@@ -45,7 +45,7 @@ concurrency:
 env:
   RN_VERSION: ${{ github.event.inputs.rn_version || '0.85.0' }}
   EXAMPLE_APP: rnExampleApp
-  LIBRARIES: ${{ github.event.inputs.libraries || 'react-native-worklets@0.8.1 react-native-reanimated@4.3.0 react-native-gesture-handler@2.31.2' }}
+  LIBRARIES: ${{ github.event.inputs.libraries || 'react-native-worklets@0.8.1 react-native-reanimated@4.3.0 react-native-gesture-handler@2.31.2 react-native-screens@4.25.0' }}
 
 jobs:
   check-changes:

@@ -16,7 +16,7 @@ on:
         description: 'Expo SDK major version used in `create-expo-app@latest --template default@sdk-<major_version>`'
         required: false
         type: string
-        default: '55'
+        default: '56'
       request_android:
         description: 'Request android build'
         required: false
@@ -38,7 +38,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  EXPO_SDK_MAJOR_VERSION: ${{ github.event.inputs.expo_sdk_major_version || '55' }}
+  EXPO_SDK_MAJOR_VERSION: ${{ github.event.inputs.expo_sdk_major_version || '56' }}
   EXAMPLE_APP: expoExampleApp
 
 jobs:
