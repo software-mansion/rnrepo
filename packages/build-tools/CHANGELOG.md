@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.5] - 2026-06-12
 
+### Changed
+- Allow caching iOS artifacts in a custom path to simplify CI caching (#338)
+
 ### Fixed
 - Resolve worklets framework module map (#352)
 - Detect debug configuration using GCC preprocessor definitions (#367)
@@ -22,7 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolve Gradle repositories once instead of per-package check for improved build performance (#337)
 - Handle Xcode settings in both array and string formats (#330)
 - iOS CocoaPods more robust in resolving `rnrepo.config.json` (#346)
-- Allow caching iOS artifacts in a custom path to simplify CI caching (#338)
 
 ## [0.1.3-beta.0] - 2026-04-30
 
