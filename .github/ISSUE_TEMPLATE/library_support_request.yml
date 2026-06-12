@@ -13,8 +13,13 @@ body:
     id: library-name
     attributes:
       label: 📚 Library Name
-      description: What library should be added to RNRepo?
-      placeholder: Library name here...
+      description: What library should be added to RNRepo and info about it?
+      placeholder: |
+        - Library name 
+        - Known compilation issues
+        - Dependencies on other libraries
+        - Special requirements
+        - Etc.
     validations:
       required: true
 
@@ -35,22 +40,9 @@ body:
     attributes:
       label: GitHub Repository
       placeholder: "https://github.com/..."
-    validations:
-      required: true
 
   - type: input
     id: docs-link
     attributes:
       label: Documentation Link (if applicable)
       placeholder: "https://..."
-
-  - type: textarea
-    id: notes
-    attributes:
-      label: 📝 Notes
-      description: Add any additional information that might be helpful
-      placeholder: |
-        - Known compilation issues
-        - Dependencies on other libraries
-        - Special requirements
-        - Etc.
