@@ -33,6 +33,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   EXPO_SDK_MAJOR_VERSION: ${{ github.event.inputs.expo_sdk_major_version || '55' }}
   EXAMPLE_APP: expoExampleApp
@@ -87,9 +91,6 @@ jobs:
     permissions:
       actions: read
       contents: read
-    concurrency:
-      group: build-example-expo-app-android-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -149,10 +150,6 @@ jobs:
     permissions:
       actions: read
       contents: read
-    concurrency:
-      group: build-example-expo-app-ios-${{ github.ref }}
-      cancel-in-progress: true
-
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
