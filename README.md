@@ -167,7 +167,7 @@ For troubleshooting Android builds, before reporting an issue, we recommend pass
 
 **Android:** The Gradle plugin relies on Gradle's built-in dependency cache. Downloaded `.aar` artifacts are stored automatically in `~/.gradle/caches/` and reused across builds and projects without any extra configuration. To warm the cache in CI, save and restore the `~/.gradle/caches/` directory between runs.
 
-**iOS:** Downloaded xcframeworks are extracted to `node_modules/{package-name}/.rnrepo-cache` on every `pod install` and cached in `~/.rnrepo-cache` by default. To use a custom cache path or disable caching, set `xcframeworksCacheDir` in `rnrepo.config.json`:
+**iOS:** Downloaded xcframeworks are cached in `~/.rnrepo-cache` by default, then extracted to `node_modules/{package-name}/.rnrepo-cache` on every `pod install`. To use a custom cache path or disable caching, set `xcframeworksCacheDir` in `rnrepo.config.json`:
 
 ```json
 {

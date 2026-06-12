@@ -84,4 +84,6 @@ By default, downloaded artifacts are cached in `~/.rnrepo-cache`. To use a custo
 }
 ```
 
+A relative path is resolved against the directory containing `rnrepo.config.json`. A path that starts with `/` (absolute) or `~` (home directory) is used as-is.
+
 To disable caching entirely, set `xcframeworksCacheDir` to `null`:

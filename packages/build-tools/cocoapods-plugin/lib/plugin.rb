@@ -74,7 +74,6 @@ def get_ios_cache_path(workspace_root)
   return File.expand_path('~/.rnrepo-cache') unless config.key?('xcframeworksCacheDir')
   path = config['xcframeworksCacheDir']
   return nil if !path || path.to_s.strip.empty?
-  return File.expand_path(path) if path.start_with?('/') || path.start_with?('~')
   config_dir = File.dirname(find_rnrepo_config_path(workspace_root))
   File.expand_path(path, config_dir)
 end
