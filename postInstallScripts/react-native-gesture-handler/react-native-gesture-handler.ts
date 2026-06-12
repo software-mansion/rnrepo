@@ -15,7 +15,7 @@ const COMPATIBILITY_MATRIX = [
   {
     rn: '>=0.80.0 <0.85.0',
     reanimated: '4.2.2',
-    worklets: '0.7.3'
+    worklets: '0.7.4'
   },
   {
     rn: '>=0.77.0 <=0.79.x',
