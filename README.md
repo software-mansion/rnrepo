@@ -155,6 +155,21 @@ To opt out of using RNRepo for specific libraries (for example, if you have loca
 
 This configuration permanently excludes the listed libraries from RNRepo prebuilds, forcing them to build from source in all builds.
 
+### Enable RNRepo for specific libraries only
+
+To restrict RNRepo to a subset of libraries without having to manually deny everything else, use `allowList`:
+
+```json
+{
+  "allowList": {
+    "android": ["library-name-1"],
+    "ios": ["library-name-2"]
+  }
+}
+```
+
+When `allowList` is present for a platform, only the listed libraries will use prebuilt artifacts. Everything else falls through to building from source. If `allowList` is absent, all libraries are eligible (subject to `denyList`). If both are set, `denyList` takes precedence.
+
 ---
 
 ## Troubleshooting

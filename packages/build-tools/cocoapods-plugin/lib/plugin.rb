@@ -69,6 +69,12 @@ def get_ios_denylist(workspace_root)
   denylist_config['ios'] || []
 end
 
+def get_ios_allowlist(workspace_root)
+  config = load_rnrepo_config(workspace_root)
+  allowlist_config = config['allowList'] || config['allowlist'] || {}
+  allowlist_config['ios']
+end
+
 def get_ios_cache_path(workspace_root)
   config = load_rnrepo_config(workspace_root)
   return File.expand_path('~/.rnrepo-cache') unless config.key?('xcframeworksCacheDir')
@@ -165,6 +171,17 @@ def rnrepo_pre_install(installer_context)
       true
     else
       false
+    end
+  end
+
+  # Handle allowlist
+  ios_allowlist = get_ios_allowlist(workspace_root)
+  unless ios_allowlist.nil?
+    rn_pods = rn_pods.reject do |pod_info|
+      unless ios_allowlist.include?(pod_info[:npm_package_name])
+        denied_pods << pod_info[:name]
+        true
+      end
     end
   end
 
