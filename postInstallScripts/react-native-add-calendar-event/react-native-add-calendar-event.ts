@@ -1,4 +1,3 @@
-import { $ } from 'bun';
 import fs from 'fs';
 
 export default async function preInstallSetup(): Promise<void> {
