@@ -1010,5 +1010,20 @@
         "publishedAfterDate": "2018-01-01"
       }
     ]
+  },
+  "react-native-add-calendar-event": {
+    "postInstallScriptPath": "postInstallScripts/react-native-add-calendar-event/react-native-add-calendar-event.ts",
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2023-01-01"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2023-01-01"
+      }
+    ]
   }
 }
