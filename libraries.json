@@ -967,5 +967,19 @@
         "publishedAfterDate": "2025-01-01"
       }
     ]
+  },
+  "@notifee/react-native": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2020-01-01"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2020-01-01"
+      }
+    ]
   }
 }
