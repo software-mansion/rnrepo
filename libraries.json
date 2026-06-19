@@ -939,5 +939,19 @@
         "publishedAfterDate": "2025-01-01"
       }
     ]
+  },
+  "react-native-biometrics": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2020-01-01"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2020-01-01"
+      }
+    ]
   }
 }
