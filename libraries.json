@@ -981,5 +981,20 @@
         "publishedAfterDate": "2020-01-01"
       }
     ]
+  },
+  "react-native-keep-awake": {
+    "postInstallScriptPath": "postInstallScripts/react-native-keep-awake/react-native-keep-awake.ts",
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2016-01-01"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2016-01-01"
+      }
+    ]
   }
 }
