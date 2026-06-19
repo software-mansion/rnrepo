@@ -191,16 +191,17 @@
     ]
   },
   "@react-native-community/netinfo": {
+    "weeklyDownloadsThreshold": 30000,
     "android": [
       {
         "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
+        "publishedAfterDate": "2020-01-01"
       }
     ],
     "ios": [
       {
         "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
+        "publishedAfterDate": "2020-01-01"
       }
     ]
   },
