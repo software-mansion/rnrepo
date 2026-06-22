@@ -53,7 +53,7 @@ try {
   process.exit(1);
 }
 
-async function buildAAR(appDir: string, license: AllowedLicense) {
+async function buildAAR(appDir: string, license: AllowedLicense[]) {
   const gradleProjectName = sanitizePackageName(libraryName);
   const classifier = `rn${reactNativeVersion}${
     workletsVersion ? `-worklets${workletsVersion}` : ''
@@ -118,8 +118,9 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
       `-PrnrepoClassifier=${classifier}`,
       `-PrnrepoCpuInfo=${getCpuInfo()}`,
       `-PrnrepoBuildUrl=${GITHUB_BUILD_URL}`,
-      `-PrnrepoLicenseName=${license}`,
-      `-PrnrepoLicenseUrl=https://opensource.org/license/${license}`,
+      // Comma-separated list of SPDX license ids; the publishing init script
+      // emits one <license> POM node per entry, deriving the url from the name.
+      `-PrnrepoLicenseName=${license.join(',')}`,
     ];
     await $`./gradlew ${args}`.cwd(androidPath);
 
