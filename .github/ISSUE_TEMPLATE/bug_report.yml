@@ -37,7 +37,7 @@ body:
   - type: input
     id: rnrepo-version
     attributes:
-      label: @rnrepo/build-tools or @rnrepo/expo-config-plugin version
+      label: "@rnrepo/build-tools or @rnrepo/expo-config-plugin version"
       placeholder: "e.g., 0.2.0"
     validations:
       required: true
@@ -47,4 +47,4 @@ body:
     attributes:
       label: Environment details
       description: What versions of relevant tools are you using? 
-      placeholder: versions of relevant tools (e.g. react-native, expo, gradle, xcode) 
+      placeholder: "e.g., react-native: 0.72.3, expo: 49.0.0, xcode: 15.0"
