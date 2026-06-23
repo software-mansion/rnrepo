@@ -66,7 +66,7 @@ end
 def get_ios_denylist(workspace_root)
   config = load_rnrepo_config(workspace_root)
   denylist_config = config['denyList'] || config['denylist'] || {}
-  denylist_config['ios'] || []
+  denylist_config['ios']
 end
 
 def get_ios_allowlist(workspace_root)
@@ -169,12 +169,12 @@ def rnrepo_pre_install(installer_context)
   # Ensure denyList and allowList are mutually exclusive for iOS.
   # The lists are per-platform, so configuring an allowList for one platform
   # and a denyList for another is allowed.
-  if ios_denylist && !ios_denylist.empty? && ios_allowlist
+  if ios_denylist && ios_allowlist
     raise "RNRepo: Both 'denyList' and 'allowList' are configured for iOS in rnrepo.config.json. Please use only one of them."
   end
 
   # Identify which pods to reject based on the active configuration
-  rejected_pods = if ios_denylist && !ios_denylist.empty?
+  rejected_pods = if ios_denylist
                     rn_pods.select { |pod| ios_denylist.include?(pod[:npm_package_name]) }
                   elsif ios_allowlist
                     rn_pods.reject { |pod| ios_allowlist.include?(pod[:npm_package_name]) }
