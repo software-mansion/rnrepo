@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add support for allowList in `rnrepo.config.json` (#383)
+
 ### Fixed
 - Fix Android substitution prefix matching (#385)
 
