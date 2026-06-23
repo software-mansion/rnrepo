@@ -76,7 +76,7 @@ async function publishToMavenLocal(
   androidPath: string,
   gradleProjectName: string,
   classifier: string,
-  license: AllowedLicense,
+  license: AllowedLicense[],
   extraArgs: string[] = []
 ): Promise<void> {
   const args = [
@@ -169,7 +169,7 @@ async function buildStandardAar(
   androidPath: string,
   gradleProjectName: string,
   classifier: string,
-  license: AllowedLicense,
+  license: AllowedLicense[],
   mavenLocalLibraryLocationPath: string
 ): Promise<void> {
   console.log('ℹ️ No codegen configuration found, building standard AAR version');
@@ -189,7 +189,7 @@ async function buildCodegenAar(
   androidPath: string,
   gradleProjectName: string,
   classifier: string,
-  license: AllowedLicense,
+  license: AllowedLicense[],
   mavenLocalLibraryLocationPath: string,
   codegenName: string
 ): Promise<void> {
