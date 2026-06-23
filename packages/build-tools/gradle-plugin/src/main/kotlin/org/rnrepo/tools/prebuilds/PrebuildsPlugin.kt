@@ -54,7 +54,6 @@ open class PackagesManager {
     var supportedPackages: Set<PackageItem> = mutableSetOf()
     var reactNativeVersion: String = ""
     var denyList: Set<String> = setOf()
-    var allowList: Set<String>? = null
 }
 
 class PrebuildsPlugin : Plugin<Project> {
@@ -478,23 +477,48 @@ class PrebuildsPlugin : Plugin<Project> {
             // Check for both 'denyList' and 'denylist' (case-insensitive variants)
             @Suppress("UNCHECKED_CAST")
             val denyListData = (json["denyList"] ?: json["denylist"]) as? Map<String, Any>
-            val denyList = denyListData?.get("android") as? List<String>
-            if (denyList != null) {
-                logger.lifecycle("Loaded deny list from config: $denyList")
-                extension.denyList = denyList.map { toGradleName(it) }.toSet()
-            } else {
-                logger.info("No denyList found in config file. Using empty deny list.")
-            }
 
             @Suppress("UNCHECKED_CAST")
             val allowListData = (json["allowList"] ?: json["allowlist"]) as? Map<String, Any>
+
+            @Suppress("UNCHECKED_CAST")
+            val denyList = denyListData?.get("android") as? List<String>
+
+            @Suppress("UNCHECKED_CAST")
             val allowList = allowListData?.get("android") as? List<String>
-            if (allowList != null) {
-                logger.lifecycle("Loaded allow list from config: $allowList")
-                extension.allowList = allowList.map { toGradleName(it) }.toSet()
-            } else {
-                logger.info("No allowList found in config file. All packages are allowed.")
+
+            // denyList and allowList are mutually exclusive for Android: configuring
+            // both is ambiguous. The lists are per-platform, so configuring an
+            // allowList for one platform and a denyList for another is allowed.
+            if (denyList != null && allowList != null) {
+                throw GradleException(
+                    "[RNRepo] Both 'denyList' and 'allowList' are configured for Android in $CONFIG_FILE_NAME. " +
+                        "Please use only one of them.",
+                )
             }
+
+            if (denyList != null) {
+                logger.lifecycle("Loaded deny list from config: $denyList")
+                extension.denyList = denyList.map { toGradleName(it) }.toSet()
+                return
+            }
+
+            // An allowList is just the inverse of a denyList: deny every project
+            // package that is not explicitly allowed.
+            if (allowList != null) {
+                val allowed = allowList.map { toGradleName(it) }.toSet()
+                extension.denyList =
+                    extension.projectPackages
+                        .map { it.name }
+                        .filterNot { allowed.contains(it) }
+                        .toSet()
+                logger.lifecycle("Loaded allow list from config: $allowList. Denying all other packages: ${extension.denyList}")
+                return
+            }
+
+            logger.info("No denyList or allowList found in config file. Using empty deny list.")
+        } catch (e: GradleException) {
+            throw e
         } catch (e: Exception) {
             logger.error("Error parsing $CONFIG_FILE_NAME: ${e.message}. Using empty deny list.")
         }
@@ -524,16 +548,6 @@ class PrebuildsPlugin : Plugin<Project> {
         }
         logger.info("Package $packageName is not denied.")
         return true
-    }
-
-    private fun isPackageAllowed(
-        packageName: String,
-        extension: PackagesManager,
-    ): Boolean {
-        val allowList = extension.allowList ?: return true
-        return allowList.contains(packageName).also { allowed ->
-            if (!allowed) logger.info("Package $packageName is not in allow list, skipping in RNRepo.")
-        }
     }
 
     private fun resolveRNRepoRepositories(repositories: RepositoryHandler): List<MavenArtifactRepository> {
@@ -920,12 +934,11 @@ class PrebuildsPlugin : Plugin<Project> {
         project: Project,
     ) {
         val isDenied = !isPackageNotDenied(packageItem.name, extension)
-        val isNotAllowed = !isPackageAllowed(packageItem.name, extension)
         val checkFailed = !isSpecificCheckPassed(packageItem, extension, supportedPackages, project)
         val isUnavailable = !isPackageAvailable(packageItem, extension.reactNativeVersion, httpRepositories)
 
         when {
-            isDenied || isNotAllowed || checkFailed || isUnavailable -> {
+            isDenied || checkFailed || isUnavailable -> {
                 if (isUnavailable) {
                     unavailablePackages.add(packageItem)
                 }

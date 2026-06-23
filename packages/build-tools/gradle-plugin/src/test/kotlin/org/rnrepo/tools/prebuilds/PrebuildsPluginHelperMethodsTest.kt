@@ -4,6 +4,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.artifacts.component.ComponentSelector
 import org.gradle.api.artifacts.component.ModuleComponentSelector
@@ -254,18 +256,24 @@ class PrebuildsPluginHelperMethodsTest {
     }
 
     @Test
-    fun `loadDenyList should parse allowList from config file correctly`() {
+    fun `loadDenyList should convert allowList into a denyList of non-allowed packages`() {
         // Given
         val extension = PackagesManager()
+        extension.projectPackages =
+            setOf(
+                PackageItem("react-native-reanimated", "1.0.0", "react-native-reanimated"),
+                PackageItem("react-native-screens", "1.0.0", "react-native-screens"),
+                PackageItem("react-native-vector-icons", "1.0.0", "react-native-vector-icons"),
+            )
         val configFile = File(tempDir, "rnrepo.config.json")
         configFile.writeText(
             """
-        {
-            "allowList": {
-                "android": ["react-native-reanimated", "react-native-screens"]
+            {
+                "allowList": {
+                    "android": ["react-native-reanimated", "react-native-screens"]
+                }
             }
-        }
-        """.trimIndent(),
+            """.trimIndent(),
         )
         setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
 
@@ -273,79 +281,93 @@ class PrebuildsPluginHelperMethodsTest {
         invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
 
         // Then
-        assertThat(extension.allowList).containsExactlyInAnyOrder(
+        assertThat(extension.denyList).containsExactlyInAnyOrder("react-native-vector-icons")
+    }
+
+    @Test
+    fun `loadDenyList should not invert denyList when allowList is absent`() {
+        // Given
+        val extension = PackagesManager()
+        extension.projectPackages =
+            setOf(
+                PackageItem("react-native-reanimated", "1.0.0", "react-native-reanimated"),
+                PackageItem("react-native-vector-icons", "1.0.0", "react-native-vector-icons"),
+            )
+        val configFile = File(tempDir, "rnrepo.config.json")
+        configFile.writeText(
+            """
+            {
+                "denyList": {
+                    "android": ["react-native-vector-icons"]
+                }
+            }
+            """.trimIndent(),
+        )
+        setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
+
+        // When
+        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
+
+        // Then
+        assertThat(extension.denyList).containsExactlyInAnyOrder("react-native-vector-icons")
+    }
+
+    @Test
+    fun `loadDenyList should leave denyList empty when allowList has no android key`() {
+        // Given
+        val extension = PackagesManager()
+        extension.projectPackages =
+            setOf(
+                PackageItem("react-native-reanimated", "1.0.0", "react-native-reanimated"),
+            )
+        val configFile = File(tempDir, "rnrepo.config.json")
+        configFile.writeText(
+            """
+            {
+                "allowList": {
+                    "ios": ["react-native-reanimated"]
+                }
+            }
+            """.trimIndent(),
+        )
+        setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
+
+        // When
+        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
+
+        // Then
+        assertThat(extension.denyList).isEmpty()
+    }
+
+    @Test
+    fun `loadDenyList should deny all packages when allowList android is empty`() {
+        // Given
+        val extension = PackagesManager()
+        extension.projectPackages =
+            setOf(
+                PackageItem("react-native-reanimated", "1.0.0", "react-native-reanimated"),
+                PackageItem("react-native-screens", "1.0.0", "react-native-screens"),
+            )
+        val configFile = File(tempDir, "rnrepo.config.json")
+        configFile.writeText(
+            """
+            {
+                "allowList": {
+                    "android": []
+                }
+            }
+            """.trimIndent(),
+        )
+        setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
+
+        // When
+        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
+
+        // Then
+        assertThat(extension.denyList).containsExactlyInAnyOrder(
             "react-native-reanimated",
             "react-native-screens",
         )
-    }
-
-    @Test
-    fun `loadDenyList should leave allowList null when allowList key is absent`() {
-        // Given
-        val extension = PackagesManager()
-        val configFile = File(tempDir, "rnrepo.config.json")
-        configFile.writeText(
-            """
-        {
-            "denyList": {
-                "android": ["react-native-vector-icons"]
-            }
-        }
-        """.trimIndent(),
-        )
-        setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
-
-        // When
-        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
-
-        // Then
-        assertThat(extension.allowList).isNull()
-    }
-
-    @Test
-    fun `loadDenyList should leave allowList null when android key is absent from allowList`() {
-        // Given
-        val extension = PackagesManager()
-        val configFile = File(tempDir, "rnrepo.config.json")
-        configFile.writeText(
-            """
-        {
-            "allowList": {
-                "ios": ["react-native-reanimated"]
-            }
-        }
-        """.trimIndent(),
-        )
-        setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
-
-        // When
-        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
-
-        // Then
-        assertThat(extension.allowList).isNull()
-    }
-
-    @Test
-    fun `loadDenyList should set allowList to empty set when android key is explicitly empty`() {
-        // Given
-        val extension = PackagesManager()
-        val configFile = File(tempDir, "rnrepo.config.json")
-        configFile.writeText(
-            """
-        {
-            "allowList": {
-                "android": []
-            }
-        }
-        """.trimIndent(),
-        )
-        setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
-
-        // When
-        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
-
-        // Then
-        assertThat(extension.allowList).isNotNull().isEmpty()
     }
 
     @Test
@@ -440,81 +462,6 @@ class PrebuildsPluginHelperMethodsTest {
         assertThat(appMatchesAppProject).isTrue()
         assertThat(appMatchesAppCheckModule).isFalse()
         assertThat(appCheckMatchesAppCheckModule).isTrue()
-    }
-
-    @Test
-    fun `isPackageAllowed should return true when allowList is null`() {
-        // Given
-        val extension = PackagesManager() // allowList defaults to null
-
-        // When
-        val result = invokePrivateMethod<Boolean>(
-            plugin,
-            "isPackageAllowed",
-            arrayOf(String::class.java, PackagesManager::class.java),
-            "react-native-reanimated",
-            extension,
-        )
-
-        // Then
-        assertThat(result).isTrue()
-    }
-
-    @Test
-    fun `isPackageAllowed should return true for packages in the allowList`() {
-        // Given
-        val extension = PackagesManager()
-        extension.allowList = setOf("react-native-reanimated", "react-native-screens")
-
-        // When
-        val result = invokePrivateMethod<Boolean>(
-            plugin,
-            "isPackageAllowed",
-            arrayOf(String::class.java, PackagesManager::class.java),
-            "react-native-reanimated",
-            extension,
-        )
-
-        // Then
-        assertThat(result).isTrue()
-    }
-
-    @Test
-    fun `isPackageAllowed should return false for packages not in the allowList`() {
-        // Given
-        val extension = PackagesManager()
-        extension.allowList = setOf("react-native-reanimated")
-
-        // When
-        val result = invokePrivateMethod<Boolean>(
-            plugin,
-            "isPackageAllowed",
-            arrayOf(String::class.java, PackagesManager::class.java),
-            "react-native-screens",
-            extension,
-        )
-
-        // Then
-        assertThat(result).isFalse()
-    }
-
-    @Test
-    fun `isPackageAllowed should return false for all packages when allowList is empty`() {
-        // Given
-        val extension = PackagesManager()
-        extension.allowList = emptySet()
-
-        // When
-        val result = invokePrivateMethod<Boolean>(
-            plugin,
-            "isPackageAllowed",
-            arrayOf(String::class.java, PackagesManager::class.java),
-            "react-native-reanimated",
-            extension,
-        )
-
-        // Then
-        assertThat(result).isFalse()
     }
 
     @Test
@@ -706,31 +653,58 @@ class PrebuildsPluginHelperMethodsTest {
     }
 
     @Test
-    fun `denyList should take precedence over allowList`() {
+    fun `loadDenyList should throw when both denyList and allowList are configured`() {
         // Given
         val extension = PackagesManager()
-        extension.denyList = setOf("react-native-reanimated")
-        extension.allowList = setOf("react-native-reanimated")
+        val configFile = File(tempDir, "rnrepo.config.json")
+        configFile.writeText(
+            """
+            {
+                "denyList": {
+                    "android": ["react-native-vector-icons"]
+                },
+                "allowList": {
+                    "android": ["react-native-reanimated"]
+                }
+            }
+            """.trimIndent(),
+        )
+        setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
+
+        // When / Then
+        assertThatThrownBy {
+            invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
+        }.hasCauseInstanceOf(GradleException::class.java)
+            .cause()
+            .hasMessageContaining("Both 'denyList' and 'allowList'")
+
+        assertThat(extension.denyList).isEmpty()
+    }
+
+    @Test
+    fun `loadDenyList should not throw when allowList and denyList target different platforms`() {
+        // Given an allowList for iOS and a denyList for Android (different platforms)
+        val extension = PackagesManager()
+        val configFile = File(tempDir, "rnrepo.config.json")
+        configFile.writeText(
+            """
+            {
+                "denyList": {
+                    "android": ["react-native-vector-icons"]
+                },
+                "allowList": {
+                    "ios": ["react-native-reanimated"]
+                }
+            }
+            """.trimIndent(),
+        )
+        setPrivateField(plugin, "REACT_NATIVE_ROOT_DIR", tempDir)
 
         // When
-        val isDenied = !invokePrivateMethod<Boolean>(
-            plugin,
-            "isPackageNotDenied",
-            arrayOf(String::class.java, PackagesManager::class.java),
-            "react-native-reanimated",
-            extension,
-        )
-        val isAllowed = invokePrivateMethod<Boolean>(
-            plugin,
-            "isPackageAllowed",
-            arrayOf(String::class.java, PackagesManager::class.java),
-            "react-native-reanimated",
-            extension,
-        )
+        invokePrivateMethod<Unit>(plugin, "loadDenyList", arrayOf(PackagesManager::class.java), extension)
 
-        // Then
-        assertThat(isDenied).isTrue()
-        assertThat(isAllowed).isTrue() // allowList passes, but denyList wins upstream in checkIfPackageIsSupported
+        // Then the Android denyList is applied and no exception is thrown
+        assertThat(extension.denyList).containsExactly("react-native-vector-icons")
     }
 
     @Suppress("UNCHECKED_CAST")

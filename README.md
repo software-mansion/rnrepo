@@ -168,7 +168,9 @@ To restrict RNRepo to a subset of libraries without having to manually deny ever
 }
 ```
 
-When `allowList` is present for a platform, only the listed libraries will use prebuilt artifacts. Everything else falls through to building from source. If `allowList` is absent, all libraries are eligible (subject to `denyList`). If both are set, `denyList` takes precedence.
+When `allowList` is present for a platform, only the listed libraries will use prebuilt artifacts. Everything else falls through to building from source. If `allowList` is absent, all libraries are eligible (subject to `denyList`).
+
+`denyList` and `allowList` are mutually exclusive *per platform*. Configuring both for the same platform in `rnrepo.config.json` will raise an error during the build — pick whichever fits your use case. Using a `denyList` for one platform and an `allowList` for another is allowed.
 
 ---
 
