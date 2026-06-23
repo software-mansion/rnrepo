@@ -9,6 +9,7 @@ on:
   pull_request:
     branches:
       - main
+    types: [labeled]
   workflow_dispatch:
     inputs:
       rn_version:
@@ -37,14 +38,22 @@ on:
         type: string
         default: ''
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   RN_VERSION: ${{ github.event.inputs.rn_version || '0.85.0' }}
   EXAMPLE_APP: rnExampleApp
-  LIBRARIES: ${{ github.event.inputs.libraries || 'react-native-worklets@0.8.1 react-native-reanimated@4.3.0 react-native-gesture-handler@2.31.2' }}
+  LIBRARIES: ${{ github.event.inputs.libraries || 'react-native-worklets@0.8.1 react-native-reanimated@4.3.0 react-native-gesture-handler@2.31.2 react-native-screens@4.25.0' }}
 
 jobs:
   check-changes:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (!github.event.pull_request.draft && contains(fromJSON('["build-android", "build-ios"]'), github.event.label.name))
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       pull-requests: read
       contents: read
@@ -53,10 +62,12 @@ jobs:
       ios: ${{ steps.filter.outputs.ios }}
     steps:
       - name: 🏗 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
 
       - name: 🔍 Check for file changes
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
         id: filter
         with:
           filters: |
@@ -75,24 +86,26 @@ jobs:
 
   build-example-rn-app-android:
     needs: check-changes
-    if: needs.check-changes.outputs.android == 'true' || github.event.inputs.request_android == 'true'
+    if: >-
+      (github.event_name == 'push' && needs.check-changes.outputs.android == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.request_android == 'true') ||
+      (github.event_name == 'pull_request' && contains(fromJSON('["build-android"]'), github.event.label.name))
     runs-on: rnrepo-builder-ubuntu-latest
     timeout-minutes: 60
     permissions:
       actions: read
       contents: read
-    concurrency:
-      group: build-example-rn-app-android-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - name: 🏗 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
 
       - name: 🤖 Setup Android environment
         uses: ./.github/actions/setup-android
 
       - name: ♻️ Cache Gradle files
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.gradle/caches
@@ -124,25 +137,26 @@ jobs:
 
   build-example-rn-app-ios:
     needs: check-changes
-    if: needs.check-changes.outputs.ios == 'true' || github.event.inputs.request_ios == 'true'
+    if: >-
+      (github.event_name == 'push' && needs.check-changes.outputs.ios == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.request_ios == 'true') ||
+      (github.event_name == 'pull_request' && contains(fromJSON('["build-ios"]'), github.event.label.name))
     runs-on: [self-hosted, macOS, ARM64, ephemeral]
     timeout-minutes: 60
     permissions:
       actions: read
       contents: read
-    concurrency:
-      group: build-example-rn-app-ios-${{ github.ref }}
-      cancel-in-progress: true
-
     steps:
       - name: 🏗 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
 
       - name: 🍎 Setup iOS environment
         uses: ./.github/actions/setup-ios
 
       - name: ♻️ Cache CocoaPods
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cocoapods
           key: cocoapods-${{ runner.os }}-rn-${{ env.RN_VERSION }}
@@ -165,8 +179,8 @@ jobs:
       - name: 🏗 Build RN App for iOS (Debug)
         run: |
           xcodebuild \
-            -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
-            -scheme ${{ env.EXAMPLE_APP }} \
+            -workspace ${EXAMPLE_APP}.xcworkspace \
+            -scheme ${EXAMPLE_APP} \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
@@ -177,8 +191,8 @@ jobs:
       - name: 🏗 Build RN App for iOS (Release)
         run: |
           xcodebuild \
-            -workspace ${{ env.EXAMPLE_APP }}.xcworkspace \
-            -scheme ${{ env.EXAMPLE_APP }} \
+            -workspace ${EXAMPLE_APP}.xcworkspace \
+            -scheme ${EXAMPLE_APP} \
             -configuration Release \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \

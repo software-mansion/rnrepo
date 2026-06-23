@@ -134,21 +134,47 @@ function getLibraryLicenseConfig(libraryName: string): Record<string, string> | 
 }
 
 /**
- * Extract and verify the library's license
- * Checks against ALLOWED_LICENSES, or verifies MD5 hash if configured in libraries.json
+ * Parse an SPDX-style license expression into individual license identifiers.
+ *
+ * Supports a single license (e.g. "MIT") or a conjunction of licenses with
+ * optional surrounding parentheses (e.g. "(MIT AND BSD-3-Clause)"). The "AND"
+ * separator is matched case-insensitively. Returns the trimmed, non-empty parts.
+ */
+function parseLicenseExpression(licenseField: string): string[] {
+  const stripped = licenseField
+    .trim()
+    .replace(/^\(/, '')
+    .replace(/\)$/, '')
+    .trim();
+  return stripped
+    .split(/\s+AND\s+/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Extract and verify the library's license(s)
+ * Checks against ALLOWED_LICENSES (supporting SPDX "(<l1> AND <l2>)"
+ * expressions), or verifies MD5 hash if configured in libraries.json
  */
 export function extractAndVerifyLicense(
   appDir: string,
   libraryName: string
-): AllowedLicense {
+): AllowedLicense[] {
   const packageDir = join(appDir, 'node_modules', libraryName);
   const packageJsonPath = join(packageDir, 'package.json');
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   const licenseField = packageJson.license;
 
-  // Check if license is in allowed list
-  if (ALLOWED_LICENSES.includes(licenseField as AllowedLicense)) {
-    return licenseField as AllowedLicense;
+  // Check if every license in the expression is in the allowed list
+  const parsedLicenses = parseLicenseExpression(licenseField);
+  if (
+    parsedLicenses.length > 0 &&
+    parsedLicenses.every((license) =>
+      ALLOWED_LICENSES.includes(license as AllowedLicense)
+    )
+  ) {
+    return parsedLicenses as AllowedLicense[];
   }
 
   // Try to verify by MD5 hash if configured in libraries.json
@@ -172,7 +198,7 @@ export function extractAndVerifyLicense(
     licenseConfig.fileMD5,
     libraryName
   );
-  return licenseConfig.type as AllowedLicense;
+  return [licenseConfig.type as AllowedLicense];
 }
 
 /**
@@ -288,7 +314,7 @@ export async function setupReactNativeProject(
   workletsVersion: string | undefined
 ): Promise<{
   appDir: string;
-  license: AllowedLicense;
+  license: AllowedLicense[];
   postinstallGradleScriptPath?: string;
 }> {
   const appDir = join(workDir, 'rnrepo_build_app');

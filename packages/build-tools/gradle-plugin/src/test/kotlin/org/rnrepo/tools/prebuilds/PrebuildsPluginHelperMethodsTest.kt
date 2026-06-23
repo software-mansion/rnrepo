@@ -5,6 +5,9 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.api.Project
+import org.gradle.api.artifacts.component.ComponentSelector
+import org.gradle.api.artifacts.component.ModuleComponentSelector
+import org.gradle.api.artifacts.component.ProjectComponentSelector
 import org.gradle.api.logging.Logger
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -277,6 +280,71 @@ class PrebuildsPluginHelperMethodsTest {
         // Then
         assertThat(result1).isFalse()
         assertThat(result2).isTrue()
+    }
+
+    @Test
+    fun `matchesPackageSelector should not match package name prefixes`() {
+        // Given
+        val appPackage = PackageItem("react-native-firebase_app", "23.8.8", "@react-native-firebase/app")
+        val appCheckPackage = PackageItem("react-native-firebase_app-check", "23.8.8", "@react-native-firebase/app-check")
+
+        val appCheckProjectSelector = mockk<ProjectComponentSelector>()
+        every { appCheckProjectSelector.projectPath } returns ":react-native-firebase_app-check"
+
+        val appProjectSelector = mockk<ProjectComponentSelector>()
+        every { appProjectSelector.projectPath } returns ":react-native-firebase_app"
+
+        val appCheckModuleSelector = mockk<ModuleComponentSelector>()
+        every { appCheckModuleSelector.module } returns "react-native-firebase_app-check"
+
+        // When
+        val appMatchesAppCheckProject =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "matchesPackageSelector",
+                arrayOf(ComponentSelector::class.java, PackageItem::class.java),
+                appCheckProjectSelector,
+                appPackage,
+            )
+        val appCheckMatchesAppCheckProject =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "matchesPackageSelector",
+                arrayOf(ComponentSelector::class.java, PackageItem::class.java),
+                appCheckProjectSelector,
+                appCheckPackage,
+            )
+        val appMatchesAppProject =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "matchesPackageSelector",
+                arrayOf(ComponentSelector::class.java, PackageItem::class.java),
+                appProjectSelector,
+                appPackage,
+            )
+        val appMatchesAppCheckModule =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "matchesPackageSelector",
+                arrayOf(ComponentSelector::class.java, PackageItem::class.java),
+                appCheckModuleSelector,
+                appPackage,
+            )
+        val appCheckMatchesAppCheckModule =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "matchesPackageSelector",
+                arrayOf(ComponentSelector::class.java, PackageItem::class.java),
+                appCheckModuleSelector,
+                appCheckPackage,
+            )
+
+        // Then
+        assertThat(appMatchesAppCheckProject).isFalse()
+        assertThat(appCheckMatchesAppCheckProject).isTrue()
+        assertThat(appMatchesAppProject).isTrue()
+        assertThat(appMatchesAppCheckModule).isFalse()
+        assertThat(appCheckMatchesAppCheckModule).isTrue()
     }
 
     @Test

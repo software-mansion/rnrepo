@@ -3,14 +3,19 @@ import semver from 'semver';
 
 const COMPATIBILITY_MATRIX = [
   {
-    rn: '>=0.85.0',
+    rn: '>=0.86.0',
+    reanimated: '4.4.1',
+    worklets: '0.9.1'
+  },
+  {
+    rn: '>=0.85.0 <0.86.0',
     reanimated: '4.3.0',
     worklets: '0.8.1'
   },
   {
     rn: '>=0.80.0 <0.85.0',
     reanimated: '4.2.2',
-    worklets: '0.7.3'
+    worklets: '0.7.4'
   },
   {
     rn: '>=0.77.0 <=0.79.x',
@@ -25,19 +30,22 @@ export default async function postInstallSetup(): Promise<void> {
     const rnVersion = await getPackageVersion('react-native');
     console.log(`Detected React Native version: ${rnVersion}`);
     const { reanimatedVersion, workletsVersion } = getReanimatedAndWorkletsVersion(rnVersion);
+    const gestureHandlerVersion = await getPackageVersion('react-native-gesture-handler');
     // Support RN-GH only with reanimated
     await $`bun install react-native-reanimated@${reanimatedVersion} --save-exact`.quiet();
     console.log(`✓ Installed react-native-reanimated@${reanimatedVersion}`);
     await $`bun install react-native-worklets@${workletsVersion} --save-exact`.quiet();
     console.log(`✓ Installed react-native-worklets@${workletsVersion}`);
-    // Patch react-native-gesture-handler to avoid issues with react-native-svg
-    await $`bun install react-native-svg`.quiet();
-    console.log('✓ Installed react-native-svg');
-    const patchPath = __dirname + '/react-native-gesture-handler.patch';
-    const packagePath = './node_modules/react-native-gesture-handler';
-    await $`/usr/bin/patch -p1 -i ${patchPath}`.cwd(packagePath).quiet();
-    console.log('✓ Patched react-native-gesture-handler for SVG compatibility');
-    
+    if (semver.gte(gestureHandlerVersion, '2.25.0')) {
+        // Patch react-native-gesture-handler to avoid issues with react-native-svg 
+        // svg was introduced in rngh@2.25.0
+        await $`bun install react-native-svg`.quiet();
+        console.log('✓ Installed react-native-svg');
+        const patchPath = getPatchFile(gestureHandlerVersion);
+        const packagePath = './node_modules/react-native-gesture-handler';
+        await $`/usr/bin/patch -p1 -i ${patchPath}`.cwd(packagePath).quiet();
+        console.log('✓ Patched react-native-gesture-handler for SVG compatibility');
+    }
     console.log(`✓ Post-install setup for react-native-gesture-handler completed.`);
 };
 
@@ -58,6 +66,17 @@ function getReanimatedAndWorkletsVersion(rnVersion: string): { reanimatedVersion
         throw new Error(`Unsupported React Native version: ${rnVersion}. Please check the compatibility matrix.`);
     }
     return { reanimatedVersion: config.reanimated, workletsVersion: config.worklets };
+}
+
+function getPatchFile(gestureHandlerVersion: string): string {
+    if (semver.gte(gestureHandlerVersion, '3.0.0')) {
+        return __dirname + '/react-native-gesture-handler_3.0.0.patch';
+    } else if (gestureHandlerVersion == '2.25.0') {
+        return __dirname + '/react-native-gesture-handler_2.25.0.patch';
+    } else {
+        // >=2.26.0, <3.0.0 
+        return __dirname + '/react-native-gesture-handler.patch';
+    }
 }
 
 try {

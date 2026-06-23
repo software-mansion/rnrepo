@@ -1,5 +1,6 @@
 require 'cocoapods'
 require 'json'
+require 'shellwords'
 require_relative 'logger'
 require_relative 'pod_extractor'
 require_relative 'downloader'
@@ -19,9 +20,38 @@ require_relative 'framework_cache'
 # +  rnrepo_post_install(installer)
 #
 
+# Walks up the directory tree looking for node_modules/react-native,
+# matching the behavior of the Android Gradle plugin's getReactNativeRoot.
+# Falls back to Node's resolver for non-standard layouts (e.g. monorepos
+# with hoisting disabled).
+def find_react_native_root(start_dir)
+  current = File.expand_path(start_dir)
+  loop do
+    if File.directory?(File.join(current, 'node_modules', 'react-native'))
+      return current
+    end
+    parent = File.dirname(current)
+    break if parent == current
+    current = parent
+  end
+
+  rn_package_path = `cd #{Shellwords.escape(start_dir)} && node --print "require.resolve('react-native/package.json')" 2>/dev/null`.strip
+  if !rn_package_path.empty? && File.exist?(rn_package_path)
+    return File.expand_path('../..', File.dirname(rn_package_path))
+  end
+
+  nil
+end
+
+def find_rnrepo_config_path(workspace_root)
+  rn_root = find_react_native_root(workspace_root)
+  search_dir = rn_root || File.expand_path('..', workspace_root)
+  File.join(search_dir, 'rnrepo.config.json')
+end
+
 # Helper method to load and parse rnrepo.config.json
 def load_rnrepo_config(workspace_root)
-  config_path = File.join(workspace_root, '..', 'rnrepo.config.json')
+  config_path = find_rnrepo_config_path(workspace_root)
   CocoapodsRnrepo::Logger.log "Loading rnrepo.config.json from #{config_path}"
   return {} unless File.exist?(config_path)
 
@@ -39,10 +69,42 @@ def get_ios_denylist(workspace_root)
   denylist_config['ios'] || []
 end
 
+def get_ios_cache_path(workspace_root)
+  config = load_rnrepo_config(workspace_root)
+  return File.expand_path('~/.rnrepo-cache') unless config.key?('xcframeworksCacheDir')
+  path = config['xcframeworksCacheDir']
+  return nil if !path || path.to_s.strip.empty?
+  config_dir = File.dirname(find_rnrepo_config_path(workspace_root))
+  File.expand_path(path, config_dir)
+end
+
 def is_version_at_least(current_version, minimum_version)
   current_version ||= '0.0.0'
   current_core = current_version.match(/^\d+(\.\d+)*/)&.to_s || '0.0.0'
   Gem::Version.new(current_core) >= Gem::Version.new(minimum_version)
+end
+
+def find_framework_name_in_xcframework(xcframework_path)
+  framework_path =
+    Dir.glob(File.join(xcframework_path, '*', '*.framework')).find do |path|
+      File.directory?(path)
+    end
+
+  File.basename(framework_path) if framework_path
+end
+
+def find_prebuilt_framework_name(pod_info)
+  cache_dir = File.join(pod_info[:package_root], '.rnrepo-cache')
+  current_xcframeworks = Dir.glob(File.join(cache_dir, 'Current', '*.xcframework')).sort
+  fallback_xcframeworks = Dir.glob(File.join(cache_dir, '*', '*.xcframework')).sort
+  xcframework_paths = (current_xcframeworks + fallback_xcframeworks).uniq
+
+  framework_name =
+    xcframework_paths
+      .map { |xcframework_path| find_framework_name_in_xcframework(xcframework_path) }
+      .find { |name| !name.nil? }
+
+  framework_name || "#{pod_info[:name]}.framework"
 end
 
 def rnrepo_pre_install(installer_context)
@@ -108,14 +170,15 @@ def rnrepo_pre_install(installer_context)
 
   # Add expo pod to installer context for later use in post_install
   Pod::Installer.expo_pod = rn_pods.find { |pod| pod[:name] == 'Expo' }
-
+  cache_path = get_ios_cache_path(workspace_root)
   # Download and cache pre-built frameworks in parallel
   threads = rn_pods.map do |pod_info|
     Thread.new do
       result = CocoapodsRnrepo::FrameworkCache.fetch_framework(
         installer_context,
         pod_info,
-        workspace_root
+        workspace_root,
+        cache_path: cache_path
       )
 
       # Thread-safe result collection
@@ -380,6 +443,25 @@ def append_build_setting(build_settings, key, value)
   end
 end
 
+# CocoaPods' collision-blind UUID generator can mint our build phases onto UUIDs
+# core objects already hold, corrupting Pods.xcodeproj. Returns a generator that
+# yields free UUIDs in CocoaPods' own 14-char format ('%.6s%07X0'), collision-
+# checking each candidate and walking the counter forward from 0 as CocoaPods
+# does. The cost of scanning past taken slots is negligible (~1ms, paid once
+# since the counter persists across calls).
+# UUID generator in CocoaPods: https://github.com/CocoaPods/CocoaPods/blob/458dd19585c03d706c2dc23238afd3845a4c6000/lib/cocoapods/project.rb#L70
+def build_safe_uuid_generator(pods_project)
+  uuid_prefix = pods_project.root_object.uuid[0, 6]
+  next_uuid_counter = 0
+  lambda do
+    loop do
+      candidate = format('%.6s%07X0', uuid_prefix, next_uuid_counter)
+      next_uuid_counter += 1
+      return candidate unless pods_project.objects_by_uuid.key?(candidate)
+    end
+  end
+end
+
 def rnrepo_post_install(installer_context)
   # Check if plugin is disabled via environment variable
   if ENV['DISABLE_RNREPO']
@@ -395,14 +477,15 @@ def rnrepo_post_install(installer_context)
       CACHE_DIR="${PODS_TARGET_SRCROOT}/.rnrepo-cache"
       CURRENT_LINK="${CACHE_DIR}/Current"
 
-      # Select the appropriate configuration
-      if [ "$CONFIGURATION" == "Debug" ]; then
+      # Select the appropriate configuration based on whether this is a
+      # debuggable build. Matching on the $CONFIGURATION name is unreliable
+      # because projects can define custom configuration names (e.g.
+      # "Staging", "QA") that are neither "Debug" nor "Release". Instead we
+      # detect the DEBUG=1 preprocessor definition, which mirrors how React
+      # Native core selects its prebuilt configuration.
+      TARGET_DIR="Release"
+      if echo "$GCC_PREPROCESSOR_DEFINITIONS" | grep -q "DEBUG=1"; then
         TARGET_DIR="Debug"
-      elif [ "$CONFIGURATION" == "Release" ]; then
-        TARGET_DIR="Release"
-      else
-        echo "warning: Unknown configuration '$CONFIGURATION', defaulting to Release"
-        TARGET_DIR="Release"
       fi
       echo "RNREPO: Switching to ${TARGET_DIR} configuration"
 
@@ -424,10 +507,14 @@ def rnrepo_post_install(installer_context)
   prebuilt_pod_names = (Pod::Installer.prebuilt_rnrepo_pods || []).map { |pod| pod[:name] }
   # Run order is alphabetical. This script must run before the '[CP] Copy XCFrameworks` script
   script_name = '[AA RUN FIRST] RNREPO Build Start'
+
+  pods_project = installer_context.pods_project
+  generate_safe_uuid = build_safe_uuid_generator(pods_project)
+
   # Add build phase script ONLY to targets that have prebuilt frameworks
-  installer_context.pods_project.targets.each do |target|
+  pods_project.targets.each do |target|
     target_name = target.name
-    
+
     # Only add build phase to targets that were prebuilt
     matches_prebuilt_pod = prebuilt_pod_names.any? do |pod_name|
       target_name.downcase.start_with?(pod_name.to_s.downcase)
@@ -436,11 +523,18 @@ def rnrepo_post_install(installer_context)
 
     # Remove any existing RNREPO build phase first
     target.build_phases.select { |phase| phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase) && phase.name == script_name }.each(&:remove_from_project)
-    
-    # Create shell script build phase
-    build_phase = target.new_shell_script_build_phase(script_name)
+
+    # Build the phase with a pre-verified UUID instead of target.new_shell_script_build_phase,
+    # which would mint one through CocoaPods' collision-blind generator and risk evicting a
+    # core object. This mirrors what Xcodeproj::Project#new does, minus that generator, see:
+    # https://github.com/CocoaPods/Xcodeproj/blob/c12d2ae619ae42f947a6b07d865f69948c752df5/lib/xcodeproj/project/object/native_target.rb#L304
+    # https://github.com/CocoaPods/Xcodeproj/blob/c12d2ae619ae42f947a6b07d865f69948c752df5/lib/xcodeproj/project.rb#L433
+    build_phase = Xcodeproj::Project::Object::PBXShellScriptBuildPhase.new(pods_project, generate_safe_uuid.call)
+    build_phase.initialize_defaults
+    build_phase.name = script_name
     build_phase.shell_script = script_content
-    
+    target.build_phases << build_phase
+
     CocoapodsRnrepo::Logger.log "  Added build phase to #{target_name}"
   end
 
@@ -459,7 +553,8 @@ def rnrepo_post_install(installer_context)
       if worklets_root == nil
         raise "RNWorklets not found in podfile, add react-native-worklets to denyList."
       end
-      module_map = "-fmodule-map-file=\"$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/RNWorklets.framework/Modules/module.modulemap\""
+      worklets_framework_name = find_prebuilt_framework_name(worklets_pod)
+      module_map = "-fmodule-map-file=\"$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/#{worklets_framework_name}/Modules/module.modulemap\""
 
       target.build_configurations.each do |config|
         build_settings = config.build_settings

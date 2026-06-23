@@ -4,18 +4,7 @@ Please include a summary of the changes and related context. Explain the **why**
 
 [hidden-comment]: <> (Update changelog if needed)
 [hidden-comment]: <> (Mention related issues if applicable)
-
-## 🎯 Type of Change
-
-Please delete options that are not relevant:
-
-- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
-- [ ] ✨ New feature (non-breaking change which adds functionality)
-- [ ] 🧩 New library support
-- [ ] 📚 Documentation update
-- [ ] ♻️ Refactoring (no functional changes)
-- [ ] ⚡ Performance improvement
-- [ ] 🧪 Test addition/modification
+[hidden-comment]: <> (To trigger the regression build tests, add `build-android`/`build-ios`/`build-expo` labels to the pull request)
 
 ## 🧪 Testing
 

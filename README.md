@@ -1,8 +1,12 @@
 <img width="1200" height="490" alt="rnrepo banner" src="https://github.com/user-attachments/assets/4fc951d4-a5ef-4a08-b0d2-40fda25c459e" />
 
+[![Ad](https://swm-delivery.com/www/images/zone-gh-rnrepo-1?n=1)](https://swm-delivery.com/www/delivery/ck-slug.php?zoneid=zone-gh-rnrepo-1&n=1)
+[![Ad](https://swm-delivery.com/www/images/zone-gh-rnrepo-2?n=1)](https://swm-delivery.com/www/delivery/ck-slug.php?zoneid=zone-gh-rnrepo-2&n=1)
+[![Ad](https://swm-delivery.com/www/images/zone-gh-rnrepo-3?n=1)](https://swm-delivery.com/www/delivery/ck-slug.php?zoneid=zone-gh-rnrepo-3&n=1)
+
 RNRepo is an infrastructure and tooling project from [Software Mansion](https://swmansion.com) that improves native build times in React Native projects by pre-building and distributing community library artifacts. We maintain both the automated build system that precompiles popular React Native libraries and the distribution network that hosts these artifacts. With seamless integration via build plugins, RNRepo can reduce your build times by up to **2×** with zero infrastructure changes.
 
-> ⚠️ RNRepo is currently in beta and available only for React Native projects using **The New Architecture**. Please give it a try, share your feedback and use [issues](https://github.com/software-mansion/rnrepo/issues) to report any problems with your setup.
+> RNRepo is available only for React Native projects using **The New Architecture**. Please give it a try, share your feedback and use [issues](https://github.com/software-mansion/rnrepo/issues) to report any problems with your setup.
 
 To get started quickly, head to the [Installation](#installation) section or visit [RNRepo.org](https://rnrepo.org) for instructions.
 
@@ -163,6 +167,20 @@ If you're unsure whether RNRepo has been set up correctly in your project, check
 
 For troubleshooting Android builds, before reporting an issue, we recommend passing the `--scan` flag to Gradle (e.g., `./gradlew app:assembleDebug --scan`). This flag generates a report of all tasks performed during the build along with their execution times, which can be useful for investigating issues such as when certain prebuilt libraries weren't loaded from the repository.
 
+### Artifact caching
+
+**Android:** The Gradle plugin relies on Gradle's built-in dependency cache. Downloaded `.aar` artifacts are stored automatically in `~/.gradle/caches/` and reused across builds and projects without any extra configuration. To warm the cache in CI, save and restore the `~/.gradle/caches/` directory between runs.
+
+**iOS:** Downloaded xcframeworks are cached in `~/.rnrepo-cache` by default, then extracted to `node_modules/{package-name}/.rnrepo-cache` on every `pod install`. To use a custom cache path or disable caching, set `xcframeworksCacheDir` in `rnrepo.config.json`:
+
+```json
+{
+  "xcframeworksCacheDir": "/path/to/cache"
+}
+```
+
+To disable caching entirely, set `xcframeworksCacheDir` to `null`.
+
 ### Temporarily disabling RNRepo for troubleshooting
 
 To temporarily disable RNRepo for a specific build (for example, to debug build issues or test local changes), you can use the `DISABLE_RNREPO` environment variable:
@@ -177,8 +195,6 @@ For more detailed troubleshooting instructions, please refer to the [Troubleshoo
 
 ## Limitations
 
-RNRepo is currently in beta, and while we're working to improve compatibility, the current version has certain limitations:
-
 1. **Local build modifications:** If you have local build-time modifications of React Native core or any library code in the form of patches (via patch-package) or build-time feature flags, the prebuilt artifacts may not be compatible with your configuration. In this case, you'll need to explicitly opt out of using prebuilds for specific libraries. If you have a use case where you'd like to use prebuilt patched libraries, reach out to [Software Mansion](https://swmansion.com/contact) to help customize the setup for you.
 2. **Limited React Native versions supported:** We support all React Native versions from `0.80.0` onwards, plus the latest patch versions for `0.77.3`, `0.78.3`, and `0.79.7`. If your React Native version is not yet supported, prebuilt artifacts will automatically fall back to building from source. For a complete list of supported versions, refer to the `react-native-versions.json` file in our GitHub repository.
 3. **Limited library coverage:** We host a limited subset of community libraries for specific React Native versions. Refer to `libraries.json` file for the complete list of supported libraries. We're actively expanding coverage (see the section below on adding new libraries).
@@ -188,7 +204,7 @@ RNRepo is currently in beta, and while we're working to improve compatibility, t
 
 ## Adding new libraries to RNRepo
 
-As RNRepo is currently in beta, we are still expanding the list of libraries that we can cover.
+We are still expanding the list of libraries that we can cover.
 If you'd like us to add a specific library or React Native version, you can submit an [issue](https://github.com/software-mansion/rnrepo/issues), keep in mind that the library needs to meet the following requirements:
 
 1. It needs to have some platform native code (JS/TS only libraries won't benefit from pre-builds anyway).

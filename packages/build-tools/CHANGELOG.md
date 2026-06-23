@@ -7,9 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fix Android substitution prefix matching (#385)
+
+## [0.1.5] - 2026-06-12
+
+### Changed
+- Allow caching iOS artifacts in a custom path to simplify CI caching (#338)
+
+### Fixed
+- Resolve worklets framework module map (#352)
+- Detect debug configuration using GCC preprocessor definitions (#367)
+- Run C++ dependencies check sequentially instead of in parallel (#372)
+- Fix corrupted Pods.xcodeproj caused by iOS build-phase UUID collisions (#373)
+
+## [0.1.4] - 2026-05-21
+
+### Added
+- Support react-native-tvos on iOS by stripping pre-release version suffixes (#345)
+
 ### Changed
 - Resolve Gradle repositories once instead of per-package check for improved build performance (#337)
 - Handle Xcode settings in both array and string formats (#330)
+- iOS CocoaPods more robust in resolving `rnrepo.config.json` (#346)
 
 ## [0.1.3-beta.0] - 2026-04-30
 

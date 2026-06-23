@@ -8,6 +8,9 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.artifacts.component.ComponentSelector
+import org.gradle.api.artifacts.component.ModuleComponentSelector
+import org.gradle.api.artifacts.component.ProjectComponentSelector
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.file.RegularFile
@@ -185,7 +188,7 @@ class PrebuildsPlugin : Plugin<Project> {
                             evaluatedProject.configurations.all { config ->
                                 config.resolutionStrategy.dependencySubstitution { substitutions ->
                                     substitutions.all { dependencySubstitution ->
-                                        if (dependencySubstitution.requested.displayName.contains("${packageItem.name}")) {
+                                        if (matchesPackageSelector(dependencySubstitution.requested, packageItem)) {
                                             dependencySubstitution.useTarget(substitutions.module(module))
                                             val codegenSuffix = if (packageItem.hasCodegen) "-codegen" else ""
                                             dependencySubstitution.artifactSelection {
@@ -211,7 +214,11 @@ class PrebuildsPlugin : Plugin<Project> {
             if (getBuildType(project) == "debug") {
                 project.gradle.projectsEvaluated {
                     logger.info("Checking if all dependencies with c++ code have their consumers supported...")
-                    PACKAGES_WITH_CPP.keys.parallelStream().forEach { packageName ->
+                    // Must stay sequential: checkDependencies iterates the subprojects' lazy
+                    // dependency collections, which are not thread-safe to realize concurrently
+                    // (intermittent "Collectors$TypedCollector.collectInto(...) collector is null"
+                    // NPE). See https://github.com/software-mansion/rnrepo/issues/371
+                    PACKAGES_WITH_CPP.keys.forEach { packageName ->
                         val packageItem = extension.projectPackages.find { it.name == packageName }
                         if (packageItem == null) {
                             logger.info("Package $packageName not found in project packages, skipping dependency check.")
@@ -231,6 +238,16 @@ class PrebuildsPlugin : Plugin<Project> {
             }
         }
     }
+
+    private fun matchesPackageSelector(
+        requested: ComponentSelector,
+        packageItem: PackageItem,
+    ): Boolean =
+        when (requested) {
+            is ProjectComponentSelector -> requested.projectPath == ":${packageItem.name}"
+            is ModuleComponentSelector -> requested.module == packageItem.name
+            else -> requested.displayName == packageItem.name
+        }
 
     private fun addRNRepoRepository(project: Project) {
         val rnrepoUrl = project.uri("https://packages.rnrepo.org/releases")

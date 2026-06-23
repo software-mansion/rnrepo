@@ -30,24 +30,6 @@ body:
     validations:
       required: true
 
-  - type: textarea
-    id: expected
-    attributes:
-      label: 🤔 Expected Behavior
-      description: Describe what should happen
-      placeholder: What should happen instead?
-    validations:
-      required: true
-
-  - type: textarea
-    id: actual
-    attributes:
-      label: 😲 Actual Behavior
-      description: Describe what actually happened
-      placeholder: What actually happened?
-    validations:
-      required: true
-
   - type: markdown
     attributes:
       value: "## 🛠️ Environment Information"
@@ -55,38 +37,14 @@ body:
   - type: input
     id: rnrepo-version
     attributes:
-      label: RNRepo version (and/or @rnrepo/expo-config-plugin version)
+      label: "@rnrepo/build-tools or @rnrepo/expo-config-plugin version"
       placeholder: "e.g., 0.2.0"
     validations:
       required: true
 
-  - type: input
-    id: rn-version
-    attributes:
-      label: React Native version
-      placeholder: "e.g., 0.74.0"
-    validations:
-      required: true
-
-  - type: input
-    id: gradle-version
-    attributes:
-      label: Gradle version
-      placeholder: "e.g., 8.3"
-    validations:
-      required: true
-
-  - type: input
-    id: os
-    attributes:
-      label: Operating System
-      placeholder: "e.g., macOS 14.0, Ubuntu 22.04"
-    validations:
-      required: true
-
   - type: textarea
-    id: additional
+    id: env
     attributes:
-      label: ➕ Additional Information
-      description: Add any other information that might be helpful
-      placeholder: Any other context?
+      label: Environment details
+      description: What versions of relevant tools are you using? 
+      placeholder: "e.g., react-native: 0.72.3, expo: 49.0.0, xcode: 15.0"

@@ -96,8 +96,11 @@ module CocoapodsRnrepo
 
         # Check if command succeeded
         if $?.success? && !result.empty? && result.match?(/^\d+\.\d+\.\d+/)
-          Logger.log "  ✓ Found React Native version: #{result}"
-          return result
+          # Strip non-core suffixes (e.g. react-native-tvos "0.83.2-0" → "0.83.2")
+          # so the version aligns with the prebuilt artifact naming.
+          core_version = strip_version_to_core(result)
+          Logger.log "  ✓ Found React Native version: #{core_version}"
+          return core_version
         else
           Logger.log "  ✗ Node.js command failed or returned invalid version: #{result}"
         end
@@ -107,6 +110,14 @@ module CocoapodsRnrepo
 
       Logger.log "  ⚠️  Could not detect React Native version"
       nil
+    end
+
+    # Trim a version string to its major.minor.patch core, dropping any pre-release
+    # or build suffix. Mirrors the Android plugin's stripVersionToCore so the
+    # detected RN version matches the prebuilt artifact naming on the server.
+    def self.strip_version_to_core(version)
+      match = version.match(/^\d+\.\d+\.\d+/)
+      match ? match[0] : version
     end
   end
 end

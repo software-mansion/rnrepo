@@ -64,15 +64,40 @@ try {
  * Get the pod name for a given library
  * This extracts the pod name from the library's podspec or package.json
  */
-function getPodName(appDir: string): string {
+async function getPodName(appDir: string): Promise<string> {
   const packagePath = join(appDir, 'node_modules', libraryName);
 
-  // Try to find podspec file using bun glob
+  // Find podspec with npx --no-install react-native config like RN does
+  try {
+    const configJson = await $`npx --no-install react-native config`
+      .cwd(appDir)
+      .quiet()
+      .text();
+    const config = JSON.parse(configJson);
+    const podspecPath: string | undefined =
+      config?.dependencies?.[libraryName]?.platforms?.ios?.podspecPath;
+    if (podspecPath) {
+      return basename(podspecPath, '.podspec');
+    }
+  } catch (error) {
+    console.warn(
+      `⚠️ Could not resolve pod name from \`react-native config\` for ${libraryName}, falling back to podspec glob:`,
+      error
+    );
+  }
+
+  // Try to find podspec file using bun glob as fallback
   const glob = new Glob('*.podspec');
   const podspecFiles = Array.from(glob.scanSync({ cwd: packagePath })) as string[];
 
   if (podspecFiles.length > 0) {
-    return basename(podspecFiles[0], '.podspec');
+    // same: https://github.com/react-native-community/cli/blob/9a25c5f/packages/cli-config-apple/src/config/findPodspec.ts
+    const packagePodspec = basename(packagePath) + '.podspec';
+    const podspecFile = podspecFiles.includes(packagePodspec)
+      ? packagePodspec
+      : podspecFiles[0];
+
+    return basename(podspecFile, '.podspec');
   }
 
   throw new Error(
@@ -134,7 +159,7 @@ async function xcodebuild(
 /**
  * Build the iOS XCFramework
  */
-async function buildFramework(appDir: string, _license: AllowedLicense) {
+async function buildFramework(appDir: string, _license: AllowedLicense[]) {
   const iosPath = join(appDir, 'ios');
   const projectPath = join(iosPath, basename(appDir) + '.xcworkspace');
 
@@ -143,7 +168,7 @@ async function buildFramework(appDir: string, _license: AllowedLicense) {
     throw new Error(`Xcode workspace not found at ${projectPath}`);
   }
 
-  const podName = getPodName(appDir);
+  const podName = await getPodName(appDir);
   console.log(
     `📱 Building library pod: ${podName}`
   );

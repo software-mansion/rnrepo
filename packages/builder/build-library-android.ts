@@ -287,7 +287,7 @@ try {
   process.exit(1);
 }
 
-async function buildAAR(appDir: string, license: AllowedLicense) {
+async function buildAAR(appDir: string, license: AllowedLicense[]) {
   const gradleProjectName = sanitizePackageName(libraryName);
   const classifier = `rn${reactNativeVersion}${
     workletsVersion ? `-worklets${workletsVersion}` : ''
@@ -341,6 +341,7 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
   }
 
   try {
+<<<<<<< HEAD
     // If library has codegen, build codegen version as well
     if (!hasCodegenConfig) {
       await buildStandardAar(
@@ -359,6 +360,41 @@ async function buildAAR(appDir: string, license: AllowedLicense) {
         mavenLocalLibraryLocationPath,
         packageJson.codegenConfig.name
       );
+=======
+    const args = [
+      `:${gradleProjectName}:publishToMavenLocal`,
+      '--no-daemon',
+      '--init-script', addPublishingGradleScriptPath,
+      '--init-script', addPrefabReduceGradleScriptPath,
+      ...(postinstallGradleScriptPath
+        ? ['--init-script', postinstallGradleScriptPath]
+        : []),
+      `-PrnrepoArtifactId=${gradleProjectName}`,
+      `-PrnrepoPublishVersion=${libraryVersion}`,
+      `-PrnrepoClassifier=${classifier}`,
+      `-PrnrepoCpuInfo=${getCpuInfo()}`,
+      `-PrnrepoBuildUrl=${GITHUB_BUILD_URL}`,
+      // Comma-separated list of SPDX license ids; the publishing init script
+      // emits one <license> POM node per entry, deriving the url from the name.
+      `-PrnrepoLicenseName=${license.join(',')}`,
+    ];
+    await $`./gradlew ${args}`.cwd(androidPath);
+
+    // verify that the .pom and .aar files are present aftre the publish command completes
+    const pomPath = join(
+      mavenLocalLibraryLocationPath,
+      `${gradleProjectName}-${libraryVersion}.pom`
+    );
+    if (!existsSync(pomPath)) {
+      throw new Error(`POM file not found at ${pomPath}`);
+    }
+    const aarPath = join(
+      mavenLocalLibraryLocationPath,
+      `${gradleProjectName}-${libraryVersion}-${classifier}.aar`
+    );
+    if (!existsSync(aarPath)) {
+      throw new Error(`AAR file not found at ${aarPath}`);
+>>>>>>> main
     }
 
   } catch (error) {

@@ -3,9 +3,17 @@ import semver from 'semver';
 
 const COMPATIBILITY_MATRIX = [
   {
-    reanimated: '>=4.3.0',
+    reanimated: '4.3',
     worklets: '0.8.1'
   },
+  {
+    reanimated: '4.4',
+    worklets: '0.9.1'
+  },
+  {
+    reanimated: '4.5',
+    worklets: '0.10.0'
+  }
 ];
 
 export default async function postInstallSetup(): Promise<void> {

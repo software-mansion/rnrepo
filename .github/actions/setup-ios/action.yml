@@ -18,10 +18,12 @@ runs:
       uses: ./.github/actions/configure-npm-security
 
     - name: 🍎 Use Xcode
-      uses: maxim-lobanov/setup-xcode@v1
+      uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
       with:
         xcode-version: ${{ inputs.xcode-version }}
 
     - name: 💎 Install CocoaPods
       shell: bash
-      run: gem install cocoapods -v ${{ inputs.cocoapods-version }}
+      run: gem install cocoapods -v ${INPUTS_COCOAPODS_VERSION}
+      env:
+        INPUTS_COCOAPODS_VERSION: ${{ inputs.cocoapods-version }}

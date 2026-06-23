@@ -272,9 +272,22 @@ gradle.projectsEvaluated {
                                     }
                                 }
                                 licenses {
-                                    license {
-                                        name = project.findProperty('rnrepoLicenseName')
-                                        url = project.findProperty('rnrepoLicenseUrl')
+                                    // rnrepoLicenseName is a comma-separated list of SPDX
+                                    // license ids (e.g. "MIT" or "MIT,BSD-3-Clause" for an
+                                    // SPDX "(MIT AND BSD-3-Clause)" expression). Emit one
+                                    // <license> node per entry.
+                                    def licenseSpec = delegate
+                                    def licenseNames = project.findProperty('rnrepoLicenseName')
+                                    if (licenseNames != null) {
+                                        licenseNames.toString().split(',').each { rawName ->
+                                            def licenseName = rawName.trim()
+                                            if (licenseName) {
+                                                licenseSpec.license { lic ->
+                                                    lic.name = licenseName
+                                                    lic.url = "https://opensource.org/license/${licenseName}"
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }

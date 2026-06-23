@@ -8,7 +8,7 @@ inputs:
   expo_sdk_major_version:
     description: 'Expo SDK major version used in `create-expo-app@latest --template default@sdk-<major_version>`'
     required: false
-    default: '55'
+    default: '56'
   disable_rnrepo:
     description: 'Disable rnrepo config plugin'
     required: false
@@ -18,7 +18,7 @@ runs:
   using: composite
   steps:
     - name: ♻️ Cache bun packages
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ~/.bun/install/cache
         key: bun-${{ runner.os }}-${{ inputs.expo_sdk_major_version }}-${{ hashFiles('**/bun.lockb') }}
@@ -27,7 +27,7 @@ runs:
           bun-${{ runner.os }}-
 
     - name: 🏗 Setup Bun
-      uses: oven-sh/setup-bun@v1
+      uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7 # v1.2.2
       with:
         bun-version: latest
 
@@ -37,16 +37,21 @@ runs:
 
     - name: 🏗 Create Expo App
       shell: bash
-      run: bunx create-expo-app@latest ${{ inputs.example_app }} --no-install --template "default@sdk-${{ inputs.expo_sdk_major_version }}"
+      run: bunx create-expo-app@latest ${INPUTS_EXAMPLE_APP} --no-install --template "default@sdk-${INPUTS_EXPO_SDK_MAJOR_VERSION}"
+      env:
+        INPUTS_EXAMPLE_APP: ${{ inputs.example_app }}
+        INPUTS_EXPO_SDK_MAJOR_VERSION: ${{ inputs.expo_sdk_major_version }}
 
     - name: 📦 Install app dependencies
       shell: bash
       run: bun install --ignore-scripts
       working-directory: ${{ inputs.example_app }}
 
+      # runs npm due to `error: @rnrepo/build-tools@<not-existing-version> failed to resolve`
+      # testing before release after the version bump was impossible
     - name: 📦 Install @rnrepo/build-tools and @rnrepo/expo-config-plugin
       shell: bash
-      run: bun add ../packages/build-tools ../packages/expo-config-plugin
+      run: npm install ../packages/build-tools ../packages/expo-config-plugin
       working-directory: ${{ inputs.example_app }}
 
     - name: 🔧 Add plugin to app.json
@@ -57,4 +62,6 @@ runs:
     - name: 🔧 Set RNRepo Env Variable
       if: ${{ inputs.disable_rnrepo == 'true' }}
       shell: bash
-      run: echo "DISABLE_RNREPO=${{ inputs.disable_rnrepo }}" >> $GITHUB_ENV
+      run: echo "DISABLE_RNREPO=${INPUTS_DISABLE_RNREPO}" >> $GITHUB_ENV
+      env:
+        INPUTS_DISABLE_RNREPO: ${{ inputs.disable_rnrepo }}
