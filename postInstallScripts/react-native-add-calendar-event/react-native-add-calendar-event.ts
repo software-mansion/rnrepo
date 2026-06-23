@@ -1,7 +1,7 @@
 import fs from 'fs';
 
-export default async function preInstallSetup(): Promise<void> {
-    console.log(`Running pre-install setup for react-native-add-calendar-event...`);
+export default async function postInstallSetup(): Promise<void> {
+    console.log(`Running post-install setup for react-native-add-calendar-event...`);
     
     // change jcenter() to mavenCentral() in node_modules/react-native-add-calendar-event/android/build.gradle
     const filePath = 'node_modules/react-native-add-calendar-event/android/build.gradle';
@@ -12,12 +12,12 @@ export default async function preInstallSetup(): Promise<void> {
         fs.writeFileSync(filePath, content, 'utf8');
     }
     
-    console.log(`✓ Pre-install setup for react-native-add-calendar-event completed.`);
+    console.log(`✓ Post-install setup for react-native-add-calendar-event completed.`);
 };
 
 try {
-    await preInstallSetup();
+    await postInstallSetup();
 } catch (error) {
-    console.error('Error during pre-install setup:', error);
+    console.error('Error during post-install setup:', error);
     throw error;
 }
