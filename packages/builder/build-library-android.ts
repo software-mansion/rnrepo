@@ -87,6 +87,12 @@ async function buildAAR(appDir: string, license: AllowedLicense[]) {
     'prefab-reduce.gradle'
   );
 
+  const preserveKotlinModuleGradleScriptPath = join(
+    __dirname,
+    'gradle_init_scripts',
+    'preserve-kotlin-module.gradle'
+  );
+
   const mavenLocalLibraryLocationPath = join(
     process.env.HOME || process.env.USERPROFILE || '',
     '.m2',
@@ -110,6 +116,7 @@ async function buildAAR(appDir: string, license: AllowedLicense[]) {
       '--no-daemon',
       '--init-script', addPublishingGradleScriptPath,
       '--init-script', addPrefabReduceGradleScriptPath,
+      '--init-script', preserveKotlinModuleGradleScriptPath,
       ...(postinstallGradleScriptPath
         ? ['--init-script', postinstallGradleScriptPath]
         : []),
