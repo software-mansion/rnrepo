@@ -191,16 +191,17 @@
     ]
   },
   "@react-native-community/netinfo": {
+    "weeklyDownloadsThreshold": 30000,
     "android": [
       {
         "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
+        "publishedAfterDate": "2023-01-01"
       }
     ],
     "ios": [
       {
         "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
+        "publishedAfterDate": "2023-01-01"
       }
     ]
   },
@@ -488,6 +489,12 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-haptic-feedback": {
@@ -686,6 +693,12 @@
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "@ua/react-native-airship": {
@@ -800,6 +813,12 @@
         "versionMatcher": "<4.0.0",
         "publishedAfterDate": "2025-01-01"
       }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "<4.0.0",
+        "publishedAfterDate": "2025-01-01"
+      }
     ]
   },
   "react-native-edge-to-edge": {
@@ -811,16 +830,17 @@
     ]
   },
   "react-native-vector-icons": {
+    "weeklyDownloadsThreshold": 30000,
     "android": [
       {
         "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
+        "publishedAfterDate": "2020-01-01"
       }
     ],
     "ios": [
       {
         "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
+        "publishedAfterDate": "2020-01-01"
       }
     ]
   },
@@ -895,6 +915,123 @@
       {
         "versionMatcher": "*",
         "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-quick-crypto": {
+    "android": [
+      {
+        "versionMatcher": "<1.0.0",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "<1.0.0",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "@react-native-community/checkbox": {
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "react-native-biometrics": {
+    "android": [
+      {
+        "versionMatcher": "3.0.1"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "3.0.1"
+      }
+    ]
+  },
+  "react-native-image-crop-picker": {
+    "weeklyDownloadsThreshold": 20000,
+    "android": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "*",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
+  },
+  "@notifee/react-native": {
+    "android": [
+      {
+        "versionMatcher": ["9.1.8", "9.0.2"]
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": ["9.1.8", "9.0.2"]
+      }
+    ]
+  },
+  "react-native-keep-awake": {
+    "postInstallScriptPath": "postInstallScripts/react-native-keep-awake/react-native-keep-awake.ts",
+    "android": [
+      {
+        "versionMatcher": "4.0.0"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "4.0.0"
+      }
+    ]
+  },
+  "react-native-audio-record": {
+    "android": [
+      {
+        "versionMatcher": "0.2.2"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "0.2.2"
+      }
+    ]
+  },
+  "react-native-add-calendar-event": {
+    "postInstallScriptPath": "postInstallScripts/react-native-add-calendar-event/react-native-add-calendar-event.ts",
+    "android": [
+      {
+        "versionMatcher": ["5.0.0", "4.2.2"]
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": ["5.0.0", "4.2.2"]
+      }
+    ]
+  },
+  "react-native-calendar-events": {
+    "android": [
+      {
+        "versionMatcher": "2.2.0"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": "2.2.0"
       }
     ]
   }
