@@ -141,7 +141,7 @@ jobs:
       (github.event_name == 'push' && needs.check-changes.outputs.ios == 'true') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.request_ios == 'true') ||
       (github.event_name == 'pull_request' && contains(fromJSON('["build-ios"]'), github.event.label.name))
-    runs-on: [self-hosted, macOS, ARM64, ephemeral]
+    runs-on: macos-latest-xlarge
     timeout-minutes: 60
     permissions:
       actions: read
