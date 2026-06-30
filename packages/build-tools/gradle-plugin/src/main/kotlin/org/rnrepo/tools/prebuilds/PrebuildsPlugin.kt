@@ -7,13 +7,18 @@ import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.artifacts.component.ComponentSelector
 import org.gradle.api.artifacts.component.ModuleComponentSelector
 import org.gradle.api.artifacts.component.ProjectComponentSelector
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+import org.gradle.api.file.RegularFile
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
+import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.TaskProvider
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -24,6 +29,7 @@ data class PackageItem(
     val version: String,
     val npmName: String,
     var classifier: String = "",
+    var hasCodegen: Boolean = false,
 )
 
 /**
@@ -84,6 +90,42 @@ class PrebuildsPlugin : Plugin<Project> {
             return
         }
         if (shouldPluginExecute(project, extension)) {
+            // Setup codegen prebuilts configuration for codegen dependencies
+            val codegenConfig =
+                project.configurations.create("codegenPrebuilts") {
+                    it.isCanBeResolved = true
+                    it.isCanBeConsumed = false
+                }
+
+            // Wait for project evaluation to complete remaining setup tasks
+            project.afterEvaluate {
+                if (extension.supportedPackages.none { it.hasCodegen }) {
+                    return@afterEvaluate
+                }
+
+                val transformedAutolinkFile =
+                    project.layout.buildDirectory.file("generated/rnrepo/autolinking/autolinking.json")
+
+                val extractTask =
+                    project.tasks.register("extractCodegenPrebuilts", ExtractPrebuiltsTask::class.java) {
+                        it.codegenConfiguration.set(codegenConfig)
+                        it.outputDir.set(project.layout.buildDirectory.dir("generated/rnrepo/prebuilts"))
+                        it.buildType.set(getBuildType(project))
+                        it.autolinkInputFile.set(
+                            project.rootProject.layout.buildDirectory
+                                .file("generated/autolinking/autolinking.json"),
+                        )
+                        it.transformedAutolinkFile.set(transformedAutolinkFile)
+                    }
+
+                // Hook extraction into build lifecycle before native build tasks
+                project.tasks.matching { it.name.startsWith("externalNativeBuild") || it.name == "preBuild" }.all {
+                    it.dependsOn(extractTask)
+                }
+
+                configureReactNativeAutolinkingTask(project, extractTask, transformedAutolinkFile)
+            }
+
             // Check what packages are in project and which are we supporting
             addRNRepoRepository(project)
             getProjectPackages(project.rootProject.subprojects, extension)
@@ -92,34 +134,49 @@ class PrebuildsPlugin : Plugin<Project> {
 
             // Setup
             extension.supportedPackages.forEach { packageItem ->
+                val codegenSuffix = if (packageItem.hasCodegen) "-codegen" else ""
+                val dependencyNotation =
+                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}$codegenSuffix@aar"
                 addDependency(
                     project,
                     "implementation",
-                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}@aar",
+                    dependencyNotation,
                 )
+                // Add to codegenConfig only if package has codegen metadata
+                if (packageItem.hasCodegen) {
+                    addDependency(
+                        project,
+                        "codegenPrebuilts",
+                        dependencyNotation,
+                    )
+                    logger.lifecycle("📦 Package ${packageItem.npmName} has codegen, adding to codegen prebuilts")
+                }
             }
 
             // Configure pickFirsts for packages with native libraries that may have duplicates
             configurePickFirsts(project, extension.supportedPackages)
 
-            // Add dependency on generating codegen schema for each library so that task is not dropped
-            extension.supportedPackages.forEach { packageItem ->
-                val codegenTaskName = "generateCodegenArtifactsFromSchema"
-                project.evaluationDependsOn(":${packageItem.name}")
-                project.afterEvaluate {
-                    try {
-                        val libraryProject = project.project(":${packageItem.name}")
-                        val libraryCodegenTaskProvider = libraryProject.tasks.named(codegenTaskName)
-                        val appPreBuildTaskProvider = project.tasks.named("preBuild")
-                        appPreBuildTaskProvider.configure {
-                            it.dependsOn(libraryCodegenTaskProvider)
+            // Add dependency on generating codegen schema for each library that needs it
+            // Skip packages with hasCodegen=true since they use prebuilt codegen artifacts
+            extension.supportedPackages
+                .filter { !it.hasCodegen }
+                .forEach { packageItem ->
+                    val codegenTaskName = "generateCodegenArtifactsFromSchema"
+                    project.evaluationDependsOn(":${packageItem.name}")
+                    project.afterEvaluate {
+                        try {
+                            val libraryProject = project.project(":${packageItem.name}")
+                            val libraryCodegenTaskProvider = libraryProject.tasks.named(codegenTaskName)
+                            val appPreBuildTaskProvider = project.tasks.named("preBuild")
+                            appPreBuildTaskProvider.configure {
+                                it.dependsOn(libraryCodegenTaskProvider)
+                            }
+                            logger.lifecycle("✅ Successfully linked ${packageItem.npmName}:$codegenTaskName to ${project.name}:preBuild")
+                        } catch (e: Exception) {
+                            logger.lifecycle("⚠️ Failed to find or link task :${packageItem.npmName}:$codegenTaskName. Error: ${e.message}")
                         }
-                        logger.lifecycle("✅ Successfully linked ${packageItem.npmName}:$codegenTaskName to ${project.name}:preBuild")
-                    } catch (e: Exception) {
-                        logger.lifecycle("⚠️ Failed to find or link task :${packageItem.npmName}:$codegenTaskName. Error: ${e.message}")
                     }
                 }
-            }
 
             // Add substitution for supported packages for all projects and all configurations
             project.rootProject.allprojects.forEach { subproject ->
@@ -133,11 +190,12 @@ class PrebuildsPlugin : Plugin<Project> {
                                     substitutions.all { dependencySubstitution ->
                                         if (matchesPackageSelector(dependencySubstitution.requested, packageItem)) {
                                             dependencySubstitution.useTarget(substitutions.module(module))
+                                            val codegenSuffix = if (packageItem.hasCodegen) "-codegen" else ""
                                             dependencySubstitution.artifactSelection {
                                                 it.selectArtifact(
                                                     "aar",
                                                     "aar",
-                                                    "rn${extension.reactNativeVersion}${packageItem.classifier}",
+                                                    "rn${extension.reactNativeVersion}${packageItem.classifier}$codegenSuffix",
                                                 )
                                             }
                                             logger.info(
@@ -570,6 +628,22 @@ class PrebuildsPlugin : Plugin<Project> {
     }
 
     /**
+     * Builds the AAR file name for a package, optionally with the `-codegen` classifier suffix.
+     *
+     * @param packageItem The package to build the name for.
+     * @param RNVersion The React Native version the artifact is intended for.
+     * @param withCodegen Whether to append the `-codegen` suffix used by codegen prebuilts.
+     */
+    private fun buildAarFileName(
+        packageItem: PackageItem,
+        RNVersion: String,
+        withCodegen: Boolean,
+    ): String {
+        val codegenSuffix = if (withCodegen) "-codegen" else ""
+        return "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}$codegenSuffix.aar"
+    }
+
+    /**
      * Checks if a specific package is available in the remote repository or local cache.
      *
      * This function is thread-safe and can be called in parallel for multiple packages.
@@ -590,7 +664,8 @@ class PrebuildsPlugin : Plugin<Project> {
         RNVersion: String,
         httpRepositories: List<MavenArtifactRepository>,
     ): Boolean {
-        val artifactName = "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}.aar"
+        val codegenArtifactName = buildAarFileName(packageItem, RNVersion, withCodegen = true)
+        val regularArtifactName = buildAarFileName(packageItem, RNVersion, withCodegen = false)
         val artifactDir =
             Paths
                 .get(
@@ -604,17 +679,22 @@ class PrebuildsPlugin : Plugin<Project> {
                     "${packageItem.version}",
                 ).toFile()
         if (artifactDir.exists() && artifactDir.isDirectory) {
-            // search for artifactName in all directories inside artifactDir
-            val isArtifactCached =
-                artifactDir.listFiles()?.any { hashDir ->
-                    hashDir.isDirectory && File(hashDir, artifactName).exists()
-                } ?: false
-            if (isArtifactCached) {
-                logger.info("Package ${packageItem.npmName} version ${packageItem.version} is cached in Gradle cache.")
+            // If the codegen variant is cached, use it directly.
+            if (isArtifactCached(artifactDir, codegenArtifactName)) {
+                packageItem.hasCodegen = true
+                logger.info("Package ${packageItem.npmName} version ${packageItem.version} is cached in Gradle cache with codegen.")
                 return true
-            } else {
-                logger.debug("Package ${packageItem.npmName} version ${packageItem.version} not found in Gradle cache.")
             }
+            // The regular variant is cached but the codegen one is not. A codegen variant may have been
+            // published since the regular AAR was cached, so query remotes to prefer it when available.
+            if (isArtifactCached(artifactDir, regularArtifactName)) {
+                logger.info(
+                    "Package ${packageItem.npmName} version ${packageItem.version} regular variant is cached, checking remotes for a codegen variant.",
+                )
+                packageItem.hasCodegen = isArtifactAvailableRemotely(packageItem, RNVersion, httpRepositories, withCodegen = true)
+                return true
+            }
+            logger.debug("Package ${packageItem.npmName} version ${packageItem.version} not found in Gradle cache.")
         } else {
             logger.debug("Artifact directory does not exist in cache: ${artifactDir.absolutePath}")
         }
@@ -623,24 +703,64 @@ class PrebuildsPlugin : Plugin<Project> {
             return false
         }
 
+        // Not cached: query remotes, preferring the codegen variant over the regular one.
+        if (isArtifactAvailableRemotely(packageItem, RNVersion, httpRepositories, withCodegen = true)) {
+            packageItem.hasCodegen = true
+            return true
+        }
+        if (isArtifactAvailableRemotely(packageItem, RNVersion, httpRepositories, withCodegen = false)) {
+            packageItem.hasCodegen = false
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Checks whether an AAR matching [artifactName] exists in any of the hash directories under [artifactDir].
+     */
+    private fun isArtifactCached(
+        artifactDir: File,
+        artifactName: String,
+    ): Boolean =
+        artifactDir.listFiles()?.any { hashDir ->
+            hashDir.isDirectory && File(hashDir, artifactName).exists()
+        } ?: false
+
+    /**
+     * Checks whether a given artifact variant is available in any of the [httpRepositories] via parallel HTTP HEAD requests.
+     *
+     * @param withCodegen Whether to check for the `-codegen` variant of the artifact.
+     * @return True if the artifact is available in any repository, false otherwise.
+     */
+    private fun isArtifactAvailableRemotely(
+        packageItem: PackageItem,
+        RNVersion: String,
+        httpRepositories: List<MavenArtifactRepository>,
+        withCodegen: Boolean,
+    ): Boolean {
+        if (httpRepositories.isEmpty()) {
+            return false
+        }
+        val artifactName = buildAarFileName(packageItem, RNVersion, withCodegen)
+        val variantLabel = if (withCodegen) "codegen " else ""
         return httpRepositories.parallelStream().anyMatch { repo ->
-            val urlString = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/$artifactName"
+            val aarUrl = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/$artifactName"
             var connection: HttpURLConnection? = null
             try {
-                connection = URL(urlString).openConnection() as HttpURLConnection
+                connection = URL(aarUrl).openConnection() as HttpURLConnection
                 connection.requestMethod = "HEAD"
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
-                logger.info("Checking availability of package ${packageItem.npmName} version ${packageItem.version} at $urlString")
+                logger.info(
+                    "Checking availability of ${variantLabel}package ${packageItem.npmName} version ${packageItem.version} at $aarUrl",
+                )
                 val isAvailable = connection.responseCode == HttpURLConnection.HTTP_OK
                 if (isAvailable) {
-                    logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} found at ${repo.url}")
+                    logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} $variantLabel found at ${repo.url}")
                 }
                 isAvailable
             } catch (e: Exception) {
-                logger.error(
-                    "Error checking package availability for ${packageItem.npmName} version ${packageItem.version} at ${repo.url}: ${e.message}",
-                )
+                logger.debug("${variantLabel.ifEmpty { "Package " }}not found for ${packageItem.npmName}: ${e.message}")
                 false
             } finally {
                 connection?.disconnect()
@@ -779,6 +899,20 @@ class PrebuildsPlugin : Plugin<Project> {
                 } else {
                     logger.info(
                         "react-native-reanimated: react-native-worklets not found in project, using react-native-reanimated from sources.",
+                    )
+                    return false
+                }
+            }
+            "expensify_react-native-live-markdown" -> {
+                val workletsItem = extension.projectPackages.find { it.name == "react-native-worklets" }
+                if (workletsItem != null) {
+                    logger.info(
+                        "react-native-live-markdown: Found react-native-worklets@${workletsItem.version} in project, adding to classifier.",
+                    )
+                    packageItem.classifier += "-worklets${workletsItem.version}"
+                } else {
+                    logger.info(
+                        "react-native-live-markdown: react-native-worklets not found in project, using react-native-live-markdown from sources.",
                     )
                     return false
                 }
@@ -1021,4 +1155,52 @@ class PrebuildsPlugin : Plugin<Project> {
         logger.lifecycle("Found the following supported prebuilt packages:${printList(extension.supportedPackages, "📦")}")
         logger.lifecycle("Packages that fallback to building from sources:${printList(unavailablePackages, "❓")}")
     }
+
+    private fun configureReactNativeAutolinkingTask(
+        project: Project,
+        extractTask: TaskProvider<ExtractPrebuiltsTask>,
+        transformedAutolinkFile: Provider<RegularFile>,
+    ) {
+        project.tasks.matching { it.name == "generateAutolinkingNewArchitectureFiles" }.configureEach { task ->
+            task.dependsOn(extractTask)
+            if (setReactNativeAutolinkingInput(task, transformedAutolinkFile)) {
+                logger.lifecycle("Using RNRepo-transformed autolinking config for React Native C++ autolinking")
+            }
+        }
+    }
+
+    private fun setReactNativeAutolinkingInput(
+        task: Task,
+        transformedAutolinkFile: Provider<RegularFile>,
+    ): Boolean =
+        runCatching {
+            val property =
+                task.javaClass.methods
+                    .firstOrNull { it.name == "getAutolinkInputFile" && it.parameterCount == 0 }
+                    ?.invoke(task) as? RegularFileProperty
+            if (property == null) {
+                logger.warn(
+                    "Could not configure ${task.name}: React Native task does not expose getAutolinkInputFile() — prebuilt codegen will be ignored, build time will be longer",
+                )
+                false
+            } else {
+                // Redirect React Native's autolinking input to our transformed file only when it
+                // actually exists. ExtractPrebuiltsTask writes it solely when it rewrote cmake paths,
+                // so when it is absent (no prebuilt codegen, or autolinking.json was unavailable) we
+                // fall back to React Native's own input instead of an empty/broken config.
+                val originalInput = property.orNull
+                property.set(
+                    task.project.provider {
+                        val transformed = transformedAutolinkFile.get()
+                        if (transformed.asFile.exists() || originalInput == null) transformed else originalInput
+                    },
+                )
+                true
+            }
+        }.getOrElse { error ->
+            logger.warn(
+                "Could not configure ${task.name} to use RNRepo autolinking config: ${error.message} — prebuilt codegen will be ignored, build time will be longer",
+            )
+            false
+        }
 }

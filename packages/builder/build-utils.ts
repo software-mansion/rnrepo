@@ -8,6 +8,9 @@ import { join } from 'path';
  * Common utilities shared between iOS and Android build scripts
  */
 
+// Pinned tool versions to keep builds reproducible (avoid resolving "latest")
+const PATCH_PACKAGE_VERSION = '8.0.0';
+
 export type AllowedLicense =
   | 'MIT'
   | 'Apache-2.0'
@@ -330,6 +333,12 @@ export async function setupReactNativeProject(
     throw new Error(`Invalid React Native project at ${appDir}`);
   }
 
+  // check if there are patches to copy
+  if (existsSync(join(__dirname, 'patches'))) {
+    console.log(`✓ Copying patches...`);
+    await $`cp -r ./patches ${appDir}`.cwd(__dirname);
+  }
+
   // Perform any library-specific setup before installing
   await installSetup(appDir, libraryName, 'preInstall');
 
@@ -360,6 +369,12 @@ export async function setupReactNativeProject(
   // Install all dependencies
   console.log('📦 Installing all dependencies...');
   await $`npm install`.cwd(appDir).quiet();
+
+  // check if there is patches folder to apply
+  if (existsSync(join(appDir, 'patches'))) {
+    console.log('📦 Applying patches...');
+    await $`bunx patch-package@${PATCH_PACKAGE_VERSION}`.cwd(appDir);
+  }
 
   // Check if the react-native version is correctly set
   checkRnVersion(appDir, reactNativeVersion);
