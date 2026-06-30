@@ -57,6 +57,12 @@ const codegenBuildGradleScriptPath = join(
   'codegen-build.gradle'
 );
 
+const preserveKotlinModuleGradleScriptPath = join(
+  __dirname,
+  'gradle_init_scripts',
+  'preserve-kotlin-module.gradle'
+);
+
 /**
  * The library's postinstall script is optional, so its --init-script flag is
  * only added when a path was resolved during project setup.
@@ -84,6 +90,7 @@ async function publishToMavenLocal(
     '--no-daemon',
     '--init-script', addPublishingGradleScriptPath,
     '--init-script', addPrefabReduceGradleScriptPath,
+    '--init-script', preserveKotlinModuleGradleScriptPath,
     ...postinstallInitScriptArgs(),
     `-PrnrepoArtifactId=${gradleProjectName}`,
     `-PrnrepoPublishVersion=${libraryVersion}`,
@@ -324,12 +331,6 @@ async function buildAAR(appDir: string, license: AllowedLicense[]) {
     await patchCMakeListsToStatic(packagePath);
   }
 
-  const preserveKotlinModuleGradleScriptPath = join(
-    __dirname,
-    'gradle_init_scripts',
-    'preserve-kotlin-module.gradle'
-  );
-
   const mavenLocalLibraryLocationPath = join(
     process.env.HOME || process.env.USERPROFILE || '',
     '.m2',
@@ -348,7 +349,6 @@ async function buildAAR(appDir: string, license: AllowedLicense[]) {
   }
 
   try {
-<<<<<<< HEAD
     // If library has codegen, build codegen version as well
     if (!hasCodegenConfig) {
       await buildStandardAar(
@@ -367,42 +367,6 @@ async function buildAAR(appDir: string, license: AllowedLicense[]) {
         mavenLocalLibraryLocationPath,
         packageJson.codegenConfig.name
       );
-=======
-    const args = [
-      `:${gradleProjectName}:publishToMavenLocal`,
-      '--no-daemon',
-      '--init-script', addPublishingGradleScriptPath,
-      '--init-script', addPrefabReduceGradleScriptPath,
-      '--init-script', preserveKotlinModuleGradleScriptPath,
-      ...(postinstallGradleScriptPath
-        ? ['--init-script', postinstallGradleScriptPath]
-        : []),
-      `-PrnrepoArtifactId=${gradleProjectName}`,
-      `-PrnrepoPublishVersion=${libraryVersion}`,
-      `-PrnrepoClassifier=${classifier}`,
-      `-PrnrepoCpuInfo=${getCpuInfo()}`,
-      `-PrnrepoBuildUrl=${GITHUB_BUILD_URL}`,
-      // Comma-separated list of SPDX license ids; the publishing init script
-      // emits one <license> POM node per entry, deriving the url from the name.
-      `-PrnrepoLicenseName=${license.join(',')}`,
-    ];
-    await $`./gradlew ${args}`.cwd(androidPath);
-
-    // verify that the .pom and .aar files are present aftre the publish command completes
-    const pomPath = join(
-      mavenLocalLibraryLocationPath,
-      `${gradleProjectName}-${libraryVersion}.pom`
-    );
-    if (!existsSync(pomPath)) {
-      throw new Error(`POM file not found at ${pomPath}`);
-    }
-    const aarPath = join(
-      mavenLocalLibraryLocationPath,
-      `${gradleProjectName}-${libraryVersion}-${classifier}.aar`
-    );
-    if (!existsSync(aarPath)) {
-      throw new Error(`AAR file not found at ${aarPath}`);
->>>>>>> main
     }
 
   } catch (error) {
