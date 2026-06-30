@@ -66,7 +66,13 @@ end
 def get_ios_denylist(workspace_root)
   config = load_rnrepo_config(workspace_root)
   denylist_config = config['denyList'] || config['denylist'] || {}
-  denylist_config['ios'] || []
+  denylist_config['ios']
+end
+
+def get_ios_allowlist(workspace_root)
+  config = load_rnrepo_config(workspace_root)
+  allowlist_config = config['allowList'] || config['allowlist'] || {}
+  allowlist_config['ios']
 end
 
 def get_ios_cache_path(workspace_root)
@@ -157,16 +163,28 @@ def rnrepo_pre_install(installer_context)
   failed_pods = []
   denied_pods = []
 
-  # Handle denylist
   ios_denylist = get_ios_denylist(workspace_root)
-  rn_pods = rn_pods.reject do |pod_info|
-    if ios_denylist.include?(pod_info[:npm_package_name])
-      denied_pods << pod_info[:name]
-      true
-    else
-      false
-    end
+  ios_allowlist = get_ios_allowlist(workspace_root)
+
+  # Ensure denyList and allowList are mutually exclusive for iOS.
+  # The lists are per-platform, so configuring an allowList for one platform
+  # and a denyList for another is allowed.
+  if ios_denylist && ios_allowlist
+    raise "RNRepo: Both 'denyList' and 'allowList' are configured for iOS in rnrepo.config.json. Please use only one of them."
   end
+
+  # Identify which pods to reject based on the active configuration
+  rejected_pods = if ios_denylist
+                    rn_pods.select { |pod| ios_denylist.include?(pod[:npm_package_name]) }
+                  elsif ios_allowlist
+                    rn_pods.reject { |pod| ios_allowlist.include?(pod[:npm_package_name]) }
+                  else
+                    []
+                  end
+
+  # Update lists
+  rn_pods -= rejected_pods
+  denied_pods.concat(rejected_pods.map { |pod| pod[:name] })
 
   # Add expo pod to installer context for later use in post_install
   Pod::Installer.expo_pod = rn_pods.find { |pod| pod[:name] == 'Expo' }

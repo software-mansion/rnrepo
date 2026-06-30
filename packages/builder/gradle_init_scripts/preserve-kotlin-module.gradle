@@ -1,0 +1,88 @@
+// =============================================================================
+// Preserve Kotlin module metadata (*.kotlin_module) in prebuilt AARs
+// =============================================================================
+//
+// Some React Native libraries exclude the whole of META-INF from their packaged
+// artifact via `packagingOptions { excludes = ["META-INF", "META-INF/**", ...] }`
+// (e.g. react-native-nitro-modules).
+//
+// That also drops the Kotlin `*.kotlin_module` files that the compiler emits into
+// META-INF. The Kotlin compiler relies on those files to discover a package's
+// top-level / file-facade declarations (top-level functions, extension functions,
+// type aliases). Classes are still found directly by their fully-qualified name,
+// but top-level declarations become invisible.
+//
+// This is harmless when the library is consumed from source (consumers compile
+// against the Kotlin class *output directory*, where `*.kotlin_module` is always
+// present), but it breaks when the library is consumed as a prebuilt AAR.
+//
+// See issue in https://github.com/software-mansion/rnrepo/issues/391
+//
+// To fix this for every prebuilt AAR, we strip any packaging-exclude pattern that
+// would match a `META-INF/*.kotlin_module` path, so the mapping files survive into
+// the AAR's classes.jar — matching how a normal published Kotlin library AAR looks.
+
+/**
+ * Checks if the pattern excludes META-INF files or *.kotlin_module files.
+ */
+def shouldRemoveExcludePattern = { rawPattern ->
+    // Normalize the pattern: replace backslashes with slashes and trim whitespace
+    def p = rawPattern?.toString()?.replace('\\', '/')?.trim()
+    if (p == null || p.isEmpty()) return false
+
+    // Match META-INF and *.kotlin_module patterns
+    def matchesMetaInf = p ==~ /(?i)^(\*\*\/)?META-INF(\/.*)?$/
+    def matchesKotlinModule = p ==~ /(?i).*\.kotlin_module$/
+
+    return matchesMetaInf || matchesKotlinModule
+}
+
+/**
+ * Safe extraction of all excludes collections for different AGP versions.
+ */
+def findExcludesCollections = { project ->
+    def collections = []
+    def extractors = [
+        { project.android.packaging?.resources?.excludes },
+        { project.android.packagingOptions?.resources?.excludes },
+        { project.android.packagingOptions?.excludes }
+    ]
+
+    extractors.each { fetch ->
+        try {
+            def excludes = fetch()
+            if (excludes != null) {
+                collections.add(excludes)
+            }
+        } catch (Throwable ignored) {} // Ignore missing properties in AGP versions
+    }
+    
+    return collections
+}
+
+/**
+ * Iterates through excludes and removes patterns blocking Kotlin metadata.
+ */
+gradle.projectsLoaded { gradleInstance ->
+    gradleInstance.rootProject.allprojects { project ->
+        project.afterEvaluate {
+            if (!project.plugins.hasPlugin("com.android.library")) return
+
+            // Get all excludes collections for different AGP versions
+            def collectionsToClean = findExcludesCollections(project)
+
+            // Clean all found collections
+            collectionsToClean.each { excludesCollection ->
+                def offending = excludesCollection.findAll { shouldRemoveExcludePattern(it) }
+                if (!offending.isEmpty()) {
+                    try {
+                        excludesCollection.removeAll(offending)
+                        println("[📦 RNRepo] Preserving Kotlin module metadata for ${project.name}: removed packaging excludes ${offending}")
+                    } catch (Throwable t) {
+                        println("[📦 RNRepo] ⚠️ Failed to adjust packaging excludes for ${project.name}: ${t.message}")
+                    }
+                }
+            }
+        }
+    }
+}

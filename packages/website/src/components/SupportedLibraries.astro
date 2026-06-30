@@ -782,31 +782,18 @@ const supportedLibraryNames = await getSupportedLibraryNames();
       const matchesVersion = rnVersion === activeVersion;
       const matchesSearch = !searchQuery || libraryName.includes(searchQuery);
       
-      // Check if library has versions for the active platform
+      // Check if the library has any version data for the active platform.
+      // Drive this off the presence of version tags in the DOM, NOT the
+      // `.android-hidden`/`.ios-hidden` collapse classes: those are a transient
+      // display concern for the "+N more" affordance and can be set on every
+      // pill when collapse measures a hidden (zero-width) wrapper. Using them
+      // here would wrongly hide whole rows (e.g. libraries with >3 versions)
+      // that never get re-measured because they're already display:none.
       let hasVersionsForPlatform = false;
       if (activePlatform === 'android') {
-        const androidVersions = row.querySelector('.android-versions-wrapper');
-        const androidEmpty = row.querySelector('.android-empty');
-        hasVersionsForPlatform = !!(androidVersions && !androidVersions.querySelector('.android-hidden'));
-        if (androidEmpty) {
-          hasVersionsForPlatform = false;
-        }
+        hasVersionsForPlatform = row.querySelectorAll('.android-version').length > 0;
       } else {
-        const iosVersions = row.querySelector('.ios-versions-wrapper');
-        const iosEmpty = row.querySelector('.ios-empty');
-        hasVersionsForPlatform = !!(iosVersions && !iosVersions.querySelector('.ios-hidden'));
-        if (iosEmpty) {
-          hasVersionsForPlatform = false;
-        }
-      }
-      
-      // Check if the row contains any version tags for the active platform
-      if (activePlatform === 'android') {
-        const androidVersionTags = row.querySelectorAll('.android-version:not(.android-hidden)');
-        hasVersionsForPlatform = androidVersionTags.length > 0;
-      } else {
-        const iosVersionTags = row.querySelectorAll('.ios-version:not(.ios-hidden)');
-        hasVersionsForPlatform = iosVersionTags.length > 0;
+        hasVersionsForPlatform = row.querySelectorAll('.ios-version').length > 0;
       }
       
       const shouldShow = matchesVersion && matchesSearch && hasVersionsForPlatform;
