@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Use prebuilded codegen in Android artifacts (#206)
+- Add support for react-native-audio-api (#399)
 
 ## [0.1.6] - 2026-06-23
 

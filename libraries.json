@@ -238,6 +238,25 @@
       }
     ]
   },
+  "react-native-audio-api": {
+    "postInstallScriptPath": "postInstallScripts/react-native-audio-api/react-native-audio-api.gradle",
+    "android": [
+      {
+        "versionMatcher": ">=0.12",
+        "publishedAfterDate": "2025-01-01",
+        "reactNativeVersion": ["0.81.5", "0.83.6", ">=0.84"],
+        "withWorkletsVersion": [">=0.8"]
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": ">=0.12",
+        "publishedAfterDate": "2025-01-01",
+        "reactNativeVersion": ["0.81.5", "0.83.6", ">=0.84"],
+        "withWorkletsVersion": [">=0.8"]
+      }
+    ]
+  },
   "react-native-safe-area-context": {
     "android": [
       {

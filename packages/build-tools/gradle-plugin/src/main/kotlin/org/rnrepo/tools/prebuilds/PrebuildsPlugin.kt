@@ -925,6 +925,20 @@ class PrebuildsPlugin : Plugin<Project> {
                     return false
                 }
             }
+            "react-native-audio-api" -> {
+                val workletsItem = extension.projectPackages.find { it.name == "react-native-worklets" }
+                if (workletsItem != null) {
+                    logger.info(
+                        "react-native-audio-api: Found react-native-worklets@${workletsItem.version} in project, adding to classifier.",
+                    )
+                    packageItem.classifier += "-worklets${workletsItem.version}"
+                } else {
+                    logger.info(
+                        "react-native-audio-api: react-native-worklets not found in project, using react-native-audio-api from sources.",
+                    )
+                    return false
+                }
+            }
             "react-native-worklets" -> {
                 // In expo@55 and later, react-native-worklets is a dependency of expo, with hardcoded libworklets.so path in cmake file.
                 // https://github.com/expo/expo/blob/b887d67bbe061ac1f75ebcd9d018218868600822/packages/expo-modules-core/android/cmake/main.cmake#L83

@@ -1,0 +1,35 @@
+// patch.init.gradle
+allprojects { project ->
+    if (project.name == 'react-native-audio-api') {
+        // Intercept the getByName method on the tasks container
+        project.tasks.metaClass.getByName = { String taskName ->
+            def currentTask = project.tasks.findByName(taskName)
+            if (currentTask != null) {
+                // If AGP or another plugin already created it, return it safely
+                return currentTask
+            }
+            // If it truly doesn't exist when requested, spawn a dummy task on the fly
+            return project.tasks.create(taskName)
+        }
+
+        // 2. Inject Packaging Options to exclude libworklets.so
+        project.afterEvaluate {
+            if (project.extensions.findByName('android') != null) {
+                def androidExt = project.extensions.getByName('android')
+                
+                try {
+                    // Try AGP 8.0+ modern syntax (highly recommended for JNI/Native libraries)
+                    androidExt.packaging.jniLibs.excludes.add("**/libworklets.so")
+                } catch (Exception e) {
+                    try {
+                        // Fallback to legacy AGP packagingOptions syntax
+                        androidExt.packagingOptions.excludes.add("**/libworklets.so")
+                    } catch (Exception ex) {
+                        // throw error
+                        throw new GradleException("Could not apply libworklets.so exclusion for ${project.name}")
+                    }
+                }
+            }
+        }
+    }
+}
