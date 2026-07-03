@@ -238,6 +238,11 @@
       }
     ]
   },
+  "react-native-audio-api": {
+    "postInstallScriptPath": "postInstallScripts/react-native-audio-api/react-native-audio-api.gradle",
+    "android": false,
+    "ios": false
+  },
   "react-native-safe-area-context": {
     "android": [
       {

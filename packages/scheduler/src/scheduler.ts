@@ -10,7 +10,8 @@ import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
 const DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD = 10000;
-const DEFAULT_LAST_WEEK_DOWNLOADS_RN_THRESHOLD = 20000;
+const DEFAULT_LAST_WEEK_DOWNLOADS_RN_THRESHOLD = 30000;
+const DEFAULT_LAST_WEEK_DOWNLOADS_WORKLETS_THRESHOLD = 50000;
 
 export async function processLibrary(
   libraryName: string,
@@ -42,7 +43,10 @@ export async function processLibrary(
         configEntry.weeklyDownloadsThreshold ?? config.weeklyDownloadsThreshold ?? DEFAULT_LAST_WEEK_DOWNLOADS_THRESHOLD;
       const workletsMatchingVersions = await findMatchingVersionsFromNPM(
         'react-native-worklets',
-        configEntry.withWorkletsVersion
+        configEntry.withWorkletsVersion,
+        {
+          weeklyDownloadsThreshold: DEFAULT_LAST_WEEK_DOWNLOADS_WORKLETS_THRESHOLD
+        }
       );
       const matchingVersions = await findMatchingVersionsFromNPM(
         libraryName,
