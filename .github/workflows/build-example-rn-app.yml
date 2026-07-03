@@ -67,6 +67,7 @@ jobs:
         }}
     steps:
       - name: 🏗 Checkout repository
+        if: github.event_name == 'push' # workflow_dispatch has no changes, pr only looks on labels
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
