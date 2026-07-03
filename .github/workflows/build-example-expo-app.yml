@@ -43,17 +43,28 @@ env:
 
 jobs:
   check-changes:
-    if: >-
-      github.event_name != 'pull_request' ||
-      (!github.event.pull_request.draft && contains(fromJSON('["build-android", "build-ios", "build-expo"]'), github.event.label.name))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       pull-requests: read
       contents: read
     outputs:
-      android: ${{ steps.filter.outputs.android }}
-      ios: ${{ steps.filter.outputs.ios }}
+      android: >-
+        ${{ (github.event_name == 'push' && steps.filter.outputs.android == 'true') || 
+            (github.event_name == 'workflow_dispatch' && inputs.request_android == true) || 
+            (github.event_name == 'pull_request' && !github.event.pull_request.draft && (
+              contains(github.event.pull_request.labels.*.name, 'build-android') || 
+              contains(github.event.pull_request.labels.*.name, 'build-expo')
+            )) 
+        }}
+      ios: >-
+        ${{ (github.event_name == 'push' && steps.filter.outputs.ios == 'true') || 
+            (github.event_name == 'workflow_dispatch' && inputs.request_ios == true) || 
+            (github.event_name == 'pull_request' && !github.event.pull_request.draft && (
+              contains(github.event.pull_request.labels.*.name, 'build-ios') || 
+              contains(github.event.pull_request.labels.*.name, 'build-expo')
+            )) 
+        }}
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -61,6 +72,7 @@ jobs:
           persist-credentials: false
 
       - name: 🔍 Check for file changes
+        if: github.event_name == 'push' # workflow_dispatch has no changes, pr only looks on labels
         uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
         id: filter
         with:
@@ -82,13 +94,7 @@ jobs:
 
   build-example-expo-app-android:
     needs: check-changes
-    if: >-
-      (github.event_name == 'push' && needs.check-changes.outputs.android == 'true') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.request_android == 'true') ||
-      (github.event_name == 'pull_request' && (
-        contains(github.event.pull_request.labels.*.name, 'build-android') ||
-        contains(github.event.pull_request.labels.*.name, 'build-expo')
-      ))
+    if: needs.check-changes.outputs.android == 'true'
     runs-on: rnrepo-builder-ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -144,13 +150,7 @@ jobs:
 
   build-example-expo-app-ios:
     needs: check-changes
-    if: >-
-      (github.event_name == 'push' && needs.check-changes.outputs.ios == 'true') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.request_ios == 'true') ||
-      (github.event_name == 'pull_request' && (
-        contains(github.event.pull_request.labels.*.name, 'build-ios') ||
-        contains(github.event.pull_request.labels.*.name, 'build-expo')
-      ))
+    if: needs.check-changes.outputs.ios == 'true'
     runs-on: macos-latest-xlarge
     timeout-minutes: 60
     permissions:
