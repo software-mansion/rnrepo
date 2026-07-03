@@ -89,7 +89,7 @@ jobs:
     if: >-
       (github.event_name == 'push' && needs.check-changes.outputs.android == 'true') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.request_android == 'true') ||
-      (github.event_name == 'pull_request' && contains(fromJSON('["build-android"]'), github.event.label.name))
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'build-android'))
     runs-on: rnrepo-builder-ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -140,7 +140,7 @@ jobs:
     if: >-
       (github.event_name == 'push' && needs.check-changes.outputs.ios == 'true') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.request_ios == 'true') ||
-      (github.event_name == 'pull_request' && contains(fromJSON('["build-ios"]'), github.event.label.name))
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'build-ios'))
     runs-on: macos-latest-xlarge
     timeout-minutes: 60
     permissions:
