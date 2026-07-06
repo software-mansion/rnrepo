@@ -259,18 +259,8 @@
   },
   "react-native-screens": {
     "preInstallScriptPath": "preInstallScripts/react-native-screens/react-native-screens.ts",
-    "android": [
-      {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
-      }
-    ],
-    "ios": [
-      {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
-      }
-    ]
+    "android": false,
+    "ios": false
   },
   "react-native-worklets": {
     "android": [
