@@ -5,6 +5,8 @@ require_relative 'logger'
 require_relative 'pod_extractor'
 require_relative 'downloader'
 require_relative 'framework_cache'
+require_relative 'stub_xcframework'
+require_relative 'spm_package'
 
 # ADD TO PODFILE BEGINING:
 #
@@ -90,29 +92,6 @@ def is_version_at_least(current_version, minimum_version)
   Gem::Version.new(current_core) >= Gem::Version.new(minimum_version)
 end
 
-def find_framework_name_in_xcframework(xcframework_path)
-  framework_path =
-    Dir.glob(File.join(xcframework_path, '*', '*.framework')).find do |path|
-      File.directory?(path)
-    end
-
-  File.basename(framework_path) if framework_path
-end
-
-def find_prebuilt_framework_name(pod_info)
-  cache_dir = File.join(pod_info[:package_root], '.rnrepo-cache')
-  current_xcframeworks = Dir.glob(File.join(cache_dir, 'Current', '*.xcframework')).sort
-  fallback_xcframeworks = Dir.glob(File.join(cache_dir, '*', '*.xcframework')).sort
-  xcframework_paths = (current_xcframeworks + fallback_xcframeworks).uniq
-
-  framework_name =
-    xcframework_paths
-      .map { |xcframework_path| find_framework_name_in_xcframework(xcframework_path) }
-      .find { |name| !name.nil? }
-
-  framework_name || "#{pod_info[:name]}.framework"
-end
-
 def rnrepo_pre_install(installer_context)
   # Check if plugin is disabled via environment variable
   if ENV['DISABLE_RNREPO']
@@ -157,8 +136,7 @@ def rnrepo_pre_install(installer_context)
 
   # Track results with thread-safe collections
   results_mutex = Mutex.new
-  cached_pods = []
-  downloaded_pods = []
+  prepared_pods = []
   unavailable_pods = []
   failed_pods = []
   denied_pods = []
@@ -189,10 +167,12 @@ def rnrepo_pre_install(installer_context)
   # Add expo pod to installer context for later use in post_install
   Pod::Installer.expo_pod = rn_pods.find { |pod| pod[:name] == 'Expo' }
   cache_path = get_ios_cache_path(workspace_root)
-  # Download and cache pre-built frameworks in parallel
+  # Fetch SwiftPM checksums for each prebuilt pod in parallel. The xcframeworks
+  # themselves are fetched by SwiftPM at build time, so `pod install` only does
+  # cheap checksum requests here.
   threads = rn_pods.map do |pod_info|
     Thread.new do
-      result = CocoapodsRnrepo::FrameworkCache.fetch_framework(
+      result = CocoapodsRnrepo::FrameworkCache.prepare_framework(
         installer_context,
         pod_info,
         workspace_root,
@@ -202,10 +182,9 @@ def rnrepo_pre_install(installer_context)
       # Thread-safe result collection
       results_mutex.synchronize do
         case result[:status]
-        when :cached
-          cached_pods << pod_info
-        when :downloaded
-          downloaded_pods << pod_info
+        when :prepared
+          pod_info[:configs] = result[:configs]
+          prepared_pods << pod_info
         when :unavailable
           unavailable_pods << pod_info[:name]
         when :failed
@@ -221,16 +200,9 @@ def rnrepo_pre_install(installer_context)
   # Display summary
   CocoapodsRnrepo::Logger.log "Total React Native dependencies detected: #{rn_pods.count}"
 
-  if cached_pods.any?
-    CocoapodsRnrepo::Logger.log "✓ Already Cached (#{cached_pods.count}):"
-    cached_pods.each do |pod_info|
-      CocoapodsRnrepo::Logger.log "  • #{pod_info[:name]}"
-    end
-  end
-
-  if downloaded_pods.any?
-    CocoapodsRnrepo::Logger.log "⬇ Downloaded from Maven (#{downloaded_pods.count}):"
-    downloaded_pods.each do |pod_info|
+  if prepared_pods.any?
+    CocoapodsRnrepo::Logger.log "✓ Prepared for SwiftPM prebuild (#{prepared_pods.count}):"
+    prepared_pods.each do |pod_info|
       CocoapodsRnrepo::Logger.log "  • #{pod_info[:name]}"
     end
   end
@@ -258,7 +230,7 @@ def rnrepo_pre_install(installer_context)
   end
 
   # Overall stats
-  prebuilt_count = cached_pods.count + downloaded_pods.count
+  prebuilt_count = prepared_pods.count
   source_build_count = unavailable_pods.count + failed_pods.count + denied_pods.count
   total_original_pods = rn_pods.count + denied_pods.count
 
@@ -271,8 +243,9 @@ def rnrepo_pre_install(installer_context)
     CocoapodsRnrepo::Logger.log "#{source_build_count}/#{total_original_pods} dependencies will be built from source"
   end
 
-  # Store the list of successfully prebuilt pods (with package roots) for later use
-  Pod::Installer.prebuilt_rnrepo_pods = cached_pods + downloaded_pods
+  # Store the list of successfully prepared pods (with package roots and
+  # per-configuration artifact info) for later use.
+  Pod::Installer.prebuilt_rnrepo_pods = prepared_pods
 end
 
 # Monkey patch the Installer class to modify specs during dependency resolution
@@ -317,75 +290,34 @@ module Pod
           next
         end
 
-        # Find the xcframework (name may differ from pod name due to sanitization)
         cache_dir = File.join(node_modules_path, '.rnrepo-cache')
 
-        # Create Current directory
-        current_link = File.join(cache_dir, 'Current')
-        FileUtils.rm_f(current_link) if File.exist?(current_link)
-        # Prefer Debug for development
-        debug_cache_dir = File.join(cache_dir, 'Debug')
-        FileUtils.cp_r(debug_cache_dir, current_link)
-        CocoapodsRnrepo::Logger.log "  Copied to Current directory from Debug"
-
-        # Look for xcframeworks in Current (which is a copy of Debug or Release)
-        xcframeworks = Dir.glob(File.join(current_link, "*.xcframework"))
-
-        if xcframeworks.empty?
-          CocoapodsRnrepo::Logger.log "  ⚠️  xcframework not found in #{current_link}"
-          next
-        end
-
-        if xcframeworks.length > 1
-          CocoapodsRnrepo::Logger.log "  ⚠️  Multiple xcframeworks found in #{current_link}"
-          next
-        end
-
-        xcframework_path = xcframeworks.first
-        xcframework_name = File.basename(xcframework_path)
-
-        CocoapodsRnrepo::Logger.log "  Configuring #{pod_name} (#{pod_specs.count} spec(s)) at #{node_modules_path}"
-
-        # Verify the xcframework exists and is properly structured
-        debug_cache_dir = File.join(cache_dir, 'Debug')
-        release_cache_dir = File.join(cache_dir, 'Release')
-        [debug_cache_dir, release_cache_dir].each do |config_dir|
-          config_name = File.basename(config_dir)
-          config_xcframeworks = Dir.glob(File.join(config_dir, "*.xcframework"))
-          next if config_xcframeworks.empty?
-
-          xcframework_to_verify = config_xcframeworks.first
-          xcframework_slices = Dir.glob(File.join(xcframework_to_verify, "*")).select { |f| File.directory?(f) }
-
-          if xcframework_slices.any?
-            # For static XCFrameworks, the binary is inside the .framework bundle
-            # Structure: RNSVG.xcframework/ios-arm64_x86_64-simulator/RNSVG.framework/RNSVG
-            first_slice = xcframework_slices.first
-            framework_dir = Dir.glob(File.join(first_slice, "*.framework")).first
-
-            if framework_dir
-              binary_name = File.basename(framework_dir, '.framework')
-              binary_path = File.join(framework_dir, binary_name)
-
-              if File.exist?(binary_path)
-                # Verify it's a static library using 'file' command
-                file_type = `file "#{binary_path}"`.strip
-                if file_type.include?('ar archive') || file_type.include?('current ar archive')
-                  CocoapodsRnrepo::Logger.log "    Verified static xcframework (#{config_name})"
-                else
-                  CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: #{pod_name} #{config_name} may not be a static framework (type: #{file_type})"
-                end
-              else
-                CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: Could not find binary at #{binary_path}"
-              end
-            else
-              CocoapodsRnrepo::Logger.log "  ⚠️  WARNING: Could not find .framework bundle in xcframework"
-            end
-          end
-        end
-
-        # Get all targets for this pod to determine platforms
+        # Get all targets for this pod to determine platforms and the module name.
         targets = pod_targets.select { |t| t.pod_name == pod_name }
+
+        # The module name is the basename of the framework CocoaPods would have
+        # built — and, crucially, the name of the .xcframework packed inside the
+        # published artifact (see build-library-ios.ts). SwiftPM's binary target
+        # must use this exact name, so deriving it from the same CocoaPods source
+        # keeps the build pipeline and this plugin in sync.
+        module_name = targets.map(&:product_module_name).compact.first || pod_name
+        pod_info[:module_name] = module_name
+        xcframework_name = "#{module_name}.xcframework"
+
+        # Generate the per-configuration SwiftPM packages that fetch the real
+        # xcframework at build time.
+        CocoapodsRnrepo::SpmPackage.generate(cache_dir, module_name, pod_info[:configs])
+
+        # Stamp a stub xcframework into Current/ so CocoaPods detects the vendored
+        # framework and generates the "[CP] Copy XCFrameworks" phase. The build
+        # phase replaces it with the SwiftPM-fetched xcframework before linking.
+        current_link = File.join(cache_dir, 'Current')
+        FileUtils.mkdir_p(current_link)
+        CocoapodsRnrepo::StubXcframework.create(
+          File.join(current_link, xcframework_name),
+          module_name
+        )
+        CocoapodsRnrepo::Logger.log "  Configuring #{pod_name} as #{module_name} (#{pod_specs.count} spec(s)) at #{node_modules_path}"
 
         # Modify each spec (including subspecs)
         pod_specs.each do |spec|
@@ -411,9 +343,7 @@ module Pod
           end
 
           # Create dummy header file
-          [debug_cache_dir, release_cache_dir, current_link].select { |d| Dir.exist?(d) }.each do |dir|
-            File.write(File.join(dir, 'dummy.h'), "// Dummy for #{pod_name}\n")
-          end
+          File.write(File.join(current_link, 'dummy.h'), "// Dummy for #{pod_name}\n") if Dir.exist?(current_link)
 
           # Add dummy header as source files - so Xcode propagates info about the React Native framework to the main app target
           dummy_header_path = ".rnrepo-cache/Current/dummy.h"
@@ -486,43 +416,10 @@ def rnrepo_post_install(installer_context)
     return
   end
 
-  CocoapodsRnrepo::Logger.log "🔧 Adding build phase scripts for configuration selection..."
+  CocoapodsRnrepo::Logger.log "🔧 Adding build phase scripts to fetch xcframeworks via SwiftPM..."
 
-    script_content = <<~SCRIPT
-      set -e
-
-      # Path to the cache directory (relative to the pod's source directory)
-      CACHE_DIR="${PODS_TARGET_SRCROOT}/.rnrepo-cache"
-      CURRENT_LINK="${CACHE_DIR}/Current"
-
-      # Select the appropriate configuration based on whether this is a
-      # debuggable build. Matching on the $CONFIGURATION name is unreliable
-      # because projects can define custom configuration names (e.g.
-      # "Staging", "QA") that are neither "Debug" nor "Release". Instead we
-      # detect the DEBUG=1 preprocessor definition, which mirrors how React
-      # Native core selects its prebuilt configuration.
-      TARGET_DIR="Release"
-      if echo "$GCC_PREPROCESSOR_DEFINITIONS" | grep -q "DEBUG=1"; then
-        TARGET_DIR="Debug"
-      fi
-      echo "RNREPO: Switching to ${TARGET_DIR} configuration"
-
-      # Remove existing Current link/directory if it exists
-      if [ -L "${CURRENT_LINK}" ] || [ -e "${CURRENT_LINK}" ]; then
-        rm -rf "${CURRENT_LINK}"
-      fi
-
-      # Ensure the target directory is created (should exist, but just in case)
-      mkdir -p "${CACHE_DIR}/${TARGET_DIR}"
-
-      # Create symlink to the appropriate configuration
-      ln -sf "${TARGET_DIR}" "${CURRENT_LINK}"
-
-      echo "RNREPO: Selected ${TARGET_DIR} configuration for ${PODS_TARGET_SRCROOT}"
-    SCRIPT
-
-  # Get list of prebuilt pod names for filtering
-  prebuilt_pod_names = (Pod::Installer.prebuilt_rnrepo_pods || []).map { |pod| pod[:name] }
+  # Full prebuilt pod info (each carries :module_name set during resolve_dependencies).
+  prebuilt_pods = Pod::Installer.prebuilt_rnrepo_pods || []
   # Run order is alphabetical. This script must run before the '[CP] Copy XCFrameworks` script
   script_name = '[AA RUN FIRST] RNREPO Build Start'
 
@@ -533,11 +430,13 @@ def rnrepo_post_install(installer_context)
   pods_project.targets.each do |target|
     target_name = target.name
 
-    # Only add build phase to targets that were prebuilt
-    matches_prebuilt_pod = prebuilt_pod_names.any? do |pod_name|
-      target_name.downcase.start_with?(pod_name.to_s.downcase)
+    # Find the prebuilt pod backing this target (if any).
+    pod_info = prebuilt_pods.find do |pod|
+      target_name.downcase.start_with?(pod[:name].to_s.downcase)
     end
-    next unless matches_prebuilt_pod
+    next unless pod_info
+
+    module_name = pod_info[:module_name] || pod_info[:name]
 
     # Remove any existing RNREPO build phase first
     target.build_phases.select { |phase| phase.is_a?(Xcodeproj::Project::Object::PBXShellScriptBuildPhase) && phase.name == script_name }.each(&:remove_from_project)
@@ -550,7 +449,7 @@ def rnrepo_post_install(installer_context)
     build_phase = Xcodeproj::Project::Object::PBXShellScriptBuildPhase.new(pods_project, generate_safe_uuid.call)
     build_phase.initialize_defaults
     build_phase.name = script_name
-    build_phase.shell_script = script_content
+    build_phase.shell_script = CocoapodsRnrepo::SpmPackage.build_phase_script(module_name)
     target.build_phases << build_phase
 
     CocoapodsRnrepo::Logger.log "  Added build phase to #{target_name}"
@@ -571,7 +470,9 @@ def rnrepo_post_install(installer_context)
       if worklets_root == nil
         raise "RNWorklets not found in podfile, add react-native-worklets to denyList."
       end
-      worklets_framework_name = find_prebuilt_framework_name(worklets_pod)
+      # The framework copied into PODS_XCFRAMEWORKS_BUILD_DIR is named after the
+      # module (same name SwiftPM/the build pipeline use for the xcframework).
+      worklets_framework_name = "#{worklets_pod[:module_name] || worklets_pod[:name]}.framework"
       module_map = "-fmodule-map-file=\"$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/#{worklets_framework_name}/Modules/module.modulemap\""
 
       target.build_configurations.each do |config|

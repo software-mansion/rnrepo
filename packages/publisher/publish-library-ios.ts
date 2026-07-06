@@ -143,6 +143,39 @@ async function main() {
           -Durl=${MAVEN_REPOSITORY_URL}`;
       console.log('✓ XCFramework deployed successfully');
 
+      // Publish the SwiftPM checksum as a sidecar artifact so the CocoaPods
+      // plugin can fetch it during `pod install` and generate a
+      // `.binaryTarget(url:checksum:)` package. SwiftPM downloads the zip at
+      // build time and verifies it against this checksum. The checksum is the
+      // SHA256 of the exact zip bytes we just deployed.
+      console.log('\n🔐 Computing SwiftPM checksum...');
+      const checksum = (
+        await $`swift package compute-checksum ${xcframeworkPath}`.text()
+      ).trim();
+      if (!/^[0-9a-f]{64}$/.test(checksum)) {
+        throw new Error(
+          `Unexpected checksum output for ${xcframeworkZip}: "${checksum}"`
+        );
+      }
+      const checksumPath = `${xcframeworkPath}.checksum`;
+      await Bun.write(checksumPath, checksum);
+      console.log(`   ${checksum}`);
+
+      // Deploy with packaging "xcframework.zip.checksum" so the artifact lands
+      // at the zip's URL with a ".checksum" suffix — the path the plugin's
+      // Downloader.build_checksum_url expects.
+      await $`mvn org.apache.maven.plugins:maven-deploy-plugin:3.1.4:deploy-file \
+          -Dfile=${checksumPath} \
+          -DgroupId=org.rnrepo.public \
+          -DartifactId=${sanitizedLibraryName} \
+          -Dversion=${libraryVersion} \
+          -Dpackaging=xcframework.zip.checksum \
+          -Dclassifier=${classifier} \
+          -DrepositoryId=RNRepo \
+          -DgeneratePom=false \
+          -Durl=${MAVEN_REPOSITORY_URL}`;
+      console.log('✓ Checksum deployed successfully');
+
       console.log(
         `✅ Published library ${libraryName}@${libraryVersion} (${buildConfig}) to remote Maven repository`
       );

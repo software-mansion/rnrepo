@@ -1,3 +1,6 @@
+require 'fileutils'
+require 'shellwords'
+
 module CocoapodsRnrepo
   class Downloader
     @@repo_url = "https://packages.rnrepo.org/releases"
@@ -17,56 +20,52 @@ module CocoapodsRnrepo
       "#{@@repo_url}/org/rnrepo/public/#{artifact_spec[:sanitized_name]}/#{artifact_spec[:version]}/#{artifact_spec[:sanitized_name]}-#{artifact_spec[:version]}-rn#{artifact_spec[:rn_version]}#{worklets_suffix}-#{artifact_spec[:configuration]}.xcframework.zip"
     end
 
-    # Download file via curl
-    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version, :configuration, :destination, :worklets_version (optional)
-    # Returns: destination path if successful, nil on failure
-    def self.download_file(artifact_spec)
-      Logger.log "Preparing to download: #{artifact_spec[:package]}@#{artifact_spec[:version]}"
-
-      required_keys = [:sanitized_name, :version, :rn_version, :configuration, :destination]
-      return nil unless validate_artifact_spec(artifact_spec, required_keys)
-
-      if artifact_spec[:cache_path]
-        artifact_cache_path = File.join(artifact_spec[:cache_path], artifact_spec[:sanitized_name], artifact_spec[:version], File.basename(artifact_spec[:destination]))
-
-        if File.exist?(artifact_cache_path)
-          Logger.log "Found in #{artifact_cache_path}, copying..."
-          FileUtils.cp(artifact_cache_path, artifact_spec[:destination])
-          return artifact_spec[:destination]
-        end
-      end
-
-      url = build_artifact_url(artifact_spec)
-      Logger.log "Downloading from #{url}..."
-
-      success = system("curl", "-s", "-S", "-f", "-L", "--connect-timeout", "15", "--max-time", "300", "-o", artifact_spec[:destination], url)
-
-      if success
-        if artifact_spec[:cache_path]
-          artifact_cache_path = File.join(artifact_spec[:cache_path], artifact_spec[:sanitized_name], artifact_spec[:version], File.basename(artifact_spec[:destination]))
-          FileUtils.mkdir_p(File.dirname(artifact_cache_path))
-          FileUtils.cp(artifact_spec[:destination], artifact_cache_path)
-          Logger.log "Saved to cache at #{artifact_cache_path}"
-        end
-        return artifact_spec[:destination]
-      elsif success.nil?
-        Logger.error "Error: 'curl' command not found or could not be executed. Please ensure curl is installed and in your PATH."
-        return nil
-      else
-        Logger.log "Failed to download #{url}"
-        return nil
-      end
-    rescue => e
-      Logger.log "Error downloading #{url}: #{e.message}"
-      return nil
+    # The SwiftPM checksum is published next to the xcframework zip as a sidecar
+    # artifact (same coordinates, `.checksum` appended). See publish-library-ios.ts.
+    def self.build_checksum_url(artifact_spec)
+      "#{build_artifact_url(artifact_spec)}.checksum"
     end
 
-    # Unzip file to destination directory
-    def self.unzip_file(zip_path, destination)
-      Logger.log "Extracting to #{destination}..."
-      success = system("unzip", "-oq", zip_path, "-d", destination)
-      Logger.log success ? "Extracted successfully #{zip_path}" : "Error extracting #{zip_path}"
-      success
+    # Returns the published SwiftPM checksum (SHA256 hex) for an artifact, or nil
+    # if it can't be fetched. The checksum file is tiny, so this stays cheap
+    # enough to run during `pod install` for every prebuilt pod.
+    #
+    # Requires: artifact_spec hash with :sanitized_name, :version, :rn_version,
+    # :configuration (and optional :worklets_version, :cache_path).
+    def self.download_checksum(artifact_spec)
+      required_keys = [:sanitized_name, :version, :rn_version, :configuration]
+      return nil unless validate_artifact_spec(artifact_spec, required_keys)
+
+      cache_file = nil
+      if artifact_spec[:cache_path]
+        cache_file = File.join(
+          artifact_spec[:cache_path],
+          artifact_spec[:sanitized_name],
+          artifact_spec[:version],
+          "#{File.basename(build_artifact_url(artifact_spec))}.checksum"
+        )
+        if File.exist?(cache_file)
+          checksum = File.read(cache_file).strip
+          return checksum unless checksum.empty?
+        end
+      end
+
+      url = build_checksum_url(artifact_spec)
+      checksum = `curl -s -S -f -L --connect-timeout 15 --max-time 60 #{Shellwords.escape(url)} 2>/dev/null`.strip
+
+      if $?.success? && !checksum.empty?
+        if cache_file
+          FileUtils.mkdir_p(File.dirname(cache_file))
+          File.write(cache_file, checksum)
+        end
+        return checksum
+      end
+
+      Logger.log "Checksum not available at #{url}"
+      nil
+    rescue => e
+      Logger.log "Error downloading checksum: #{e.message}"
+      nil
     end
   end
 end
