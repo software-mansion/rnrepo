@@ -324,7 +324,7 @@ Need RNRepo inside a private Maven, behind VPN, or mirrored into an internal art
 
 - ✅ Public beta with shared Maven repo.
 - ✅ iOS support in beta.
-- 🔜 Skip local codegen runs for libraries (will improve build times even more).
+- ✅ Skip local codegen runs for libraries (will improve build times even more).
 - 🔜 Expanded library coverage.
 - 🔜 Production release (general availability).
 

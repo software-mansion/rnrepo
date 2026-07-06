@@ -127,6 +127,11 @@ def rnrepo_pre_install(installer_context)
     end
   end
 
+  # Add worklets version to audio-api pod info
+  if (pod = rn_pods.find { |p| p[:name] == 'RNAudioAPI' })
+    pod[:worklets_version] = worklets_version
+  end
+
   if rn_pods.empty?
     CocoapodsRnrepo::Logger.log "No React Native pods found in node_modules"
     return

@@ -238,6 +238,11 @@
       }
     ]
   },
+  "react-native-audio-api": {
+    "postInstallScriptPath": "postInstallScripts/react-native-audio-api/react-native-audio-api.gradle",
+    "android": false,
+    "ios": false
+  },
   "react-native-safe-area-context": {
     "android": [
       {
@@ -253,18 +258,9 @@
     ]
   },
   "react-native-screens": {
-    "android": [
-      {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
-      }
-    ],
-    "ios": [
-      {
-        "versionMatcher": "*",
-        "publishedAfterDate": "2025-01-01"
-      }
-    ]
+    "preInstallScriptPath": "preInstallScripts/react-native-screens/react-native-screens.ts",
+    "android": false,
+    "ios": false
   },
   "react-native-worklets": {
     "android": [
