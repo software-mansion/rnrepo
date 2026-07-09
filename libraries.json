@@ -261,7 +261,7 @@
     "preInstallScriptPath": "preInstallScripts/react-native-screens/react-native-screens.ts",
     "android": [
       {
-        "versionMatcher": ">=4.25.0",
+        "versionMatcher": ">4.25.0",
         "reactNativeVersion": ">=0.82.0",
         "publishedAfterDate": "2025-01-01"
       },
