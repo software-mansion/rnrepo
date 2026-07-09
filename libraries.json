@@ -259,8 +259,50 @@
   },
   "react-native-screens": {
     "preInstallScriptPath": "preInstallScripts/react-native-screens/react-native-screens.ts",
-    "android": false,
-    "ios": false
+    "android": [
+      {
+        "versionMatcher": ">=4.25.0",
+        "reactNativeVersion": ">=0.82.0",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.19.0 <4.25.0",
+        "reactNativeVersion": ">=0.81.0",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.14.0 <4.19.0",
+        "reactNativeVersion": ">=0.79.0",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.9.0 <4.14.0",
+        "reactNativeVersion": ">=0.76.0",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ],
+    "ios": [
+      {
+        "versionMatcher": ">4.25.0",
+        "reactNativeVersion": ">=0.82.0",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.19.0 <4.25.0",
+        "reactNativeVersion": ">=0.81.0",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.14.0 <4.19.0",
+        "reactNativeVersion": ">=0.79.0",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": ">=4.9.0 <4.14.0",
+        "reactNativeVersion": ">=0.76.0",
+        "publishedAfterDate": "2025-01-01"
+      }
+    ]
   },
   "react-native-worklets": {
     "android": [
