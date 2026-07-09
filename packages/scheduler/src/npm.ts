@@ -1,4 +1,44 @@
 import semver from 'semver';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Reads `min-release-age` (in days) from the `.npmrc` from the repo root.
+ */
+let cachedMinReleaseAgeDays: number = 4; // default to 4 days
+export function getMinReleaseAgeDays(): number {
+  if (cachedMinReleaseAgeDays !== undefined) return cachedMinReleaseAgeDays;
+
+  // scheduler is always launched from repo root
+  const contents = readFileSync(join(process.cwd(), '.npmrc'), 'utf8');
+  const match = contents.match(/^\s*min-release-age\s*=\s*(\d+(?:\.\d+)?)/m);
+  if (match) {
+    const value = Number(match[1]);
+    if (Number.isFinite(value) && value > 0) {
+      cachedMinReleaseAgeDays = value;
+    }
+  }
+  return cachedMinReleaseAgeDays;
+}
+
+/*
+ * Returns true if the package version is older than the minimum release age.
+ * This is used to filter out new package versions to avoid issues with bugs, supply chain attacks, etc.
+ */
+function isOlderThanMinAge(publishDate: Date, {packageName, version}: {packageName: string, version: string}) {
+  const minReleaseAgeDays = getMinReleaseAgeDays();
+  const maxPublishDate = new Date(Date.now() - minReleaseAgeDays * MS_PER_DAY);
+
+  if (publishDate > maxPublishDate) {
+    console.log(
+      `   ⏳ Skipping ${packageName}@${version} - published less than ${minReleaseAgeDays} day(s) ago (min-release-age)`
+    );
+    return false;
+  }
+  return true;
+}
 
 export interface NpmVersionInfo {
   version: string;
@@ -193,6 +233,7 @@ export async function findMatchingVersionsFromNPM(
   return allVersions
     .filter((v) => !semver.prerelease(v.version))
     .filter((v) => matchesVersionPattern(v.version, versionMatcher))
+    .filter((v) => isOlderThanMinAge(v.publishDate, {packageName, version: v.version}))
     .filter((v) => {
       if (minPublishDate) {
         const publishDate = new Date(v.publishDate);
