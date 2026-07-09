@@ -969,18 +969,6 @@
       }
     ]
   },
-  "@notifee/react-native": {
-    "android": [
-      {
-        "versionMatcher": ["9.1.8", "9.0.2"]
-      }
-    ],
-    "ios": [
-      {
-        "versionMatcher": ["9.1.8", "9.0.2"]
-      }
-    ]
-  },
   "react-native-keep-awake": {
     "postInstallScriptPath": "postInstallScripts/react-native-keep-awake/react-native-keep-awake.ts",
     "android": [
