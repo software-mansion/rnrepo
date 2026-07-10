@@ -1,6 +1,6 @@
 import semver from 'semver';
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
