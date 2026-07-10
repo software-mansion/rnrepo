@@ -7,18 +7,23 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 /**
  * Reads `min-release-age` (in days) from the `.npmrc` from the repo root.
  */
-let cachedMinReleaseAgeDays: number = 4; // default to 4 days
+let cachedMinReleaseAgeDays: number | undefined = undefined;
 export function getMinReleaseAgeDays(): number {
   if (cachedMinReleaseAgeDays !== undefined) return cachedMinReleaseAgeDays;
 
   // scheduler is always launched from repo root
   const contents = readFileSync(join(process.cwd(), '.npmrc'), 'utf8');
   const match = contents.match(/^\s*min-release-age\s*=\s*(\d+(?:\.\d+)?)/m);
-  if (match) {
-    const value = Number(match[1]);
-    if (Number.isFinite(value) && value > 0) {
-      cachedMinReleaseAgeDays = value;
-    }
+  const value = match ? Number(match[1]) : NaN;
+  if (value > 0) {
+    cachedMinReleaseAgeDays = value;
+  } else {
+    console.error(
+      match
+        ? `Invalid value for min-release-age (${value}), defaulting to 4 days`
+        : `Property min-release-age not found, defaulting to 4 days`
+    );
+    cachedMinReleaseAgeDays = 4;
   }
   return cachedMinReleaseAgeDays;
 }
