@@ -1,4 +1,4 @@
-<img width="1200" height="490" alt="rnrepo banner" src="https://github.com/user-attachments/assets/4fc951d4-a5ef-4a08-b0d2-40fda25c459e" />
+<img width="1200" height="490" alt="rnrepo banner" src="./packages/website/public/rnrepo-og.png" />
 
 [![Ad](https://swm-delivery.com/www/images/zone-gh-rnrepo-1?n=1)](https://swm-delivery.com/www/delivery/ck-slug.php?zoneid=zone-gh-rnrepo-1&n=1)
 [![Ad](https://swm-delivery.com/www/images/zone-gh-rnrepo-2?n=1)](https://swm-delivery.com/www/delivery/ck-slug.php?zoneid=zone-gh-rnrepo-2&n=1)
