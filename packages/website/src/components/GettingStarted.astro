@@ -35,8 +35,8 @@ const cngConfigCodeHtml = await codeToHtml(cngConfigInstructions, {
   theme: 'github-dark',
 });
 
-const cngFingerprintInstructions = `**/.rnrepo-cache`;
-const cngFingerprintInstructionsCopyText = `**/.rnrepo-cache`;
+const cngFingerprintInstructions = `**/.rnrepo-cache/**/*`;
+const cngFingerprintInstructionsCopyText = `**/.rnrepo-cache/**/*`;
 
 const cngFingerprintCodeHtml = await codeToHtml(cngFingerprintInstructions, {
   lang: 'text',

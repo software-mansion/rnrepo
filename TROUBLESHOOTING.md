@@ -271,7 +271,7 @@ To fix this, you need to exclude the `.rnrepo-cache` directories from Expo's fin
 
 ```
 // .fingerprintignore
-**/.rnrepo-cache
+**/.rnrepo-cache/**/*
 ```
 
 See the [`.fingerprintignore` documentation](https://docs.expo.dev/versions/latest/sdk/fingerprint/#fingerprintignore) or [`fingerprint.config.js` documentation](https://docs.expo.dev/versions/latest/sdk/fingerprint/#fingerprintconfigjs) for more details.
