@@ -109,7 +109,7 @@
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ">=4.6",
+        "versionMatcher": "4.6",
         "reactNativeVersion": ">=0.83",
         "publishedAfterDate": "2025-01-01"
       }
@@ -180,7 +180,7 @@
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ">=4.6",
+        "versionMatcher": "4.6",
         "reactNativeVersion": ">=0.83",
         "publishedAfterDate": "2025-01-01"
       }
