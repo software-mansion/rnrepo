@@ -13,6 +13,10 @@ const COMPATIBILITY_MATRIX = [
   {
     reanimated: '4.5',
     worklets: '0.10.0'
+  },
+  {
+    reanimated: '4.6',
+    worklets: '0.11.0'
   }
 ];
 
