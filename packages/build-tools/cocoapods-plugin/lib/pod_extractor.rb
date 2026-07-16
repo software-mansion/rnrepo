@@ -40,9 +40,9 @@ module CocoapodsRnrepo
           # Detect React Native version from this library's location (only once)
           if !rn_version_detected && package_root
             rn_version = detect_react_native_version(package_root)
-            rn_version_detected = true
             if rn_version
               Logger.log "Detected React Native version: #{rn_version}"
+              rn_version_detected = true
             end
           end
 
