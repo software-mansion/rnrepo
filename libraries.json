@@ -99,12 +99,17 @@
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": "4.3.0",
+        "versionMatcher": "4.3",
         "reactNativeVersion": ">=0.81 <0.86",
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ["4.4.0", "4.5.0"],
+        "versionMatcher": ["4.4", "4.5"],
+        "reactNativeVersion": ">=0.83 <0.87",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "4.6",
         "reactNativeVersion": ">=0.83",
         "publishedAfterDate": "2025-01-01"
       }
@@ -165,12 +170,17 @@
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": "4.3.0",
+        "versionMatcher": "4.3",
         "reactNativeVersion": ">=0.81 <0.86",
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ["4.4.0", "4.5.0"],
+        "versionMatcher": ["4.4", "4.5"],
+        "reactNativeVersion": ">=0.83 <0.87",
+        "publishedAfterDate": "2025-01-01"
+      },
+      {
+        "versionMatcher": "4.6",
         "reactNativeVersion": ">=0.83",
         "publishedAfterDate": "2025-01-01"
       }
@@ -327,8 +337,8 @@
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ["0.9", "0.10"],
-        "reactNativeVersion": ">=0.83",
+        "versionMatcher": ["0.9", "0.10", "0.11"],
+        "reactNativeVersion": ">=0.83 <0.87",
         "publishedAfterDate": "2025-01-01"
       }
     ],
@@ -354,8 +364,8 @@
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ["0.9", "0.10"],
-        "reactNativeVersion": ">=0.83",
+        "versionMatcher": ["0.9", "0.10", "0.11"],
+        "reactNativeVersion": ">=0.83 <0.87",
         "publishedAfterDate": "2025-01-01"
       }
     ]
