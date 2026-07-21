@@ -937,6 +937,7 @@
     ]
   },
   "react-native-theoplayer": {
+    "postInstallScriptPath": "postInstallScripts/react-native-theoplayer/react-native-theoplayer.gradle",
     "android": [
       {
         "versionMatcher": ">=10.9"
