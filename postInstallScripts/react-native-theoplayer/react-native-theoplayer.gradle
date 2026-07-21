@@ -1,0 +1,8 @@
+// patch.init.gradle
+// react-native-theoplayer's android/build.gradle reads its build flags through
+// `safeExtGet(prop, fallback)`, which only looks at `rootProject.ext`. Seed the flag there
+// before any build script is evaluated so REPARENT_ON_PIP is compiled in as `true`
+// (the library default is `false`).
+rootProject {
+    ext.set('THEOplayer_reparent_on_PiP', 'true')
+}
