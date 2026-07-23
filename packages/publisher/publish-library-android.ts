@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { $ } from 'bun';
 import { updateBuildStatus, type Platform } from '@rnrepo/database';
@@ -66,72 +66,44 @@ function createOctokit() {
 const octokit = createOctokit();
 
 /**
- * Parses the build revision encoded in a Maven [version] relative to the npm [base] version.
+ * Discovers the Maven version to deploy by inspecting the downloaded artifact layout under
+ * [libraryArtifactsDir] (`maven-artifacts/<artifactId>/<version>/`).
  *
- * The bare npm version (e.g. `1.2.3`) is revision 0; a republish appends an incrementing integer
- * suffix (`1.2.3.1`, `1.2.3.2`, ...). Returns null when [version] is not a revision of [base]
- * (an unrelated version, or a multi-segment / non-numeric suffix).
+ * The builder bakes the final coordinate into the artifacts: the bare npm version for a normal
+ * build, or `${npmVersion}.${revision}` for a rebuild of a faulty release. The publisher deploys
+ * exactly what was built rather than re-deriving the coordinate, so the version decision lives in a
+ * single place and is immune to the eventual consistency / concurrency of maven-metadata reads.
+ *
+ * A build produces exactly one version directory; anything else means the bundle is malformed.
  */
-function revisionOf(version: string, base: string): number | null {
-  if (version === base) return 0;
-  if (!version.startsWith(`${base}.`)) return null;
-  const suffix = version.slice(base.length + 1);
-  return /^\d+$/.test(suffix) ? parseInt(suffix, 10) : null;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Reads the `<version>` entries from the target repository's maven-metadata.xml for [artifactId].
- * Missing metadata (first publish → 404) or any error yields an empty list.
- */
-async function fetchExistingVersions(artifactId: string): Promise<string[]> {
-  const metadataUrl = `${MAVEN_REPOSITORY_URL!.replace(
-    /\/$/,
-    ''
-  )}/org/rnrepo/public/${artifactId}/maven-metadata.xml`;
-  try {
-    const res = await fetch(metadataUrl, {
-      headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${MAVEN_USERNAME}:${MAVEN_PASSWORD}`
-        ).toString('base64')}`,
-      },
-    });
-    if (!res.ok) {
-      return [];
-    }
-    const xml = await res.text();
-    return [...xml.matchAll(/<version>(.*?)<\/version>/g)].map((m) =>
-      m[1].trim()
-    );
-  } catch (error) {
-    console.warn(
-      `⚠️  Could not read maven-metadata for ${artifactId}: ${error}`
-    );
-    return [];
-  }
-}
-
-/**
- * Resolves the Maven version to deploy for [npmVersion]. The bare npm version is revision 0; a
- * republish of the same npm version is deployed as `${npmVersion}.${maxRevision + 1}` so consumers
- * using classifier-aware resolution pull the fresh artifact instead of a cached faulty one.
- */
-async function resolvePublishVersion(
-  artifactId: string,
+function discoverPublishVersion(
+  libraryArtifactsDir: string,
   npmVersion: string
-): Promise<string> {
-  const revisions = (await fetchExistingVersions(artifactId))
-    .map((v) => revisionOf(v, npmVersion))
-    .filter((r): r is number => r !== null);
-  if (revisions.length === 0) {
-    // First publish of this npm version → bare version (revision 0).
-    return npmVersion;
+): string {
+  if (!existsSync(libraryArtifactsDir)) {
+    throw new Error(
+      `No downloaded artifacts for this library at ${libraryArtifactsDir}`
+    );
   }
-  return `${npmVersion}.${Math.max(...revisions) + 1}`;
+  const versionDirs = readdirSync(libraryArtifactsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+  if (versionDirs.length !== 1) {
+    throw new Error(
+      `Expected exactly one version directory under ${libraryArtifactsDir}, found: ${
+        versionDirs.join(', ') || '(none)'
+      }`
+    );
+  }
+  const version = versionDirs[0];
+  // The built version must be the bare npm version or a build revision of it (`${npm}.${N}`);
+  // otherwise the wrong artifact was downloaded.
+  if (version !== npmVersion && !version.startsWith(`${npmVersion}.`)) {
+    throw new Error(
+      `Built version "${version}" under ${libraryArtifactsDir} is neither the npm version ${npmVersion} nor a build revision of it`
+    );
+  }
+  return version;
 }
 
 async function main() {
@@ -177,19 +149,26 @@ async function main() {
 
     // Find the downloaded artifact directory (starts with maven-artifacts-)
     const artifactDir = join(process.cwd(), 'maven-artifacts');
-    const artifactsBasePath = join(
-      artifactDir,
-      mavenLibraryName,
+    const libraryArtifactsDir = join(artifactDir, mavenLibraryName);
+    // resolve the library version with possible build revision (e.g. 3.0.0.1)
+    const publishVersion = discoverPublishVersion(
+      libraryArtifactsDir,
       libraryVersion
     );
+    console.log(
+      publishVersion === libraryVersion
+        ? `   Publish version: ${publishVersion}`
+        : `   Publish version: ${publishVersion} (build revision of ${libraryVersion})`
+    );
 
+    const artifactsBasePath = join(libraryArtifactsDir, publishVersion);
     if (!existsSync(artifactsBasePath)) {
       throw new Error(
-        `Library ${libraryName}@${libraryVersion} not found in downloaded artifacts at ${artifactsBasePath}`
+        `Library ${libraryName}@${publishVersion} not found in downloaded artifacts at ${artifactsBasePath}`
       );
     }
 
-    const baseFileName = `${mavenLibraryName}-${libraryVersion}`;
+    const baseFileName = `${mavenLibraryName}-${publishVersion}`;
     const pomFile = join(artifactsBasePath, `${baseFileName}.pom`);
     const baseClassifier = `rn${reactNativeVersion}${
       workletsVersion ? `-worklets${workletsVersion}` : ''
@@ -218,50 +197,10 @@ async function main() {
       );
     }
 
-    // Determine the Maven version to deploy. A republish of the same npm version (e.g. a bug-fix
-    // rebuild) is deployed under an incremented build revision so the consuming Gradle plugin,
-    // which pins the newest revision carrying its classifier, pulls the fresh artifact instead of
-    // a cached faulty one.
-    const publishVersion = await resolvePublishVersion(
-      mavenLibraryName,
-      libraryVersion
-    );
-    console.log(
-      publishVersion === libraryVersion
-        ? `   Publish version: ${publishVersion} (first revision)`
-        : `   Publish version: ${publishVersion} (republish of ${libraryVersion})`
-    );
-
-    // The POM generated at build time carries the bare npm version. When republishing under a build
-    // revision, rewrite its own <version> so it matches the deploy coordinate; otherwise Gradle
-    // rejects the resolved module for an inconsistent published POM.
-    let pomFileToDeploy = pomFile;
-    if (publishVersion !== libraryVersion) {
-      const originalPom = await Bun.file(pomFile).text();
-      const rewrittenPom = originalPom.replace(
-        new RegExp(
-          `(<artifactId>${escapeRegExp(
-            mavenLibraryName
-          )}</artifactId>\\s*<version>)[^<]*(</version>)`
-        ),
-        `$1${publishVersion}$2`
-      );
-      if (rewrittenPom === originalPom) {
-        throw new Error(
-          `Failed to rewrite <version> in POM ${pomFile} for republish ${publishVersion}`
-        );
-      }
-      pomFileToDeploy = join(
-        artifactsBasePath,
-        `${mavenLibraryName}-${publishVersion}.pom`
-      );
-      await Bun.write(pomFileToDeploy, rewrittenPom);
-    }
-
     // Deploy POM separately (may return 409 if already published, which is acceptable)
     try {
       await $`mvn org.apache.maven.plugins:maven-deploy-plugin:3.1.4:deploy-file \
-          -Dfile=${pomFileToDeploy} \
+          -Dfile=${pomFile} \
           -DgroupId=org.rnrepo.public \
           -DartifactId=${mavenLibraryName} \
           -Dversion=${publishVersion} \
@@ -300,7 +239,7 @@ async function main() {
       console.log('✓ AAR signed and deployed successfully');
 
       console.log(
-        `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
+        `✅ Published library ${libraryName}@${publishVersion} to remote Maven repository`
       );
       publishStatus = 'completed';
     } else {
@@ -333,6 +272,9 @@ async function main() {
         run.html_url ||
         `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
 
+      // The build record is keyed on the npm version (see createBuildRecord), so update it with
+      // `libraryVersion`, not the deployed coordinate — a rebuild's `x.y.z.N` would
+      // match no row and silently leave the status stale.
       await updateBuildStatus(
         libraryName,
         libraryVersion,

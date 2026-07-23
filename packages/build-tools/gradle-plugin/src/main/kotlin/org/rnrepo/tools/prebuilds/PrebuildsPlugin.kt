@@ -185,8 +185,10 @@ class PrebuildsPlugin : Plugin<Project> {
                 val substitutionAction =
                     Action<Project> { evaluatedProject ->
                         extension.supportedPackages.forEach { packageItem ->
-                            val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
+                            val module = "org.rnrepo.public:${packageItem.name}:${latestRevisionSelector(packageItem.version)}"
                             evaluatedProject.configurations.all { config ->
+                                // Turn off 24h gradle caching - take latest fixed lib
+                                config.resolutionStrategy.cacheDynamicVersionsFor(0, "seconds")
                                 config.resolutionStrategy.dependencySubstitution { substitutions ->
                                     substitutions.all { dependencySubstitution ->
                                         if (matchesPackageSelector(dependencySubstitution.requested, packageItem)) {

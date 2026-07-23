@@ -21,6 +21,16 @@ on:
         description: 'Worklets version'
         required: false
         type: string
+      build_revision:
+        description: >-
+          Incremental suffix for republishing a faulty release; leave empty (or 0) for a normal build.
+          Bumping it is the operator's job — look up the current highest revision of this version and pass
+          the next integer (1, 2, ...). It is deployed as `<version>.<revision>`, which the consumer's
+          version range prefers over the faulty original. A rebuild MUST re-dispatch every RN/worklets
+          combination of the release with the SAME revision, so all classifiers land under the single
+          version the range resolves to.
+        required: false
+        type: string
       test_run_snapshot:
         description: 'Test build for snapshot repository publishing'
         required: false
@@ -75,13 +85,14 @@ jobs:
           key: ${{ runner.os }}-rn-project-cache-${{ inputs.react_native_version }}
 
       - name: 🔨 Build library for Android
-        run: bun run packages/builder/build-library-android.ts -- "${INPUTS_LIBRARY_NAME}" "${INPUTS_LIBRARY_VERSION}" "${INPUTS_REACT_NATIVE_VERSION}" "$RUNNER_TEMP" "${INPUTS_WORKLETS_VERSION}"
+        run: bun run packages/builder/build-library-android.ts -- "${INPUTS_LIBRARY_NAME}" "${INPUTS_LIBRARY_VERSION}" "${INPUTS_REACT_NATIVE_VERSION}" "$RUNNER_TEMP" "${INPUTS_WORKLETS_VERSION}" "${INPUTS_BUILD_REVISION}"
         env:
           RUNNER_TEMP: ${{ runner.temp }}
           INPUTS_LIBRARY_NAME: ${{ inputs.library_name }}
           INPUTS_LIBRARY_VERSION: ${{ inputs.library_version }}
           INPUTS_REACT_NATIVE_VERSION: ${{ inputs.react_native_version }}
           INPUTS_WORKLETS_VERSION: ${{ inputs.worklets_version }}
+          INPUTS_BUILD_REVISION: ${{ inputs.build_revision }}
 
       - name: 📋 List artifacts with checksums
         run: |
