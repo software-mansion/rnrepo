@@ -65,6 +65,75 @@ function createOctokit() {
 
 const octokit = createOctokit();
 
+/**
+ * Parses the build revision encoded in a Maven [version] relative to the npm [base] version.
+ *
+ * The bare npm version (e.g. `1.2.3`) is revision 0; a republish appends an incrementing integer
+ * suffix (`1.2.3.1`, `1.2.3.2`, ...). Returns null when [version] is not a revision of [base]
+ * (an unrelated version, or a multi-segment / non-numeric suffix).
+ */
+function revisionOf(version: string, base: string): number | null {
+  if (version === base) return 0;
+  if (!version.startsWith(`${base}.`)) return null;
+  const suffix = version.slice(base.length + 1);
+  return /^\d+$/.test(suffix) ? parseInt(suffix, 10) : null;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Reads the `<version>` entries from the target repository's maven-metadata.xml for [artifactId].
+ * Missing metadata (first publish → 404) or any error yields an empty list.
+ */
+async function fetchExistingVersions(artifactId: string): Promise<string[]> {
+  const metadataUrl = `${MAVEN_REPOSITORY_URL!.replace(
+    /\/$/,
+    ''
+  )}/org/rnrepo/public/${artifactId}/maven-metadata.xml`;
+  try {
+    const res = await fetch(metadataUrl, {
+      headers: {
+        Authorization: `Basic ${Buffer.from(
+          `${MAVEN_USERNAME}:${MAVEN_PASSWORD}`
+        ).toString('base64')}`,
+      },
+    });
+    if (!res.ok) {
+      return [];
+    }
+    const xml = await res.text();
+    return [...xml.matchAll(/<version>(.*?)<\/version>/g)].map((m) =>
+      m[1].trim()
+    );
+  } catch (error) {
+    console.warn(
+      `⚠️  Could not read maven-metadata for ${artifactId}: ${error}`
+    );
+    return [];
+  }
+}
+
+/**
+ * Resolves the Maven version to deploy for [npmVersion]. The bare npm version is revision 0; a
+ * republish of the same npm version is deployed as `${npmVersion}.${maxRevision + 1}` so consumers
+ * using classifier-aware resolution pull the fresh artifact instead of a cached faulty one.
+ */
+async function resolvePublishVersion(
+  artifactId: string,
+  npmVersion: string
+): Promise<string> {
+  const revisions = (await fetchExistingVersions(artifactId))
+    .map((v) => revisionOf(v, npmVersion))
+    .filter((r): r is number => r !== null);
+  if (revisions.length === 0) {
+    // First publish of this npm version → bare version (revision 0).
+    return npmVersion;
+  }
+  return `${npmVersion}.${Math.max(...revisions) + 1}`;
+}
+
 async function main() {
   try {
     console.log(`📥 Fetching build workflow run ${buildRunId}...`);
@@ -149,13 +218,53 @@ async function main() {
       );
     }
 
+    // Determine the Maven version to deploy. A republish of the same npm version (e.g. a bug-fix
+    // rebuild) is deployed under an incremented build revision so the consuming Gradle plugin,
+    // which pins the newest revision carrying its classifier, pulls the fresh artifact instead of
+    // a cached faulty one.
+    const publishVersion = await resolvePublishVersion(
+      mavenLibraryName,
+      libraryVersion
+    );
+    console.log(
+      publishVersion === libraryVersion
+        ? `   Publish version: ${publishVersion} (first revision)`
+        : `   Publish version: ${publishVersion} (republish of ${libraryVersion})`
+    );
+
+    // The POM generated at build time carries the bare npm version. When republishing under a build
+    // revision, rewrite its own <version> so it matches the deploy coordinate; otherwise Gradle
+    // rejects the resolved module for an inconsistent published POM.
+    let pomFileToDeploy = pomFile;
+    if (publishVersion !== libraryVersion) {
+      const originalPom = await Bun.file(pomFile).text();
+      const rewrittenPom = originalPom.replace(
+        new RegExp(
+          `(<artifactId>${escapeRegExp(
+            mavenLibraryName
+          )}</artifactId>\\s*<version>)[^<]*(</version>)`
+        ),
+        `$1${publishVersion}$2`
+      );
+      if (rewrittenPom === originalPom) {
+        throw new Error(
+          `Failed to rewrite <version> in POM ${pomFile} for republish ${publishVersion}`
+        );
+      }
+      pomFileToDeploy = join(
+        artifactsBasePath,
+        `${mavenLibraryName}-${publishVersion}.pom`
+      );
+      await Bun.write(pomFileToDeploy, rewrittenPom);
+    }
+
     // Deploy POM separately (may return 409 if already published, which is acceptable)
     try {
       await $`mvn org.apache.maven.plugins:maven-deploy-plugin:3.1.4:deploy-file \
-          -Dfile=${pomFile} \
+          -Dfile=${pomFileToDeploy} \
           -DgroupId=org.rnrepo.public \
           -DartifactId=${mavenLibraryName} \
-          -Dversion=${libraryVersion} \
+          -Dversion=${publishVersion} \
           -Dpackaging=pom \
           -DrepositoryId=RNRepo \
           -Durl=${MAVEN_REPOSITORY_URL}`;
@@ -180,7 +289,7 @@ async function main() {
         -Dfile=${aarFile} \
         -DgroupId=org.rnrepo.public \
         -DartifactId=${mavenLibraryName} \
-        -Dversion=${libraryVersion} \
+        -Dversion=${publishVersion} \
         -Dpackaging=aar \
         -Dclassifier=${classifier} \
         -DgeneratePom=false \
