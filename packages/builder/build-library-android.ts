@@ -67,9 +67,9 @@ function isRevisionCompatible(version: string): boolean {
 function computePublishVersion(npmVersion: string, revision?: string): string {
   const trimmed = (revision ?? '').trim();
   if (trimmed === '' || trimmed === '0') return npmVersion;
-  if (!/^\d+$/.test(trimmed)) {
+  if (!/^[1-9]\d*$/.test(trimmed)) {
     throw new Error(
-      `Invalid build revision "${revision}": expected a non-negative integer`
+      `Invalid build revision "${revision}": expected a positive integer without leading zeros`
     );
   }
   if (!isRevisionCompatible(npmVersion)) {
