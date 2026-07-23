@@ -49,7 +49,7 @@ function parseArgs(argv: string[]): {
     const readValue = (): string => {
       if (inlineValue !== undefined) return inlineValue;
       const next = argv[++i];
-      if (next === undefined) {
+      if (next === undefined || next.startsWith('--')) {
         console.error(`Missing value for ${name}\n${USAGE}`);
         process.exit(1);
       }
