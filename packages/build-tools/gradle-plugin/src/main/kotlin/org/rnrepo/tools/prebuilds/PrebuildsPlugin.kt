@@ -135,8 +135,9 @@ class PrebuildsPlugin : Plugin<Project> {
             // Setup
             extension.supportedPackages.forEach { packageItem ->
                 val codegenSuffix = if (packageItem.hasCodegen) "-codegen" else ""
+                val versionSelector = latestRevisionSelector(packageItem.version)
                 val dependencyNotation =
-                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}$codegenSuffix@aar"
+                    "org.rnrepo.public:${packageItem.name}:$versionSelector:rn${extension.reactNativeVersion}${packageItem.classifier}$codegenSuffix@aar"
                 addDependency(
                     project,
                     "implementation",
@@ -299,6 +300,24 @@ class PrebuildsPlugin : Plugin<Project> {
     ) {
         project.dependencies.add(configurationName, dependencyNotation)
         logger.info("Added dependency: $dependencyNotation to configuration: $configurationName in project ${project.name}")
+    }
+
+    /**
+     * Builds a Gradle version selector resolving to the newest published build revision of [version].
+     *
+     * The bare npm version (e.g. `1.2.3`) is revision 0; a bug-fix republish appends an incrementing
+     * suffix (`1.2.3.1`, `1.2.3.2`, ...). A right-open range `[1.2.3,1.2.4)` matches the bare version
+     * and every revision while excluding the next npm version, so Gradle always picks the latest
+     * rebuild instead of a cached faulty artifact — and it still resolves for packages published
+     * before revisions existed, which only have the bare version. Falls back to the exact version
+     * when it cannot be parsed.
+     */
+    private fun latestRevisionSelector(version: String): String {
+        val lastDot = version.lastIndexOf('.')
+        val lastPart = if (lastDot >= 0) version.substring(lastDot + 1).toIntOrNull() else null
+        if (lastPart == null) return version
+        val upperBound = version.substring(0, lastDot + 1) + (lastPart + 1)
+        return "[$version,$upperBound)"
     }
 
     /**
