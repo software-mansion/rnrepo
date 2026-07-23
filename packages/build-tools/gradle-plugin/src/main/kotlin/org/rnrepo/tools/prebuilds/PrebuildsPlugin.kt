@@ -188,7 +188,7 @@ class PrebuildsPlugin : Plugin<Project> {
                             val module = "org.rnrepo.public:${packageItem.name}:${latestRevisionSelector(packageItem.version)}"
                             evaluatedProject.configurations.all { config ->
                                 // Turn off 24h gradle caching - take latest fixed lib
-                                config.resolutionStrategy.cacheDynamicVersionsFor(1, "hour")
+                                config.resolutionStrategy.cacheDynamicVersionsFor(1, "hours")
                                 config.resolutionStrategy.dependencySubstitution { substitutions ->
                                     substitutions.all { dependencySubstitution ->
                                         if (matchesPackageSelector(dependencySubstitution.requested, packageItem)) {
