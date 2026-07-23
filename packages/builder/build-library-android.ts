@@ -18,23 +18,72 @@ import {
  * @param libraryVersion - Version of the library from NPM
  * @param reactNativeVersion - React Native version to use for building
  * @param workDir - Working directory where "app" (RN project) and "outputs" (AAR files) will be created
- * @param workletsVersion - (Optional) react-native-worklets version to install
+ * @param workletsVersion - (Optional) react-native-worklets version to install, via --worklets-version
+ * @param buildRevision - (Optional) rebuild suffix for a faulty release, via --build-revision
  */
 
-const [
-  libraryName,
-  libraryVersion,
-  reactNativeVersion,
-  workDir,
+const USAGE =
+  'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir> [--worklets-version <v>] [--build-revision <n>]';
+
+/**
+ * The two optional inputs are named flags rather than positional args so a manual run can pass a
+ * build revision without also passing a worklets version — with positionals the revision would be
+ * silently swallowed into workletsVersion. Both `--flag value` and `--flag=value` forms are accepted;
+ * an empty value is treated as absent (CI passes the flags unconditionally, empty when not set).
+ */
+function parseArgs(argv: string[]): {
+  positionals: string[];
+  workletsVersion?: string;
+  buildRevision?: string;
+} {
+  const positionals: string[] = [];
+  let workletsVersion: string | undefined;
+  let buildRevision: string | undefined;
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    const eq = arg.indexOf('=');
+    const name = arg.startsWith('--') ? (eq >= 0 ? arg.slice(0, eq) : arg) : '';
+    const inlineValue = eq >= 0 ? arg.slice(eq + 1) : undefined;
+
+    const readValue = (): string => {
+      if (inlineValue !== undefined) return inlineValue;
+      const next = argv[++i];
+      if (next === undefined) {
+        console.error(`Missing value for ${name}\n${USAGE}`);
+        process.exit(1);
+      }
+      return next;
+    };
+
+    switch (name) {
+      case '--worklets-version':
+        workletsVersion = readValue() || undefined;
+        break;
+      case '--build-revision':
+        buildRevision = readValue() || undefined;
+        break;
+      case '':
+        positionals.push(arg);
+        break;
+      default:
+        console.error(`Unknown option ${name}\n${USAGE}`);
+        process.exit(1);
+    }
+  }
+
+  return { positionals, workletsVersion, buildRevision };
+}
+
+const {
+  positionals: [libraryName, libraryVersion, reactNativeVersion, workDir],
   workletsVersion,
   buildRevision,
-] = process.argv.slice(2);
+} = parseArgs(process.argv.slice(2));
 let postinstallGradleScriptPath: string = '';
 
 if (!libraryName || !libraryVersion || !reactNativeVersion || !workDir) {
-  console.error(
-    'Usage: bun run build-library-android.ts <library-name> <library-version> <react-native-version> <work-dir> [<worklets-version>] [<build-revision>]'
-  );
+  console.error(USAGE);
   process.exit(1);
 }
 

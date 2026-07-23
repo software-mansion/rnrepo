@@ -85,7 +85,7 @@ jobs:
           key: ${{ runner.os }}-rn-project-cache-${{ inputs.react_native_version }}
 
       - name: 🔨 Build library for Android
-        run: bun run packages/builder/build-library-android.ts -- "${INPUTS_LIBRARY_NAME}" "${INPUTS_LIBRARY_VERSION}" "${INPUTS_REACT_NATIVE_VERSION}" "$RUNNER_TEMP" "${INPUTS_WORKLETS_VERSION}" "${INPUTS_BUILD_REVISION}"
+        run: bun run packages/builder/build-library-android.ts -- "${INPUTS_LIBRARY_NAME}" "${INPUTS_LIBRARY_VERSION}" "${INPUTS_REACT_NATIVE_VERSION}" "$RUNNER_TEMP" --worklets-version "${INPUTS_WORKLETS_VERSION}" --build-revision "${INPUTS_BUILD_REVISION}"
         env:
           RUNNER_TEMP: ${{ runner.temp }}
           INPUTS_LIBRARY_NAME: ${{ inputs.library_name }}
