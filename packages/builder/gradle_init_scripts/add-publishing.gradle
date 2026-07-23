@@ -75,9 +75,12 @@ def createExtractCodegenBinariesTask(libraryProject, codegenName, buildType) {
             def archs = ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
             def moduleFolder = "${codegenName}_autolinked_build"
             archs.each { arch ->
-                // Find any .a file for this arch (will be whatever was just built)
+                // Find the .a file for this arch. Match the ABI as a full path
+                // segment (split on File.separator) rather than a bare substring,
+                // otherwise arch "x86" would also match the "x86_64" directory and 
+                // the 32-bit artifact would be in the 64-bit dir. See issue #419.
                 def staticLib = fileTree(dir: appCxxDir, include: "**/$moduleFolder/**/libreact_codegen_${codegenName}.a")
-                    .find { it.path.contains(arch) }
+                    .find { arch in it.path.split(java.util.regex.Pattern.quote(File.separator)) }
                 if (staticLib) {
                     def assetBuildType = buildType == "Release" ? "relwithdebinfo" : buildType.toLowerCase()
                     def destDir = file("${libraryProject.projectDir}/src/main/assets/${assetBuildType}/$arch")
