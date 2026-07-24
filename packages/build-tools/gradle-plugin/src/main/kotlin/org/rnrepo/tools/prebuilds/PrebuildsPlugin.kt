@@ -274,7 +274,9 @@ class PrebuildsPlugin : Plugin<Project> {
                 // RNRepo and prevents any other repository from being queried for it, regardless of order.
                 currentProject.repositories.exclusiveContent { exclusiveContent ->
                     exclusiveContent.forRepository {
-                        maven { url = rnrepoUrl }
+                        currentProject.repositories.maven { repo ->
+                            repo.url = rnrepoUrl
+                        }
                     }
                     exclusiveContent.filter { descriptor ->
                         descriptor.includeGroup(RNREPO_GROUP)
