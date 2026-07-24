@@ -6,7 +6,11 @@ import {
 } from '@rnrepo/config';
 import type { Platform } from '@rnrepo/database';
 import { matchesVersionPattern, findMatchingVersionsFromNPM } from './npm';
-import { hasCodegenArtifact } from './codegen';
+import {
+  hasCodegenForPackage,
+  hasCodegenArtifact,
+  removeCodegenArtifact,
+} from './codegen';
 import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
@@ -21,6 +25,11 @@ export async function processLibrary(
   currentCount: number = 0
 ): Promise<number> {
   console.log(`\n📦 Processing: ${libraryName}`);
+
+  if (!hasCodegenForPackage(libraryName)) {
+    console.log(`   ⏭️  Skipping ${libraryName} - no codegen artifacts in codegen_urls.txt`);
+    return currentCount;
+  }
 
   const platforms: Platform[] = ['android', 'ios'];
   const rnVersions = reactNativeVersions as string[];
@@ -136,6 +145,9 @@ export async function processLibrary(
               );
               return Promise.reject(error);
             }
+
+            // Workflow created - consume this combination from the codegen allow-list
+            removeCodegenArtifact(libraryName, pkgVersion, rnVersion);
 
             // Create build record in Supabase (without run URL - will be updated later)
             try {

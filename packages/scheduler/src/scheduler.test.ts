@@ -3,6 +3,7 @@ import type { LibraryConfig } from './types';
 import * as npmModule from './npm';
 import * as supabaseModule from '@rnrepo/database';
 import * as githubModule from './github';
+import * as codegenModule from './codegen';
 import type { NpmVersionInfo } from './npm';
 import * as rnrepoConfig from '@rnrepo/config';
 
@@ -15,6 +16,9 @@ const mockFindMatchingVersionsFromNPM = mock();
 const mockIsBuildAlreadyScheduled = mock();
 const mockCreateBuildRecord = mock();
 const mockScheduleLibraryBuild = mock();
+const mockHasCodegenForPackage = mock();
+const mockHasCodegenArtifact = mock();
+const mockRemoveCodegenArtifact = mock();
 
 // Mock react-native-versions.json
 const mockReactNativeVersions = [
@@ -39,12 +43,19 @@ beforeEach(async () => {
   mockIsBuildAlreadyScheduled.mockReset();
   mockCreateBuildRecord.mockReset();
   mockScheduleLibraryBuild.mockReset();
+  mockHasCodegenForPackage.mockReset();
+  mockHasCodegenArtifact.mockReset();
+  mockRemoveCodegenArtifact.mockReset();
 
   // Setup default mock implementations
   mockScheduleLibraryBuild.mockResolvedValue(undefined); // Dispatch succeeds by default
   mockIsBuildAlreadyScheduled.mockResolvedValue(false); // Not already scheduled by default
   mockCreateBuildRecord.mockResolvedValue(undefined); // Create record succeeds by default
   mockFindMatchingVersionsFromNPM.mockResolvedValue([]); // No versions by default
+  // Codegen allow-list is transparent by default (every combination allowed)
+  mockHasCodegenForPackage.mockReturnValue(true);
+  mockHasCodegenArtifact.mockReturnValue(true);
+  mockRemoveCodegenArtifact.mockReturnValue(undefined);
 
   // Mock the modules
   spyOn(npmModule, 'findMatchingVersionsFromNPM').mockImplementation(
@@ -58,6 +69,15 @@ beforeEach(async () => {
   );
   spyOn(githubModule, 'scheduleLibraryBuild').mockImplementation(
     mockScheduleLibraryBuild
+  );
+  spyOn(codegenModule, 'hasCodegenForPackage').mockImplementation(
+    mockHasCodegenForPackage
+  );
+  spyOn(codegenModule, 'hasCodegenArtifact').mockImplementation(
+    mockHasCodegenArtifact
+  );
+  spyOn(codegenModule, 'removeCodegenArtifact').mockImplementation(
+    mockRemoveCodegenArtifact
   );
 
   // Note: We'll pass rnVersions as a parameter to processLibrary instead of mocking the import
@@ -84,6 +104,15 @@ afterEach(() => {
   ).mockRestore?.();
   (
     githubModule.scheduleLibraryBuild as unknown as { mockRestore?: () => void }
+  ).mockRestore?.();
+  (
+    codegenModule.hasCodegenForPackage as unknown as { mockRestore?: () => void }
+  ).mockRestore?.();
+  (
+    codegenModule.hasCodegenArtifact as unknown as { mockRestore?: () => void }
+  ).mockRestore?.();
+  (
+    codegenModule.removeCodegenArtifact as unknown as { mockRestore?: () => void }
   ).mockRestore?.();
 });
 
