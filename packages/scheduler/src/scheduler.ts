@@ -31,7 +31,7 @@ export async function processLibrary(
     return currentCount;
   }
 
-  const platforms: Platform[] = ['android', 'ios'];
+  const platforms: Platform[] = ['android'];
   const rnVersions = reactNativeVersions as string[];
   let scheduledCount = currentCount;
 
@@ -151,14 +151,14 @@ export async function processLibrary(
 
             // Create build record in Supabase (without run URL - will be updated later)
             try {
-              await createBuildRecord(
-                libraryName,
-                pkgVersion,
-                rnVersion,
-                platform,
-                undefined,
-                workletsVersion
-              );
+              // await createBuildRecord(
+              //   libraryName,
+              //   pkgVersion,
+              //   rnVersion,
+              //   platform,
+              //   undefined,
+              //   workletsVersion
+              // );
             } catch (error) {
               console.error(
                 `Failed to create build record for ${libraryName}@${pkgVersion} (${platform}, RN ${rnVersion}${
