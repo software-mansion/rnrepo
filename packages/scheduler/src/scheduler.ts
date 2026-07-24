@@ -6,6 +6,7 @@ import {
 } from '@rnrepo/config';
 import type { Platform } from '@rnrepo/database';
 import { matchesVersionPattern, findMatchingVersionsFromNPM } from './npm';
+import { hasCodegenArtifact } from './codegen';
 import { scheduleLibraryBuild } from './github';
 import { isBuildAlreadyScheduled, createBuildRecord } from '@rnrepo/database';
 
@@ -74,17 +75,23 @@ export async function processLibrary(
             continue;
           }
 
+          if (!hasCodegenArtifact(libraryName, pkgVersion, rnVersion)) {
+            console.log(`   ⏭️  Skipping ${libraryName}@${pkgVersion} / RN ${rnVersion} - no codegen artifact in codegen_urls.txt`);
+            continue;
+          }
+
           for (const workletsVersionInfo of workletsMatchingVersions.length > 0
             ? workletsMatchingVersions
             : [null]) {
             const workletsVersion = workletsVersionInfo?.version;
-            const alreadyScheduled = await isBuildAlreadyScheduled(
-              libraryName,
-              pkgVersion,
-              rnVersion,
-              platform,
-              workletsVersion
-            );
+            const alreadyScheduled = false;
+            // await isBuildAlreadyScheduled(
+            //   libraryName,
+            //   pkgVersion,
+            //   rnVersion,
+            //   platform,
+            //   workletsVersion
+            // );
             if (alreadyScheduled) {
               const platformPrefix =
                 platform === 'android' ? ' 🤖 Android:' : ' 🍎 iOS:';
