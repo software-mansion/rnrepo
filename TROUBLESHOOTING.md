@@ -276,4 +276,26 @@ To fix this, you need to exclude the `.rnrepo-cache` directories from Expo's fin
 
 See the [`.fingerprintignore` documentation](https://docs.expo.dev/versions/latest/sdk/fingerprint/#fingerprintignore) or [`fingerprint.config.js` documentation](https://docs.expo.dev/versions/latest/sdk/fingerprint/#fingerprintconfigjs) for more details.
 
+### Metro `Invariant Violation` for `.rnrepo-cache` Directory
+
+#### Problem Description
+After running `pod install`, Metro may crash with an `Invariant Violation` error when it detects a change inside the `.rnrepo-cache` directory created by the RNRepo plugin:
+
+```
+Invariant Violation: Detected addition or modification of file node_modules/react-native-screens/.rnrepo-cache/Current, but it is tracked as a non-empty directory
+...
+```
+
+This happens because Metro's `TreeFS` initially sees `.rnrepo-cache/Current` as a directory (it is an Xcode-style symlink pointing to the currently active xcframework version) and then receives a filesystem event that treats it as a file. The mismatch causes Metro to throw.
+
+#### Solution
+Cleaning metro/watchman cache usually helps:
+
+```bash
+npx watchman watch-del-all
+npx metro restart --reset-cache # or for expo: npx expo start -c
+```
+
+But if issue still persist, you can exclude the `.rnrepo-cache` directories from Metro's file watcher by adding them to the `blockList` in your `metro.config.js`:
+
 ---
