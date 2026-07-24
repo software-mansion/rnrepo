@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { $ } from 'bun';
 import { updateBuildStatus, type Platform } from '@rnrepo/database';
@@ -64,6 +64,114 @@ function createOctokit() {
 }
 
 const octokit = createOctokit();
+
+/**
+ * Probes the remote Maven repository for a specific version+classifier AAR. Existence is checked per
+ * classifier because the artifact filename embeds the classifier and each build job publishes exactly
+ * one; a rebuild re-dispatches every classifier of the release together, so they advance in lockstep
+ * to the same revision.
+ */
+async function classifierAarExists(
+  artifactId: string,
+  version: string,
+  classifier: string
+): Promise<boolean> {
+  const base = MAVEN_REPOSITORY_URL!.replace(/\/+$/, '');
+  const url = `${base}/org/rnrepo/public/${artifactId}/${version}/${artifactId}-${version}-${classifier}.aar`;
+  const res = await fetch(url, {
+    method: 'HEAD',
+  });
+  if (res.status === 200) return true;
+  if (res.status === 404) return false;
+  throw new Error(
+    `Unexpected HTTP ${res.status} while probing ${url} for an existing artifact`
+  );
+}
+
+/**
+ * Lists the versions already published for an artifact by reading the remote repository's
+ * `maven-metadata.xml`. Returns an empty array when the artifact has never been published (404).
+ * Unlike {@link classifierAarExists} this is classifier-agnostic — it reports which version
+ * directories exist regardless of which classifier populated them.
+ */
+async function fetchPublishedVersions(artifactId: string): Promise<string[]> {
+  const base = MAVEN_REPOSITORY_URL!.replace(/\/+$/, '');
+  const url = `${base}/org/rnrepo/public/${artifactId}/maven-metadata.xml`;
+  const res = await fetch(url);
+  if (res.status === 404) return [];
+  if (res.status !== 200) {
+    throw new Error(
+      `Unexpected HTTP ${res.status} while fetching ${url} to list published versions`
+    );
+  }
+  const xml = await res.text();
+  return [...xml.matchAll(/<version>([^<]+)<\/version>/g)].map((m) => m[1].trim());
+}
+
+/**
+ * Decides the Maven version to deploy under, replacing the old operator-supplied build revision.
+ *
+ * The release line for `npmVersion` is the bare `npmVersion` (revision 0) plus any rebuild
+ * revisions `${npmVersion}.${n}` (n ≥ 1). We deploy to the HIGHEST revision already present in that
+ * line so a lagging classifier catches up to the release's current revision, rather than back-filling
+ * a lower or gap slot. If this classifier is already published at that highest revision, the release
+ * is being rebuilt again, so we advance to `n+1`.
+ */
+async function computeDeployVersion(
+  artifactId: string,
+  npmVersion: string,
+  classifier: string
+): Promise<string> {
+  const published = await fetchPublishedVersions(artifactId);
+
+  // Highest existing revision in the `npmVersion` line: 0 == the bare `npmVersion`, -1 == none yet.
+  const esc = npmVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const revRe = new RegExp(`^${esc}(?:\\.(\\d+))?$`);
+  let maxN = -1;
+  for (const v of published) {
+    const m = v.match(revRe);
+    if (!m) continue;
+    const n = m[1] ? parseInt(m[1], 10) : 0;
+    if (n > maxN) maxN = n;
+  }
+
+  // Nothing in this line has ever been published — deploy the bare npm version.
+  if (maxN < 0) return npmVersion;
+
+  const maxVersion = maxN === 0 ? npmVersion : `${npmVersion}.${maxN}`;
+
+  // If our classifier already occupies the highest revision, this is a rebuild of it — bump to n+1.
+  if (await classifierAarExists(artifactId, maxVersion, classifier)) {
+    return `${npmVersion}.${maxN + 1}`;
+  }
+  return maxVersion;
+}
+
+/**
+ * Rewrites the project's own `<version>` in the baked POM so the deployed coordinate and the POM body
+ * agree when the publisher bumps to a rebuild revision. Only the `org.rnrepo.public:${artifactId}`
+ * coordinate is touched — third-party dependency versions (different groupIds) are left intact.
+ */
+function rewritePomProjectVersion(
+  pomXml: string,
+  artifactId: string,
+  fromVersion: string,
+  toVersion: string
+): string {
+  if (fromVersion === toVersion) return pomXml;
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(
+    `(<groupId>org\\.rnrepo\\.public</groupId>\\s*<artifactId>${esc(
+      artifactId
+    )}</artifactId>\\s*<version>)${esc(fromVersion)}(</version>)`
+  );
+  if (!re.test(pomXml)) {
+    throw new Error(
+      `Could not locate the org.rnrepo.public:${artifactId}:${fromVersion} project version in the POM to rewrite it to ${toVersion}`
+    );
+  }
+  return pomXml.replace(re, `$1${toVersion}$2`);
+}
 
 async function main() {
   try {
@@ -149,13 +257,40 @@ async function main() {
       );
     }
 
+    // Decide the deployed coordinate: the bare npm version for a first publish, or the next free
+    // `${npmVersion}.${n}` rebuild suffix when this version+classifier already exists remotely.
+    const publishVersion = await computeDeployVersion(
+      mavenLibraryName,
+      libraryVersion,
+      classifier
+    );
+    console.log(
+      publishVersion === libraryVersion
+        ? `   Publish version: ${publishVersion}`
+        : `   Publish version: ${publishVersion} (rebuild revision of ${libraryVersion})`
+    );
+
+    // The baked POM carries the built (bare) version internally; when deploying under a rebuild
+    // revision, rewrite its project version so the POM body matches the deployed coordinate.
+    let pomFileToDeploy = pomFile;
+    if (publishVersion !== libraryVersion) {
+      const rewrittenPom = rewritePomProjectVersion(
+        readFileSync(pomFile, 'utf-8'),
+        mavenLibraryName,
+        libraryVersion,
+        publishVersion
+      );
+      pomFileToDeploy = join(artifactsBasePath, `${mavenLibraryName}-${publishVersion}.pom`);
+      writeFileSync(pomFileToDeploy, rewrittenPom, 'utf-8');
+    }
+
     // Deploy POM separately (may return 409 if already published, which is acceptable)
     try {
       await $`mvn org.apache.maven.plugins:maven-deploy-plugin:3.1.4:deploy-file \
-          -Dfile=${pomFile} \
+          -Dfile=${pomFileToDeploy} \
           -DgroupId=org.rnrepo.public \
           -DartifactId=${mavenLibraryName} \
-          -Dversion=${libraryVersion} \
+          -Dversion=${publishVersion} \
           -Dpackaging=pom \
           -DrepositoryId=RNRepo \
           -Durl=${MAVEN_REPOSITORY_URL}`;
@@ -180,7 +315,7 @@ async function main() {
         -Dfile=${aarFile} \
         -DgroupId=org.rnrepo.public \
         -DartifactId=${mavenLibraryName} \
-        -Dversion=${libraryVersion} \
+        -Dversion=${publishVersion} \
         -Dpackaging=aar \
         -Dclassifier=${classifier} \
         -DgeneratePom=false \
@@ -191,7 +326,7 @@ async function main() {
       console.log('✓ AAR signed and deployed successfully');
 
       console.log(
-        `✅ Published library ${libraryName}@${libraryVersion} to remote Maven repository`
+        `✅ Published library ${libraryName}@${publishVersion} to remote Maven repository`
       );
       publishStatus = 'completed';
     } else {
@@ -224,6 +359,9 @@ async function main() {
         run.html_url ||
         `https://github.com/${owner}/${repo}/actions/runs/${run.id}`;
 
+      // The build record is keyed on the npm version (see createBuildRecord), so update it with
+      // `libraryVersion`, not the deployed coordinate — a rebuild's `x.y.z.N` would
+      // match no row and silently leave the status stale.
       await updateBuildStatus(
         libraryName,
         libraryVersion,

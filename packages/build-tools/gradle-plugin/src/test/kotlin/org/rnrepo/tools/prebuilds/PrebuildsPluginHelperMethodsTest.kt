@@ -707,6 +707,90 @@ class PrebuildsPluginHelperMethodsTest {
         assertThat(extension.denyList).containsExactly("react-native-vector-icons")
     }
 
+    @Test
+    fun `latestRevisionSelector should build a right-open range for a standard version`() {
+        // Given
+        val version = "15.15.5"
+
+        // When
+        val result = invokePrivateMethod<String>(plugin, "latestRevisionSelector", arrayOf(String::class.java), version)
+
+        // Then the range matches the bare version and every 15.15.5.N revision, but not 15.15.6
+        assertThat(result).isEqualTo("[15.15.5,15.15.6)")
+    }
+
+    @Test
+    fun `latestRevisionSelector should correctly increment a multi-digit last segment`() {
+        // Given a version whose patch segment has more than one digit
+        val version = "1.2.33"
+
+        // When
+        val result = invokePrivateMethod<String>(plugin, "latestRevisionSelector", arrayOf(String::class.java), version)
+
+        // Then the whole segment is parsed numerically (33 -> 34), not lexicographically
+        assertThat(result).isEqualTo("[1.2.33,1.2.34)")
+    }
+
+    @Test
+    fun `latestRevisionSelector should carry over when the last segment is all nines`() {
+        // Given
+        val version = "1.2.99"
+
+        // When
+        val result = invokePrivateMethod<String>(plugin, "latestRevisionSelector", arrayOf(String::class.java), version)
+
+        // Then
+        assertThat(result).isEqualTo("[1.2.99,1.2.100)")
+    }
+
+    @Test
+    fun `latestRevisionSelector should build a range for a two-segment version`() {
+        // Given
+        val version = "1.2"
+
+        // When
+        val result = invokePrivateMethod<String>(plugin, "latestRevisionSelector", arrayOf(String::class.java), version)
+
+        // Then
+        assertThat(result).isEqualTo("[1.2,1.3)")
+    }
+
+    @Test
+    fun `latestRevisionSelector should fall back to the exact version for a prerelease`() {
+        // Given a version whose last segment is not a plain integer
+        val version = "1.2.3-beta"
+
+        // When
+        val result = invokePrivateMethod<String>(plugin, "latestRevisionSelector", arrayOf(String::class.java), version)
+
+        // Then no range is built (the segment "3-beta" is not numeric), so the exact version is used
+        assertThat(result).isEqualTo("1.2.3-beta")
+    }
+
+    @Test
+    fun `latestRevisionSelector should fall back to the exact version for a tvos-style version`() {
+        // Given
+        val version = "0.81.5-0"
+
+        // When
+        val result = invokePrivateMethod<String>(plugin, "latestRevisionSelector", arrayOf(String::class.java), version)
+
+        // Then the last segment "5-0" is not a plain integer, so the exact version is used
+        assertThat(result).isEqualTo("0.81.5-0")
+    }
+
+    @Test
+    fun `latestRevisionSelector should fall back to the exact version when there is no dot`() {
+        // Given
+        val version = "15"
+
+        // When
+        val result = invokePrivateMethod<String>(plugin, "latestRevisionSelector", arrayOf(String::class.java), version)
+
+        // Then
+        assertThat(result).isEqualTo("15")
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun <T> invokePrivateMethod(
         target: Any,

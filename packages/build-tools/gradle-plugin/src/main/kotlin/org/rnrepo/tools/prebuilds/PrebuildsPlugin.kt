@@ -135,8 +135,9 @@ class PrebuildsPlugin : Plugin<Project> {
             // Setup
             extension.supportedPackages.forEach { packageItem ->
                 val codegenSuffix = if (packageItem.hasCodegen) "-codegen" else ""
+                val versionSelector = latestRevisionSelector(packageItem.version)
                 val dependencyNotation =
-                    "org.rnrepo.public:${packageItem.name}:${packageItem.version}:rn${extension.reactNativeVersion}${packageItem.classifier}$codegenSuffix@aar"
+                    "org.rnrepo.public:${packageItem.name}:$versionSelector:rn${extension.reactNativeVersion}${packageItem.classifier}$codegenSuffix@aar"
                 addDependency(
                     project,
                     "implementation",
@@ -184,8 +185,10 @@ class PrebuildsPlugin : Plugin<Project> {
                 val substitutionAction =
                     Action<Project> { evaluatedProject ->
                         extension.supportedPackages.forEach { packageItem ->
-                            val module = "org.rnrepo.public:${packageItem.name}:${packageItem.version}"
+                            val module = "org.rnrepo.public:${packageItem.name}:${latestRevisionSelector(packageItem.version)}"
                             evaluatedProject.configurations.all { config ->
+                                // Reduce Gradle's dynamic version caching so rebuilt artifacts are picked up sooner
+                                config.resolutionStrategy.cacheDynamicVersionsFor(1, "hours")
                                 config.resolutionStrategy.dependencySubstitution { substitutions ->
                                     substitutions.all { dependencySubstitution ->
                                         if (matchesPackageSelector(dependencySubstitution.requested, packageItem)) {
@@ -299,6 +302,24 @@ class PrebuildsPlugin : Plugin<Project> {
     ) {
         project.dependencies.add(configurationName, dependencyNotation)
         logger.info("Added dependency: $dependencyNotation to configuration: $configurationName in project ${project.name}")
+    }
+
+    /**
+     * Builds a Gradle version selector resolving to the newest published build revision of [version].
+     *
+     * The bare npm version (e.g. `1.2.3`) is revision 0; a bug-fix republish appends an incrementing
+     * suffix (`1.2.3.1`, `1.2.3.2`, ...). A right-open range `[1.2.3,1.2.4)` matches the bare version
+     * and every revision while excluding the next npm version, so Gradle always picks the latest
+     * rebuild instead of a cached faulty artifact — and it still resolves for packages published
+     * before revisions existed, which only have the bare version. Falls back to the exact version
+     * when it cannot be parsed.
+     */
+    private fun latestRevisionSelector(version: String): String {
+        val lastDot = version.lastIndexOf('.')
+        val lastPart = if (lastDot >= 0) version.substring(lastDot + 1).toIntOrNull() else null
+        if (lastPart == null) return version
+        val upperBound = version.substring(0, lastDot + 1) + (lastPart + 1)
+        return "[$version,$upperBound)"
     }
 
     /**
@@ -631,16 +652,18 @@ class PrebuildsPlugin : Plugin<Project> {
      * Builds the AAR file name for a package, optionally with the `-codegen` classifier suffix.
      *
      * @param packageItem The package to build the name for.
+     * @param version The exact published version (possibly a revision like `1.2.3.2`) to embed in the name.
      * @param RNVersion The React Native version the artifact is intended for.
      * @param withCodegen Whether to append the `-codegen` suffix used by codegen prebuilts.
      */
     private fun buildAarFileName(
         packageItem: PackageItem,
+        version: String,
         RNVersion: String,
         withCodegen: Boolean,
     ): String {
         val codegenSuffix = if (withCodegen) "-codegen" else ""
-        return "${packageItem.name}-${packageItem.version}-rn${RNVersion}${packageItem.classifier}$codegenSuffix.aar"
+        return "${packageItem.name}-$version-rn${RNVersion}${packageItem.classifier}$codegenSuffix.aar"
     }
 
     /**
@@ -664,9 +687,7 @@ class PrebuildsPlugin : Plugin<Project> {
         RNVersion: String,
         httpRepositories: List<MavenArtifactRepository>,
     ): Boolean {
-        val codegenArtifactName = buildAarFileName(packageItem, RNVersion, withCodegen = true)
-        val regularArtifactName = buildAarFileName(packageItem, RNVersion, withCodegen = false)
-        val artifactDir =
+        val packageCacheDir =
             Paths
                 .get(
                     System.getProperty("user.home"),
@@ -676,25 +697,34 @@ class PrebuildsPlugin : Plugin<Project> {
                     "files-2.1",
                     "org.rnrepo.public",
                     "${packageItem.name}",
-                    "${packageItem.version}",
                 ).toFile()
+
+        // The npm version (e.g. 0.29.4) may have been republished with an incrementing build
+        // revision suffix (0.29.4.1, 0.29.4.2, ...). Resolve the highest revision available in
+        // the local cache and on the remote, then probe the classifier against that version — the
+        // bare version might be missing the artifact while a newer revision has it.
+        val version = resolveLatestRevisionVersion(packageItem, packageCacheDir, httpRepositories)
+
+        val codegenArtifactName = buildAarFileName(packageItem, version, RNVersion, withCodegen = true)
+        val regularArtifactName = buildAarFileName(packageItem, version, RNVersion, withCodegen = false)
+        val artifactDir = File(packageCacheDir, version)
         if (artifactDir.exists() && artifactDir.isDirectory) {
             // If the codegen variant is cached, use it directly.
             if (isArtifactCached(artifactDir, codegenArtifactName)) {
                 packageItem.hasCodegen = true
-                logger.info("Package ${packageItem.npmName} version ${packageItem.version} is cached in Gradle cache with codegen.")
+                logger.info("Package ${packageItem.npmName} version $version is cached in Gradle cache with codegen.")
                 return true
             }
             // The regular variant is cached but the codegen one is not. A codegen variant may have been
             // published since the regular AAR was cached, so query remotes to prefer it when available.
             if (isArtifactCached(artifactDir, regularArtifactName)) {
                 logger.info(
-                    "Package ${packageItem.npmName} version ${packageItem.version} regular variant is cached, checking remotes for a codegen variant.",
+                    "Package ${packageItem.npmName} version $version regular variant is cached, checking remotes for a codegen variant.",
                 )
-                packageItem.hasCodegen = isArtifactAvailableRemotely(packageItem, RNVersion, httpRepositories, withCodegen = true)
+                packageItem.hasCodegen = isArtifactAvailableRemotely(packageItem, version, RNVersion, httpRepositories, withCodegen = true)
                 return true
             }
-            logger.debug("Package ${packageItem.npmName} version ${packageItem.version} not found in Gradle cache.")
+            logger.debug("Package ${packageItem.npmName} version $version not found in Gradle cache.")
         } else {
             logger.debug("Artifact directory does not exist in cache: ${artifactDir.absolutePath}")
         }
@@ -704,15 +734,116 @@ class PrebuildsPlugin : Plugin<Project> {
         }
 
         // Not cached: query remotes, preferring the codegen variant over the regular one.
-        if (isArtifactAvailableRemotely(packageItem, RNVersion, httpRepositories, withCodegen = true)) {
+        if (isArtifactAvailableRemotely(packageItem, version, RNVersion, httpRepositories, withCodegen = true)) {
             packageItem.hasCodegen = true
             return true
         }
-        if (isArtifactAvailableRemotely(packageItem, RNVersion, httpRepositories, withCodegen = false)) {
+        if (isArtifactAvailableRemotely(packageItem, version, RNVersion, httpRepositories, withCodegen = false)) {
             packageItem.hasCodegen = false
             return true
         }
         return false
+    }
+
+    /**
+     * Resolves the highest published build revision of [packageItem]'s npm version.
+     *
+     * The bare npm version (e.g. `0.29.4`) is revision 0; a bug-fix republish appends an
+     * incrementing suffix (`0.29.4.1`, `0.29.4.2`, ...). This inspects both the local Gradle
+     * cache directory layout and the remote Maven `maven-metadata.xml`, then returns the version
+     * with the highest revision number so callers probe the newest rebuilt artifact. Falls back
+     * to the bare npm version when no revision is found.
+     */
+    private fun resolveLatestRevisionVersion(
+        packageItem: PackageItem,
+        packageCacheDir: File,
+        httpRepositories: List<MavenArtifactRepository>,
+    ): String {
+        val baseVersion = packageItem.version
+        val localVersions =
+            packageCacheDir
+                .listFiles()
+                ?.filter { it.isDirectory }
+                ?.map { it.name }
+                ?: emptyList()
+        val remoteVersions = fetchRemoteRevisionVersions(packageItem, httpRepositories)
+
+        val latest =
+            (localVersions + remoteVersions + baseVersion)
+                .distinct()
+                .mapNotNull { candidate -> revisionOf(candidate, baseVersion)?.let { candidate to it } }
+                .maxByOrNull { it.second }
+
+        if (latest != null && latest.second > 0) {
+            logger.info(
+                "Resolved latest build revision for ${packageItem.npmName}: ${latest.first} " +
+                    "(revision ${latest.second}, base $baseVersion)",
+            )
+        }
+        return latest?.first ?: baseVersion
+    }
+
+    /**
+     * Returns the build-revision number of [version] relative to [baseVersion], or null if
+     * [version] is not the bare version nor a `<baseVersion>.<N>` revision of it.
+     *
+     * The bare version is revision 0; `<baseVersion>.1` is revision 1, and so on. The suffix must
+     * be a single integer — e.g. `0.29.4.2.1` or `0.29.40` are not revisions of `0.29.4`.
+     */
+    private fun revisionOf(
+        version: String,
+        baseVersion: String,
+    ): Int? {
+        if (version == baseVersion) return 0
+        if (!version.startsWith("$baseVersion.")) return null
+        return version.substring(baseVersion.length + 1).toIntOrNull()
+    }
+
+    /**
+     * Fetches and parses the published versions listed in each repository's `maven-metadata.xml`
+     * for [packageItem]. Repositories are queried in parallel; failures (missing metadata, network
+     * errors) are treated as "no versions" so resolution can still fall back to the local cache.
+     */
+    private fun fetchRemoteRevisionVersions(
+        packageItem: PackageItem,
+        httpRepositories: List<MavenArtifactRepository>,
+    ): List<String> {
+        if (httpRepositories.isEmpty()) {
+            return emptyList()
+        }
+        val versionRegex = Regex("<version>([^<]+)</version>")
+        return httpRepositories
+            .parallelStream()
+            .flatMap { repo ->
+                val metadataUrl = "${repo.url}/org/rnrepo/public/${packageItem.name}/maven-metadata.xml"
+                var connection: HttpURLConnection? = null
+                try {
+                    connection = URL(metadataUrl).openConnection() as HttpURLConnection
+                    connection.requestMethod = "GET"
+                    connection.connectTimeout = 5000
+                    connection.readTimeout = 5000
+                    if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                        val body = connection.inputStream.bufferedReader().readText()
+                        versionRegex
+                            .findAll(body)
+                            .map { it.groupValues[1].trim() }
+                            .toList()
+                            .stream()
+                    } else {
+                        java.util.stream.Stream
+                            .empty()
+                    }
+                } catch (e: Exception) {
+                    logger.debug("Could not fetch maven-metadata.xml for ${packageItem.npmName} at $metadataUrl: ${e.message}")
+                    java.util.stream.Stream
+                        .empty()
+                } finally {
+                    connection?.disconnect()
+                }
+            }.collect(
+                java.util.stream.Collectors
+                    .toList(),
+            )
     }
 
     /**
@@ -734,6 +865,7 @@ class PrebuildsPlugin : Plugin<Project> {
      */
     private fun isArtifactAvailableRemotely(
         packageItem: PackageItem,
+        version: String,
         RNVersion: String,
         httpRepositories: List<MavenArtifactRepository>,
         withCodegen: Boolean,
@@ -741,10 +873,10 @@ class PrebuildsPlugin : Plugin<Project> {
         if (httpRepositories.isEmpty()) {
             return false
         }
-        val artifactName = buildAarFileName(packageItem, RNVersion, withCodegen)
+        val artifactName = buildAarFileName(packageItem, version, RNVersion, withCodegen)
         val variantLabel = if (withCodegen) "codegen " else ""
         return httpRepositories.parallelStream().anyMatch { repo ->
-            val aarUrl = "${repo.url}/org/rnrepo/public/${packageItem.name}/${packageItem.version}/$artifactName"
+            val aarUrl = "${repo.url}/org/rnrepo/public/${packageItem.name}/$version/$artifactName"
             var connection: HttpURLConnection? = null
             try {
                 connection = URL(aarUrl).openConnection() as HttpURLConnection
@@ -752,11 +884,11 @@ class PrebuildsPlugin : Plugin<Project> {
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
                 logger.info(
-                    "Checking availability of ${variantLabel}package ${packageItem.npmName} version ${packageItem.version} at $aarUrl",
+                    "Checking availability of ${variantLabel}package ${packageItem.npmName} version $version at $aarUrl",
                 )
                 val isAvailable = connection.responseCode == HttpURLConnection.HTTP_OK
                 if (isAvailable) {
-                    logger.info("✓ Package ${packageItem.npmName}@${packageItem.version} $variantLabel found at ${repo.url}")
+                    logger.info("✓ Package ${packageItem.npmName}@$version $variantLabel found at ${repo.url}")
                 }
                 isAvailable
             } catch (e: Exception) {
