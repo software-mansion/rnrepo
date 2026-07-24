@@ -20,7 +20,14 @@ const applyPluginFacebookRootProject =
 const mavenAllProjectsBlock = `
 allprojects {
     repositories {
-        maven { url "https://packages.rnrepo.org/releases" }
+        exclusiveContent {
+            forRepository {
+                maven { url "https://packages.rnrepo.org/releases" }
+            }
+            filter {
+                includeGroup "org.rnrepo.public"
+            }
+        }
     }
 }`;
 // iOS
