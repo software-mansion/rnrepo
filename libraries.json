@@ -25,8 +25,11 @@
       },
       {
         "versionMatcher": ">=3.0.0",
-        "reactNativeVersion": ">=0.82 <0.86",
-        "publishedAfterDate": "2025-01-01"
+        "reactNativeVersion": ">=0.82"
+      },
+      {
+        "versionMatcher": ">=3.1.0",
+        "reactNativeVersion": ">=0.83"
       }
     ],
     "ios": [
@@ -36,8 +39,11 @@
       },
       {
         "versionMatcher": ">=3.0.0",
-        "reactNativeVersion": ">=0.82 <0.86",
-        "publishedAfterDate": "2025-01-01"
+        "reactNativeVersion": ">=0.82"
+      },
+      {
+        "versionMatcher": ">=3.1.0",
+        "reactNativeVersion": ">=0.83"
       }
     ]
   },
