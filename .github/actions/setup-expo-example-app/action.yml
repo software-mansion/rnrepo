@@ -8,7 +8,7 @@ inputs:
   expo_sdk_major_version:
     description: 'Expo SDK major version used in `create-expo-app@latest --template default@sdk-<major_version>`'
     required: false
-    default: '56'
+    default: '57'
   disable_rnrepo:
     description: 'Disable rnrepo config plugin'
     required: false

@@ -16,7 +16,7 @@ on:
         description: 'React Native version used in `@react-native-community/cli@latest init --version <rn_version>`'
         required: false
         type: string
-        default: '0.85.0'
+        default: '0.86.0'
       request_android:
         description: 'Request android build'
         required: false
@@ -43,7 +43,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RN_VERSION: ${{ github.event.inputs.rn_version || '0.85.0' }}
+  RN_VERSION: ${{ github.event.inputs.rn_version || '0.86.0' }}
   EXAMPLE_APP: rnExampleApp
   LIBRARIES: ${{ github.event.inputs.libraries || 'react-native-worklets@0.8.1 react-native-reanimated@4.3.0 react-native-gesture-handler@2.31.2 react-native-screens@4.25.0' }}
 
