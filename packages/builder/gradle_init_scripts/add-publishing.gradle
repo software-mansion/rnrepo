@@ -23,13 +23,44 @@ allprojects { project ->
     }
 }
 
-def generateCMakeContent(codegenName) {
+// Some libraries ship hand-written headers that deliberately shadow their codegen output. The
+// clearest case is react-native-gesture-handler: shared/shadowNodes holds its own copy of
+// react/renderer/components/rngesturehandler_codegen/ComponentDescriptors.h and only that copy
+// declares RNGestureHandlerDetectorComponentDescriptor. The library's own CMakeLists puts that
+// directory on the include path *before* the codegen one, so the override wins.
+//
+// packageCppHeaders flattens every header source into assets/headers, which loses the knowledge of
+// which subdirectories were include roots. Recover it here: any directory below assets/headers that
+// carries its own react/renderer/components/<codegenName> subtree is such an override root and has
+// to be searched before assets/headers itself, otherwise the plain codegen header wins and the
+// consuming app fails to compile.
+def findCodegenOverrideIncludeRoots(headersDir, codegenName) {
+    if (codegenName == null || !headersDir.isDirectory()) {
+        return []
+    }
+    def roots = []
+    // eachDirRecurse skips headersDir itself, which is what we want — the codegen tree lives
+    // directly under it and is emitted separately.
+    headersDir.eachDirRecurse { dir ->
+        if (new File(dir, "react/renderer/components/${codegenName}").isDirectory()) {
+            roots << headersDir.toPath().relativize(dir.toPath()).toString().replace('\\', '/')
+        }
+    }
+    return roots.sort()
+}
+
+def generateCMakeContent(codegenName, overrideIncludeRoots) {
     // Uses CMAKE_CURRENT_LIST_DIR-relative paths so the file works wherever it is extracted.
     // Groovy \$ produces a literal $ in the output (cmake variable reference).
     //
     // STATIC IMPORTED targets cannot be used with non-INTERFACE keyword in target_link_libraries,
     // which RN's ReactNative-application.cmake does internally. A real STATIC target (with a
     // generated placeholder source) works correctly in all CMake linking contexts.
+    def includeDirs = overrideIncludeRoots.collect { "\${CMAKE_CURRENT_LIST_DIR}/../headers/${it}" }
+    includeDirs << "\${CMAKE_CURRENT_LIST_DIR}/../headers"
+    includeDirs << "\${CMAKE_CURRENT_LIST_DIR}/../headers/react/renderer/components/${codegenName}"
+    def includeDirsBlock = includeDirs.collect { "    \"${it}\"" }.join("\n")
+
     return """cmake_minimum_required(VERSION 3.13)
 
 if(CMAKE_BUILD_TYPE)
@@ -50,8 +81,7 @@ endif()
 add_library(react_codegen_${codegenName} STATIC "\${_rnrepo_src_${codegenName}}")
 
 target_include_directories(react_codegen_${codegenName} PUBLIC
-    "\${CMAKE_CURRENT_LIST_DIR}/../headers"
-    "\${CMAKE_CURRENT_LIST_DIR}/../headers/react/renderer/components/${codegenName}"
+${includeDirsBlock}
 )
 
 target_link_libraries(react_codegen_${codegenName}
@@ -168,10 +198,18 @@ def configureCodegenTasks(project) {
 
     def packageCodegenCMakeTask = project.tasks.register("packageCodegenCMake") {
         onlyIf { codegenName != null }
+        // The include roots are derived from the packaged headers, so they have to exist first.
+        dependsOn(packageHeadersTask)
         doLast {
+            def headersDestDir = file("${project.projectDir}/src/main/assets/headers")
+            def overrideIncludeRoots = findCodegenOverrideIncludeRoots(headersDestDir, codegenName)
+            if (overrideIncludeRoots) {
+                println "📦 Codegen header overrides for ${codegenName}: ${overrideIncludeRoots.join(', ')}"
+            }
+
             def cmakeDir = file("${project.projectDir}/src/main/assets/cmake")
             cmakeDir.mkdirs()
-            file("${cmakeDir}/CMakeLists.txt").text = generateCMakeContent(codegenName)
+            file("${cmakeDir}/CMakeLists.txt").text = generateCMakeContent(codegenName, overrideIncludeRoots)
             println "📦 Packaged codegen CMakeLists.txt to assets/cmake"
         }
     }
