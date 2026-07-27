@@ -25,11 +25,11 @@
       },
       {
         "versionMatcher": ">=3.0.0",
-        "reactNativeVersion": ">=0.82 <0.87"
+        "reactNativeVersion": ">=0.82"
       },
       {
         "versionMatcher": ">=3.1.0",
-        "reactNativeVersion": ">=0.83 <0.87"
+        "reactNativeVersion": ">=0.83"
       }
     ],
     "ios": [
@@ -39,11 +39,11 @@
       },
       {
         "versionMatcher": ">=3.0.0",
-        "reactNativeVersion": ">=0.82 <0.87"
+        "reactNativeVersion": ">=0.82"
       },
       {
         "versionMatcher": ">=3.1.0",
-        "reactNativeVersion": ">=0.83 <0.87"
+        "reactNativeVersion": ">=0.83"
       }
     ]
   },
