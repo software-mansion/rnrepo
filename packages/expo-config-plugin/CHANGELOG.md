@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Bumped @rnrepo/build-tools dependency to 0.2.2 (#422)
 
+### Fixed
+- Inject the RNRepo Maven repository as exclusive content for `org.rnrepo.public` so a Maven Central timeout no longer fails the build (#424)
+
 ## [0.3.5] - 2026-07-16
 
 ### Changed
