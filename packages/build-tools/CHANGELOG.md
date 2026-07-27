@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Gradle plugin resolves artifacts with latest revision of version instead of exact version (#421)
+- Use prebuilt `react-native-worklets` in Expo SDK 55+ release builds even when `expo-modules-core` is not prebuilt (#426)
 
 ### Fixed
 - Route `org.rnrepo.public` artifacts exclusively to the RNRepo Maven repository so a Maven Central timeout no longer fails the build (#424)

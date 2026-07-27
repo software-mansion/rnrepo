@@ -594,6 +594,60 @@ class PrebuildsPluginHelperMethodsTest {
     }
 
     @Test
+    fun `isSpecificCheckPassed should allow react-native-worklets with expo55 in release build`() {
+        // Given
+        val extension = PackagesManager()
+        val workletsPackage = PackageItem("react-native-worklets", "1.0.0", "react-native-worklets")
+        val expoPackage = PackageItem("expo", "55.0.0", "expo")
+        extension.projectPackages = setOf(workletsPackage, expoPackage)
+        // expo-modules-core is not prebuilt
+        val supportedPackages = mutableSetOf<PackageItem>()
+        val mockProject = setupPluginExecution(listOf("assembleRelease"), null, false)
+
+        // When
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "isSpecificCheckPassed",
+                arrayOf(PackageItem::class.java, PackagesManager::class.java, Set::class.java, Project::class.java),
+                workletsPackage,
+                extension,
+                supportedPackages,
+                mockProject,
+            )
+
+        // Then
+        assertThat(result).isTrue()
+    }
+
+    @Test
+    fun `isSpecificCheckPassed should deny react-native-worklets with expo55 in debug build`() {
+        // Given
+        val extension = PackagesManager()
+        val workletsPackage = PackageItem("react-native-worklets", "1.0.0", "react-native-worklets")
+        val expoPackage = PackageItem("expo", "55.0.0", "expo")
+        extension.projectPackages = setOf(workletsPackage, expoPackage)
+        // expo-modules-core is not prebuilt
+        val supportedPackages = mutableSetOf<PackageItem>()
+        val mockProject = setupPluginExecution(listOf("assembleDebug"), null, false)
+
+        // When
+        val result =
+            invokePrivateMethod<Boolean>(
+                plugin,
+                "isSpecificCheckPassed",
+                arrayOf(PackageItem::class.java, PackagesManager::class.java, Set::class.java, Project::class.java),
+                workletsPackage,
+                extension,
+                supportedPackages,
+                mockProject,
+            )
+
+        // Then
+        assertThat(result).isFalse()
+    }
+
+    @Test
     fun `getPackageNameAndVersion should parse package json correctly`() {
         // Given
         val packageJson = File(tempDir, "package.json")
