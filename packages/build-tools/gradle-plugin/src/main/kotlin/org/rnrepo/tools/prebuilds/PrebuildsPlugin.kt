@@ -69,6 +69,9 @@ class PrebuildsPlugin : Plugin<Project> {
     // config for denyList
     private val CONFIG_FILE_NAME = "rnrepo.config.json"
 
+    // Maven group id under which all RNRepo prebuilt artifacts are published
+    private val RNREPO_GROUP = "org.rnrepo.public"
+
     // known packages with unstable cpp code
     // use grade package name format
     // .* as wildcard for any suffix
@@ -264,8 +267,20 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.info("RNRepo maven repository already present for project ${currentProject.path}, skipping adding url.")
                     return@forEach
                 }
-                currentProject.repositories.maven { repo ->
-                    repo.url = rnrepoUrl
+                // Declare the RNRepo group as served exclusively by the RNRepo repository. Without this,
+                // the repository is appended after google()/mavenCentral() and Gradle queries Maven Central
+                // for org.rnrepo.public:* first — a Maven Central read timeout then fails the whole build
+                // before RNRepo is ever tried. Exclusive content routes org.rnrepo.public directly to
+                // RNRepo and prevents any other repository from being queried for it, regardless of order.
+                currentProject.repositories.exclusiveContent { exclusiveContent ->
+                    exclusiveContent.forRepository {
+                        currentProject.repositories.maven { repo ->
+                            repo.url = rnrepoUrl
+                        }
+                    }
+                    exclusiveContent.filter { descriptor ->
+                        descriptor.includeGroup(RNREPO_GROUP)
+                    }
                 }
             }
         } catch (e: Exception) {

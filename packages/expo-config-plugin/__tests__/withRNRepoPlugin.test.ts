@@ -93,6 +93,8 @@ describe('withRNRepoPlugin', () => {
 
       expect(mockConfig.modResults.contents).toContain('allprojects {');
       expect(mockConfig.modResults.contents).toContain('maven { url "https://packages.rnrepo.org/releases" }');
+      expect(mockConfig.modResults.contents).toContain('exclusiveContent {');
+      expect(mockConfig.modResults.contents).toContain('includeGroup "org.rnrepo.public"');
     });
 
     it('should not duplicate maven repository', () => {
@@ -106,10 +108,17 @@ describe('withRNRepoPlugin', () => {
         
         allprojects {
             repositories {
-                maven { url "https://packages.rnrepo.org/releases" }
+                exclusiveContent {
+                    forRepository {
+                        maven { url "https://packages.rnrepo.org/releases" }
+                    }
+                    filter {
+                        includeGroup "org.rnrepo.public"
+                    }
+                }
             }
         }
-        
+
         apply plugin: "com.facebook.react.rootproject"
       `;
 

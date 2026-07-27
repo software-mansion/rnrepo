@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Gradle plugin resolves artifacts with latest revision of version instead of exact version (#421)
 
+### Fixed
+- Route `org.rnrepo.public` artifacts exclusively to the RNRepo Maven repository so a Maven Central timeout no longer fails the build (#424)
+
 ## [0.2.1] - 2026-07-16
 
 ### Fixed
