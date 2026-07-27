@@ -1094,7 +1094,7 @@ class PrebuildsPlugin : Plugin<Project> {
                             ) >= 55
                     }
                 if (isExpo55OrLaterPresent && supportedPackages.find { it.name == "expo-modules-core" } == null) {
-                    logger.info(
+                    logger.lifecycle(
                         "react-native-worklets: Expo 55 or later found in project, which has react-native-worklets as a dependency with hardcoded native library path, using react-native-worklets from sources.",
                     )
                     return false
