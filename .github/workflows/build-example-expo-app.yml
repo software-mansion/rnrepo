@@ -33,6 +33,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   EXPO_SDK_MAJOR_VERSION: ${{ github.event.inputs.expo_sdk_major_version || '56' }}
   EXAMPLE_APP: expoExampleApp
@@ -144,9 +148,7 @@ jobs:
         run: ./gradlew :app:assembleDebug --configure-on-demand
         working-directory: ${{ env.EXAMPLE_APP }}/android
 
-      # Run even when the debug build failed - both variants are checked in a single run
       - name: 🏗 Build Expo App for Android (Release)
-        if: ${{ !cancelled() }} # run even if debug build failed
         run: ./gradlew :app:assembleRelease --configure-on-demand
         working-directory: ${{ env.EXAMPLE_APP }}/android
 
@@ -203,9 +205,7 @@ jobs:
             build
         working-directory: ${{ env.EXAMPLE_APP }}/ios
 
-      # Run even when the debug build failed - both variants are checked in a single run
       - name: 🏗 Build Expo App for iOS (Release)
-        if: ${{ !cancelled() }}
         run: |
           xcodebuild \
             -workspace ${EXAMPLE_APP}.xcworkspace \
