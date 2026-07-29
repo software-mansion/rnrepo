@@ -325,15 +325,26 @@ module Pod
         # Find the xcframework (name may differ from pod name due to sanitization)
         cache_dir = File.join(node_modules_path, '.rnrepo-cache')
 
-        # Create Current directory
+        # Create the Current directory holding a symlink per xcframework.
+        #
+        # Current itself must stay a real directory and the xcframeworks inside
+        # it must stay symlinks for the whole lifetime of the install: Metro
+        # watches node_modules unconditionally and throws Invariant Violation
+        # if a path it holds as a directory turns into a symlink. This is what
+        # happened when the build phase replaced a copied Current with a symlink.
         current_link = File.join(cache_dir, 'Current')
-        FileUtils.rm_f(current_link) if File.exist?(current_link)
+        FileUtils.rm_rf(current_link)
+        FileUtils.mkdir_p(current_link)
+
         # Prefer Debug for development
         debug_cache_dir = File.join(cache_dir, 'Debug')
-        FileUtils.cp_r(debug_cache_dir, current_link)
-        CocoapodsRnrepo::Logger.log "  Copied to Current directory from Debug"
+        Dir.glob(File.join(debug_cache_dir, '*.xcframework')).each do |xcframework|
+          name = File.basename(xcframework)
+          FileUtils.ln_s(File.join('..', 'Debug', name), File.join(current_link, name))
+        end
+        CocoapodsRnrepo::Logger.log "  Linked Current directory to Debug"
 
-        # Look for xcframeworks in Current (which is a copy of Debug or Release)
+        # Look for xcframeworks in Current (symlinks into Debug or Release)
         xcframeworks = Dir.glob(File.join(current_link, "*.xcframework"))
 
         if xcframeworks.empty?
@@ -512,16 +523,17 @@ def rnrepo_post_install(installer_context)
       fi
       echo "RNREPO: Switching to ${TARGET_DIR} configuration"
 
-      # Remove existing Current link/directory if it exists
-      if [ -L "${CURRENT_LINK}" ] || [ -e "${CURRENT_LINK}" ]; then
-        rm -rf "${CURRENT_LINK}"
-      fi
-
       # Ensure the target directory is created (should exist, but just in case)
       mkdir -p "${CACHE_DIR}/${TARGET_DIR}"
 
-      # Create symlink to the appropriate configuration
-      ln -sf "${TARGET_DIR}" "${CURRENT_LINK}"
+      # Point each xcframework at the selected configuration
+      for XCFRAMEWORK in "${CACHE_DIR}/${TARGET_DIR}"/*.xcframework; do
+        [ -e "${XCFRAMEWORK}" ] || continue
+        NAME="$(basename "${XCFRAMEWORK}")"
+        # -n so an existing symlink is replaced instead of resolved and
+        # written into
+        ln -sfn "../${TARGET_DIR}/${NAME}" "${CURRENT_LINK}/${NAME}"
+      done
 
       echo "RNREPO: Selected ${TARGET_DIR} configuration for ${PODS_TARGET_SRCROOT}"
     SCRIPT

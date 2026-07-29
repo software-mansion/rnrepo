@@ -52,12 +52,14 @@ The plugin hooks into the CocoaPods lifecycle:
 
 2. **Dependency Resolution** (modifies pod specs):
    - Configures pod specifications to use pre-built xcframeworks instead of source files
-   - Points vendored_frameworks to `.rnrepo-cache/Current/` (symlink created at build time)
+   - Points vendored_frameworks to `.rnrepo-cache/Current/`, a real directory holding one symlink per xcframework
 
 3. **Post-Install Hook**:
    - Adds build phase scripts to each pod target using pre-built frameworks
-   - Scripts run before compilation and create a `Current` symlink pointing to `Debug` or `Release` based on `$CONFIGURATION`
+   - Scripts run before compilation and repoint the symlinks in `Current` at `Debug` or `Release`, based on whether `DEBUG=1` is defined
    - Ensures the correct framework configuration is used at build time
+
+   `Current` is always a directory and the xcframeworks inside it are always symlinks — neither ever changes type. Metro watches `node_modules` unconditionally and crashes with `tracked as a non-empty directory` if a path it holds as a directory becomes a symlink.
 
 ### Framework Storage
 
@@ -71,7 +73,8 @@ node_modules/
           │   └── {package-name}.xcframework/
           ├── Release/
           │   └── {package-name}.xcframework/
-          └── Current/  (symlink created at build time → Debug or Release)
+          └── Current/
+              └── {package-name}.xcframework  (symlink → ../Debug or ../Release)
 ```
 
 ### Cache directory
