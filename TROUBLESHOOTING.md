@@ -298,4 +298,8 @@ npx metro restart --reset-cache # or for expo: npx expo start -c
 
 But if issue still persist, you can exclude the `.rnrepo-cache` directories from Metro's file watcher by adding them to the `blockList` in your `metro.config.js`:
 
+```js
+config.resolver.blockList = [...existing, /.*[\\/]\.rnrepo-cache[\\/].*/];
+```
+
 ---
