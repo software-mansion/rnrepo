@@ -1,5 +1,7 @@
 package org.rnrepo.tools.prebuilds
 
+import com.android.build.api.artifact.SingleArtifact
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import groovy.json.JsonSlurper
@@ -8,6 +10,7 @@ import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.component.ComponentSelector
 import org.gradle.api.artifacts.component.ModuleComponentSelector
 import org.gradle.api.artifacts.component.ProjectComponentSelector
@@ -159,6 +162,11 @@ class PrebuildsPlugin : Plugin<Project> {
 
             // Configure pickFirsts for packages with native libraries that may have duplicates
             configurePickFirsts(project, extension.supportedPackages)
+
+            // Keep the codegen payload the -codegen AARs carry under assets/ out of the app
+            if (extension.supportedPackages.any { it.hasCodegen }) {
+                configureCodegenAssetsStripping(project, codegenConfig)
+            }
 
             // Add dependency on generating codegen schema for each library that needs it
             // Skip packages with hasCodegen=true since they use prebuilt codegen artifacts
@@ -335,6 +343,40 @@ class PrebuildsPlugin : Plugin<Project> {
         if (lastPart == null) return version
         val upperBound = version.substring(0, lastDot + 1) + (lastPart + 1)
         return "[$version,$upperBound)"
+    }
+
+    /**
+     * Wires [StripCodegenAssetsTask] into every variant so the codegen payload the `-codegen` AARs
+     * carry under `assets/` never reaches the APK. The artifacts stay on the app's classpath for
+     * their classes and `.so` files, and [ExtractPrebuiltsTask] keeps reading the payload straight
+     * from the `codegenPrebuilts` configuration, so only packaging is affected.
+     */
+    private fun configureCodegenAssetsStripping(
+        project: Project,
+        codegenConfig: Configuration,
+    ) {
+        val androidComponents = project.extensions.findByType(ApplicationAndroidComponentsExtension::class.java)
+        if (androidComponents == null) {
+            logger.info(
+                "Android components extension not found in project ${project.name}, " +
+                    "prebuilt codegen payload might be packaged into the app.",
+            )
+            return
+        }
+
+        androidComponents.onVariants { variant ->
+            val stripTask =
+                project.tasks.register(
+                    "strip${variant.name.replaceFirstChar { it.uppercase() }}CodegenAssets",
+                    StripCodegenAssetsTask::class.java,
+                ) {
+                    it.codegenArtifacts.from(codegenConfig)
+                }
+            variant.artifacts
+                .use(stripTask)
+                .wiredWithDirectories(StripCodegenAssetsTask::inputAssets, StripCodegenAssetsTask::outputAssets)
+                .toTransform(SingleArtifact.ASSETS)
+        }
     }
 
     /**
