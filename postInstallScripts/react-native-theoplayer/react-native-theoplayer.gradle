@@ -1,8 +1,11 @@
 // patch.init.gradle
 // react-native-theoplayer's android/build.gradle reads its build flags through
 // `safeExtGet(prop, fallback)`, which only looks at `rootProject.ext`. Seed the flag there
-// before any build script is evaluated so REPARENT_ON_PIP is compiled in as `true`
-// (the library default is `false`).
+// before any build script is evaluated
 rootProject {
     ext.set('THEOplayer_reparent_on_PiP', 'true')
+    ext.set('THEOplayer_extensionGoogleIMA', 'true')
+    ext.set('THEOplayer_extensionGoogleDAI', 'true')
+    ext.set('THEOplayer_extensionTHEOads', 'true')
+    ext.set('THEOplayer_timeUpdateRate', 'com.theoplayer.TimeUpdateRate.LIMITED_TWO_HZ')
 }
