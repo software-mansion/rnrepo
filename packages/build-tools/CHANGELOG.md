@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Route `org.rnrepo.public` artifacts exclusively to the RNRepo Maven repository so a Maven Central timeout no longer fails the build (#424)
+- Keep `.rnrepo-cache/Current` a directory of symlinks into `Debug`/`Release` so switching configuration no longer turns a watched directory into a symlink and crashes Metro with `Invariant Violation` (#433)
 
 ## [0.2.1] - 2026-07-16
 
