@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Route `org.rnrepo.public` artifacts exclusively to the RNRepo Maven repository so a Maven Central timeout no longer fails the build (#424)
+- Keep the prebuilt codegen payload the `-codegen` AARs carry under `assets/` out of the app's APK/AAB (#434)
 
 ## [0.2.1] - 2026-07-16
 
