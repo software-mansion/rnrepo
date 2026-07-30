@@ -75,6 +75,65 @@ def findCodegenOverrideIncludeRoots(headersDir, codegenName) {
     return roots.toList().sort()
 }
 
+// The counterpart to findCodegenOverrideIncludeRoots, run against the package sources instead of
+// the already-copied headers. A library can keep its shadowing headers outside every directory
+// packageCppHeaders knows about — reanimated puts them in Common/NativeView, next to the Common/cpp
+// that is collected — and those never reach the AAR at all, so the consumer cannot compile the
+// descriptor the codegen archive already contains.
+//
+// Rather than cataloguing such directories by hand, detect them by shape: any directory in the
+// package that holds its own react/renderer/components/<codegenName> headers is an override root,
+// for the same reason the post-copy scan treats one as such.
+//
+// Returns package-relative paths. Copying each into assets/headers/<that same relative path> keeps
+// the destination unique without inventing names, and leaves a prefix for the post-copy scan to
+// rediscover and rank ahead of assets/headers.
+def findPackageCodegenOverrideRoots(packageDir, codegenName, collectedDirs) {
+    if (codegenName == null || !packageDir.isDirectory()) {
+        return []
+    }
+    def packagePath = packageDir.toPath().toAbsolutePath().normalize()
+    def marker = "react/renderer/components/${codegenName}/"
+    // Directories whose headers are already in assets/headers by the time this runs: the sources
+    // packageCppHeaders flattens in, plus assets/headers itself, which lives inside the package and
+    // would otherwise be rediscovered as a root and copied into itself. A root inside any of them is
+    // handled by the post-copy scan, and copying it twice would only duplicate headers in the AAR.
+    def covered = collectedDirs.findAll { it.exists() }
+        .collect { it.toPath().toAbsolutePath().normalize() }
+    def roots = [] as Set
+
+    def stream = java.nio.file.Files.walk(packagePath)
+    try {
+        stream.forEach { path ->
+            if (!java.nio.file.Files.isRegularFile(path) || !path.toString().endsWith('.h')) {
+                return
+            }
+            // Generated codegen output lives under android/build and is the base these roots
+            // shadow, so it must never be mistaken for one of them.
+            def relative = packagePath.relativize(path).toString().replace('\\', '/')
+            def segments = relative.split('/') as List
+            if (segments.any { it in ['build', 'node_modules', '.cxx', '.gradle'] }) {
+                return
+            }
+            def markerIndex = relative.indexOf(marker)
+            // markerIndex == 0 would make the package root itself an include root, which would copy
+            // the entire package; only a proper subdirectory qualifies.
+            if (markerIndex <= 0) {
+                return
+            }
+            def root = relative.substring(0, markerIndex - 1)
+            if (covered.any { packagePath.resolve(root).startsWith(it) }) {
+                return
+            }
+            roots << root
+        }
+    } finally {
+        stream.close()
+    }
+
+    return roots.toList().sort()
+}
+
 def generateCMakeContent(codegenName, overrideIncludeRoots) {
     // Uses CMAKE_CURRENT_LIST_DIR-relative paths so the file works wherever it is extracted.
     // Groovy \$ produces a literal $ in the output (cmake variable reference).
@@ -215,6 +274,24 @@ def configureCodegenTasks(project) {
                         include "**/*.h"
                         // Preserve folder structure relative to 'source'
                     }
+                }
+            }
+
+            // Roots that shadow codegen output and sit outside every directory above. They keep
+            // their package-relative subdirectory rather than being flattened in with the rest:
+            // packageCodegenCMake keys off exactly that prefix to rank them ahead of
+            // assets/headers, mirroring the include order the library's own CMakeLists uses.
+            // Flattening them would clobber the generated headers instead of shadowing them.
+            def packageDir = file("${project.projectDir}/..")
+            def headerOverrideRoots = findPackageCodegenOverrideRoots(
+                packageDir, codegenName, headerSources + [headersDestDir])
+
+            headerOverrideRoots.each { root ->
+                println "🔍 Collecting override headers from: ${root}"
+                project.copy {
+                    from new File(packageDir, root)
+                    into new File(headersDestDir, root)
+                    include "**/*.h"
                 }
             }
 
