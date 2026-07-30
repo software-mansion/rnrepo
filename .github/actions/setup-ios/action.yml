@@ -5,7 +5,7 @@ inputs:
   xcode-version:
     description: 'Xcode version to use'
     required: false
-    default: '26.3'
+    default: '26.6'
   cocoapods-version:
     description: 'CocoaPods version to install'
     required: false
