@@ -182,7 +182,9 @@ Ensure that your `build.gradle` applies the RNRepo plugin **after** defining the
 
 ### `react-native-theoplayer` Is Prebuilt With Custom Build Flags
 
-#### Problem Description
+#### Android
+
+##### Problem Description
 `react-native-theoplayer` reads its build configuration from Gradle properties (via `safeExtGet`) that are resolved at compile time. Because a prebuilt AAR is compiled once and shipped to everyone, those flags are baked into the artifact and setting them in your own `gradle.properties` has no effect on the prebuilt binary.
 
 On request from the community, RNRepo publishes `react-native-theoplayer` with a set of flags:
@@ -197,13 +199,41 @@ On request from the community, RNRepo publishes `react-native-theoplayer` with a
 
 All other THEOplayer flags keep their library defaults.
 
-#### Solution
+##### Solution
 If your app needs a different combination of flags, add `react-native-theoplayer` to the `denyList` under `android` in your `rnrepo.config.json`. The library will then be built from sources and your own `gradle.properties` values will be honoured again:
 
 ```json
 {
   "denyList": {
     "android": ["react-native-theoplayer"]
+  }
+}
+```
+
+#### iOS
+
+##### Problem Description
+iOS has no equivalent of the Gradle flags above. `react-native-theoplayer.podspec` reads the list of extra integrations from `react-native-theoplayer.json` (or `theoplayer-config.json`) next to your `node_modules`, and the Swift sources gate the matching code behind `#if canImport(...)`. An integration that is not a pod at compile time is therefore not part of the prebuilt XCFramework, and adding it to your own config file afterwards will not bring it back.
+
+To mirror the Android extension flags, RNRepo prebuilds the iOS XCFramework with:
+
+```json
+{
+  "ios": {
+    "features": ["GOOGLE_IMA", "THEO_ADS"]
+  }
+}
+```
+
+#### Solution
+Your app's `react-native-theoplayer.json` must list **exactly** `GOOGLE_IMA` and `THEO_ADS`.
+
+If your app needs a different set of integrations, add `react-native-theoplayer` to the `denyList` under `ios` in your `rnrepo.config.json` so it is built from sources against your own config:
+
+```json
+{
+  "denyList": {
+    "ios": ["react-native-theoplayer"]
   }
 }
 ```
