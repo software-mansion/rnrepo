@@ -215,11 +215,43 @@ async function buildCodegenAar(
 }
 
 /**
- * Patches CMakeLists.txt in libraries with custom codegen to use STATIC instead of SHARED.
- * Many libraries like react-native-screens build their codegen as shared library,
- * but we need static libraries to create AAR artifacts.
+ * Every `add_library(<target> SHARED ...)` becomes STATIC: shared libraries leave
+ * a .so that we do not bundle, and libraries like react-native-screens declare
+ * their codegen that way.
+ *
+ * OBJECT libraries have the same problem for our purposes - they leave no
+ * linkable archive on disk at all - but OBJECT is also a legitimate way to build
+ * an internal target that is later assembled into another one, so only the
+ * `react_codegen_*` targets (e.g. the hand-written CMakeLists of
+ * react-native-reanimated) are switched over.
  */
-async function patchCMakeListsToStatic(packagePath: string): Promise<void> {
+const CMAKE_STATIC_PATCHES = [
+  {
+    label: 'SHARED → STATIC',
+    // Any target: we never ship .so files in the AAR
+    regex: /add_library\s*\(\s*([^\s)]+)\s+SHARED/g,
+  },
+  {
+    label: 'OBJECT → STATIC',
+    // Codegen targets only, other OBJECT targets may be intentional
+    regex: /add_library\s*\(\s*(react_codegen_[A-Za-z0-9_]+)\s+OBJECT\b/g,
+  },
+];
+
+/**
+ * Patches CMakeLists.txt in libraries with custom codegen so that codegen ends
+ * up in a linkable static archive (.a) that can be bundled into the AAR.
+ *
+ * Without it `extractCodegenBinaries*` (add-publishing.gradle) finds no archive,
+ * only prints a warning, and publishes an AAR with the codegen silently missing.
+ * That is exactly why a failure here is fatal for a library that publishes a
+ * codegen AAR (`hasCodegenConfig`) - the build would otherwise succeed and ship
+ * an artifact whose codegen is missing.
+ */
+async function patchCMakeListsToStatic(
+  packagePath: string,
+  hasCodegenConfig: boolean
+): Promise<void> {
   const configPath = join(packagePath, 'react-native.config.js');
   
   if (!existsSync(configPath)) {
@@ -254,30 +286,38 @@ async function patchCMakeListsToStatic(packagePath: string): Promise<void> {
     console.log(`   CMakeLists.txt found at ${absoluteCMakePath}`);
 
     // Read CMakeLists.txt
-    let cmakeContent = readFileSync(absoluteCMakePath, 'utf-8');
-    
-    // Check if it contains add_library with SHARED
-    if (!cmakeContent.includes('add_library') || !cmakeContent.includes('SHARED')) {
-      console.log('   CMakeLists.txt does not contain add_library with SHARED');
+    const originalContent = readFileSync(absoluteCMakePath, 'utf-8');
+    if (!originalContent.includes('add_library')) {
+      console.log('   CMakeLists.txt does not contain add_library');
       return;
     }
 
-    // Replace SHARED with STATIC in add_library calls
-    const originalContent = cmakeContent;
-    cmakeContent = cmakeContent.replace(
-      /add_library\s*\(\s*([^\s)]+)\s+SHARED/g,
-      'add_library(\n  $1\n  STATIC'
-    );
+    // Replace non-static library types with STATIC in add_library calls
+    let cmakeContent = originalContent;
+    const appliedPatches: string[] = [];
+    for (const { label, regex } of CMAKE_STATIC_PATCHES) {
+      const patched = cmakeContent.replace(regex, 'add_library(\n  $1\n  STATIC');
+      if (patched !== cmakeContent) {
+        appliedPatches.push(label);
+        cmakeContent = patched;
+      }
+    }
 
-    if (cmakeContent !== originalContent) {
+    if (appliedPatches.length > 0) {
       writeFileSync(absoluteCMakePath, cmakeContent, 'utf-8');
-      console.log(`   ✓ Patched ${absoluteCMakePath}: SHARED → STATIC`);
+      console.log(`   ✓ Patched ${absoluteCMakePath}: ${appliedPatches.join(', ')}`);
     } else {
-      console.log('   No SHARED libraries found to patch');
+      console.log('   No libraries found to patch');
     }
   } catch (error) {
+    if (hasCodegenConfig) {
+      throw new Error(
+        `Failed to patch CMakeLists.txt of ${libraryName}, its codegen would be missing from the published AAR: ${error}`
+      );
+    }
+    // No codegen AAR is published for this library, so a failed patch cannot
+    // silently strip anything from the artifact - continue with the build
     console.error(`   ⚠️ Failed to patch CMakeLists.txt:`, error);
-    // Don't throw - continue with build even if patching fails
   }
 }
 
@@ -325,10 +365,10 @@ async function buildAAR(appDir: string, license: AllowedLicense[]) {
   // Check if library has custom react-native.config.js file, which may override codegen settings
   const hasCustomCodegen = existsSync(join(packagePath, 'react-native.config.js'));
   
-  // If library has custom codegen, we need to patch CMakeLists.txt to use STATIC instead of SHARED
+  // If library has custom codegen, we need to patch CMakeLists.txt to build a linkable static archive
   if (hasCustomCodegen) {
     console.log('⚠️ Library has custom codegen configuration in react-native.config.js');
-    await patchCMakeListsToStatic(packagePath);
+    await patchCMakeListsToStatic(packagePath, hasCodegenConfig);
   }
 
   const mavenLocalLibraryLocationPath = join(

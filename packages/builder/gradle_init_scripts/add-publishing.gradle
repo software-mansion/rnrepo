@@ -23,13 +23,129 @@ allprojects { project ->
     }
 }
 
-def generateCMakeContent(codegenName) {
+// Some libraries ship hand-written headers that deliberately shadow their codegen output. The
+// clearest case is react-native-gesture-handler: shared/shadowNodes holds its own copy of
+// react/renderer/components/rngesturehandler_codegen/ComponentDescriptors.h and only that copy
+// declares RNGestureHandlerDetectorComponentDescriptor. The library's own CMakeLists puts that
+// directory on the include path *before* the codegen one, so the override wins.
+//
+// packageCppHeaders flattens every header source into assets/headers, which loses the knowledge of
+// which subdirectories were include roots. Recover it here: a subdirectory holding its own
+// react/renderer/components/<codegenName> headers is such an override root and has to be searched
+// before assets/headers itself, otherwise the plain codegen header wins and the consuming app fails
+// to compile.
+//
+// Two limitations, both deliberate:
+//   - Override roots are always emitted first. We do not parse the library's own CMakeLists, so a
+//     library that intentionally ranks an extra root *below* codegen would resolve differently here
+//     than in a source build. No catalogued library does that today.
+//   - Only roots carrying a codegen-namespaced subtree are recovered. An include root of any other
+//     shape (say cpp/include holding <Foo.h>) stays unreachable after flattening.
+def findCodegenOverrideIncludeRoots(headersDir, codegenName) {
+    if (codegenName == null || !headersDir.isDirectory()) {
+        return []
+    }
+    def headersPath = headersDir.toPath()
+    def marker = "react/renderer/components/${codegenName}/"
+    def roots = [] as Set
+
+    // Keyed off actual header files rather than directory existence: Gradle's copy recreates the
+    // whole directory structure even when the "**/*.h" filter matches nothing, so a subtree built
+    // solely from .cpp files would otherwise be reported as a root. Files.walk does not follow
+    // symlinks, so a link back to an ancestor cannot recurse forever.
+    def stream = java.nio.file.Files.walk(headersPath)
+    try {
+        stream.forEach { path ->
+            if (!java.nio.file.Files.isRegularFile(path) || !path.toString().endsWith('.h')) {
+                return
+            }
+            def relative = headersPath.relativize(path).toString().replace('\\', '/')
+            def markerIndex = relative.indexOf(marker)
+            // markerIndex == 0 means the header merged straight into assets/headers, which is
+            // already an include root — only a non-empty prefix forms a separate one.
+            if (markerIndex > 0) {
+                roots << relative.substring(0, markerIndex - 1)
+            }
+        }
+    } finally {
+        stream.close()
+    }
+
+    // Sorted so the generated CMakeLists is byte-stable across builds.
+    return roots.toList().sort()
+}
+
+// The counterpart to findCodegenOverrideIncludeRoots, run against the package sources instead of
+// the already-copied headers. A library can keep its shadowing headers outside every directory
+// packageCppHeaders knows about — reanimated puts them in Common/NativeView, next to the Common/cpp
+// that is collected — and those never reach the AAR at all, so the consumer cannot compile the
+// descriptor the codegen archive already contains.
+//
+// Rather than cataloguing such directories by hand, detect them by shape: any directory in the
+// package that holds its own react/renderer/components/<codegenName> headers is an override root,
+// for the same reason the post-copy scan treats one as such.
+//
+// Returns package-relative paths. Copying each into assets/headers/<that same relative path> keeps
+// the destination unique without inventing names, and leaves a prefix for the post-copy scan to
+// rediscover and rank ahead of assets/headers.
+def findPackageCodegenOverrideRoots(packageDir, codegenName, collectedDirs) {
+    if (codegenName == null || !packageDir.isDirectory()) {
+        return []
+    }
+    def packagePath = packageDir.toPath().toAbsolutePath().normalize()
+    def marker = "react/renderer/components/${codegenName}/"
+    // Directories whose headers are already in assets/headers by the time this runs: the sources
+    // packageCppHeaders flattens in, plus assets/headers itself, which lives inside the package and
+    // would otherwise be rediscovered as a root and copied into itself. A root inside any of them is
+    // handled by the post-copy scan, and copying it twice would only duplicate headers in the AAR.
+    def covered = collectedDirs.findAll { it.exists() }
+        .collect { it.toPath().toAbsolutePath().normalize() }
+    def roots = [] as Set
+
+    def stream = java.nio.file.Files.walk(packagePath)
+    try {
+        stream.forEach { path ->
+            if (!java.nio.file.Files.isRegularFile(path) || !path.toString().endsWith('.h')) {
+                return
+            }
+            // Generated codegen output lives under android/build and is the base these roots
+            // shadow, so it must never be mistaken for one of them.
+            def relative = packagePath.relativize(path).toString().replace('\\', '/')
+            def segments = relative.split('/') as List
+            if (segments.any { it in ['build', 'node_modules', '.cxx', '.gradle'] }) {
+                return
+            }
+            def markerIndex = relative.indexOf(marker)
+            // markerIndex == 0 would make the package root itself an include root, which would copy
+            // the entire package; only a proper subdirectory qualifies.
+            if (markerIndex <= 0) {
+                return
+            }
+            def root = relative.substring(0, markerIndex - 1)
+            if (covered.any { packagePath.resolve(root).startsWith(it) }) {
+                return
+            }
+            roots << root
+        }
+    } finally {
+        stream.close()
+    }
+
+    return roots.toList().sort()
+}
+
+def generateCMakeContent(codegenName, overrideIncludeRoots) {
     // Uses CMAKE_CURRENT_LIST_DIR-relative paths so the file works wherever it is extracted.
     // Groovy \$ produces a literal $ in the output (cmake variable reference).
     //
     // STATIC IMPORTED targets cannot be used with non-INTERFACE keyword in target_link_libraries,
     // which RN's ReactNative-application.cmake does internally. A real STATIC target (with a
     // generated placeholder source) works correctly in all CMake linking contexts.
+    def includeDirs = overrideIncludeRoots.collect { "\${CMAKE_CURRENT_LIST_DIR}/../headers/${it}" }
+    includeDirs << "\${CMAKE_CURRENT_LIST_DIR}/../headers"
+    includeDirs << "\${CMAKE_CURRENT_LIST_DIR}/../headers/react/renderer/components/${codegenName}"
+    def includeDirsBlock = includeDirs.collect { "    \"${it}\"" }.join("\n")
+
     return """cmake_minimum_required(VERSION 3.13)
 
 if(CMAKE_BUILD_TYPE)
@@ -50,8 +166,7 @@ endif()
 add_library(react_codegen_${codegenName} STATIC "\${_rnrepo_src_${codegenName}}")
 
 target_include_directories(react_codegen_${codegenName} PUBLIC
-    "\${CMAKE_CURRENT_LIST_DIR}/../headers"
-    "\${CMAKE_CURRENT_LIST_DIR}/../headers/react/renderer/components/${codegenName}"
+${includeDirsBlock}
 )
 
 target_link_libraries(react_codegen_${codegenName}
@@ -117,6 +232,9 @@ def configureCodegenTasks(project) {
     def extractDebugTask = createExtractCodegenBinariesTask(project, codegenName, "Debug")
     def extractReleaseTask = createExtractCodegenBinariesTask(project, codegenName, "Release")
 
+    // Written by packageCppHeaders, read back by packageCodegenCMake — keep the two in sync here.
+    def headersDestDir = project.file("${project.projectDir}/src/main/assets/headers")
+
     // Task to package headers - must run after codegen generation
     def packageHeadersTask = project.tasks.register("packageCppHeaders") {
         onlyIf { codegenName != null }
@@ -128,7 +246,9 @@ def configureCodegenTasks(project) {
         }
         
         doLast {
-            def headersDestDir = file("${project.projectDir}/src/main/assets/headers")
+            // Wipe first: nothing else writes here, and leftovers from an earlier run would be both
+            // packaged into the AAR and picked up as include roots by packageCodegenCMake.
+            headersDestDir.deleteDir()
             headersDestDir.mkdirs()
 
             def headerSources = [
@@ -157,6 +277,24 @@ def configureCodegenTasks(project) {
                 }
             }
 
+            // Roots that shadow codegen output and sit outside every directory above. They keep
+            // their package-relative subdirectory rather than being flattened in with the rest:
+            // packageCodegenCMake keys off exactly that prefix to rank them ahead of
+            // assets/headers, mirroring the include order the library's own CMakeLists uses.
+            // Flattening them would clobber the generated headers instead of shadowing them.
+            def packageDir = file("${project.projectDir}/..")
+            def headerOverrideRoots = findPackageCodegenOverrideRoots(
+                packageDir, codegenName, headerSources + [headersDestDir])
+
+            headerOverrideRoots.each { root ->
+                println "🔍 Collecting override headers from: ${root}"
+                project.copy {
+                    from new File(packageDir, root)
+                    into new File(headersDestDir, root)
+                    include "**/*.h"
+                }
+            }
+
             // Failsafe: Check if anything was copied
             if (headersDestDir.list()?.length > 0) {
                 println "📦 Successfully packaged all headers to assets/headers"
@@ -168,10 +306,17 @@ def configureCodegenTasks(project) {
 
     def packageCodegenCMakeTask = project.tasks.register("packageCodegenCMake") {
         onlyIf { codegenName != null }
+        // The include roots are derived from the packaged headers, so they have to exist first.
+        dependsOn(packageHeadersTask)
         doLast {
+            def overrideIncludeRoots = findCodegenOverrideIncludeRoots(headersDestDir, codegenName)
+            if (overrideIncludeRoots) {
+                println "📦 Codegen header overrides for ${codegenName}: ${overrideIncludeRoots.join(', ')}"
+            }
+
             def cmakeDir = file("${project.projectDir}/src/main/assets/cmake")
             cmakeDir.mkdirs()
-            file("${cmakeDir}/CMakeLists.txt").text = generateCMakeContent(codegenName)
+            file("${cmakeDir}/CMakeLists.txt").text = generateCMakeContent(codegenName, overrideIncludeRoots)
             println "📦 Packaged codegen CMakeLists.txt to assets/cmake"
         }
     }
