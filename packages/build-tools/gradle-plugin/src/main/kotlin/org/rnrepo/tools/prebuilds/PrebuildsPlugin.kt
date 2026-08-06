@@ -1165,12 +1165,11 @@ class PrebuildsPlugin : Plugin<Project> {
         packageItem: PackageItem,
         supportedPackages: MutableSet<PackageItem>,
         unavailablePackages: MutableSet<PackageItem>,
-        allDependentPackageAreSupported: List<PackageItem> = emptyList(),
+        reason: String,
     ) {
         if (PACKAGES_WITH_CPP[packageItem.name].isNullOrEmpty()) {
             return
         }
-        val dependentPackagePattern = PACKAGES_WITH_CPP[packageItem.name].orEmpty().joinToString("|") { it }
         val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
         val packagesToRemove =
             supportedPackages.filter { supportedPackage ->
@@ -1180,14 +1179,6 @@ class PrebuildsPlugin : Plugin<Project> {
             }
         supportedPackages.removeAll(packagesToRemove)
         unavailablePackages.addAll(packagesToRemove)
-        val reason =
-            if (allDependentPackageAreSupported.isEmpty()) {
-                "${packageItem.npmName} is denied or unavailable."
-            } else {
-                "Unavailable dependent packages found for ${packageItem.npmName} matching pattern '$dependentPackagePattern': ${printList(
-                    allDependentPackageAreSupported,
-                )}"
-            }
         logger.lifecycle(
             "$reason\nRemoving packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages: ${printList(
                 packagesToRemove,
@@ -1203,7 +1194,8 @@ class PrebuildsPlugin : Plugin<Project> {
         projectPackages: Set<PackageItem>,
     ) {
         logger.info("${packageItem.npmName} is supported, checking if all packages depending on it are supported.")
-        PACKAGES_WITH_CPP.get(packageItem.name)?.forEach { dependentPackagePattern ->
+        val dependentPackagePatterns = PACKAGES_WITH_CPP[packageItem.name].orEmpty()
+        dependentPackagePatterns.forEach { dependentPackagePattern ->
             val dependentPackagePatternRegex = dependentPackagePattern.toRegex()
             val isPackagePresentInProject =
                 project.rootProject.allprojects.any { subproject ->
@@ -1221,11 +1213,13 @@ class PrebuildsPlugin : Plugin<Project> {
                     .filterNot { dep -> supportedPackages.any { it.name == dep.name } }
             if (allDependentPackageAreSupported.isNotEmpty()) {
                 unavailablePackages.add(packageItem)
+                val patterns = dependentPackagePatterns.joinToString("|")
                 removeCppDependenciesFromSupportedPackages(
                     packageItem,
                     supportedPackages,
                     unavailablePackages,
-                    allDependentPackageAreSupported,
+                    "Unavailable dependent packages found for ${packageItem.npmName} matching pattern " +
+                        "'$patterns': ${printList(allDependentPackageAreSupported)}",
                 )
                 return
             }
@@ -1286,10 +1280,27 @@ class PrebuildsPlugin : Plugin<Project> {
                 if (isUnavailable) {
                     unavailablePackages.add(packageItem)
                 }
+                // Report which of the three checks rejected the package: a deny/allow list rule and a
+                // missing artifact look identical from the build log otherwise, and they need opposite
+                // fixes (edit rnrepo config vs. update the tools/prebuilds version).
+                val reason =
+                    when {
+                        isDenied ->
+                            "${packageItem.npmName} is denied by RNRepo configuration (deny list, allow list or built-in " +
+                                "exclusion), so no prebuilt was requested for it."
+                        checkFailed ->
+                            "${packageItem.npmName} did not pass its package-specific compatibility check " +
+                                "(see the reason logged above, or re-run with --info)."
+                        else ->
+                            "${packageItem.npmName}@${packageItem.version}${packageItem.classifier} is unavailable: no prebuilt " +
+                                "artifact for React Native ${extension.reactNativeVersion} was found in the configured RNRepo " +
+                                "repositories. It may not be published yet for this combination — check for a newer @rnrepo/build-tools."
+                    }
                 removeCppDependenciesFromSupportedPackages(
                     packageItem,
                     supportedPackages,
                     unavailablePackages,
+                    reason,
                 )
             }
             else -> elseClosure()
