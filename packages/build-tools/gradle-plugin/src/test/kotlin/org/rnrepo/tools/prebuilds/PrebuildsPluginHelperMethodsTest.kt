@@ -371,32 +371,41 @@ class PrebuildsPluginHelperMethodsTest {
     }
 
     @Test
-    fun `isPackageNotDenied should return false for denied packages`() {
+    fun `deniedReason should name the denying rule for denied packages`() {
         // Given
         val extension = PackagesManager()
         extension.denyList = setOf("react-native-vector-icons", "react-native-image-picker")
 
         // When
         val result1 =
-            invokePrivateMethod<Boolean>(
+            invokePrivateMethod<String?>(
                 plugin,
-                "isPackageNotDenied",
+                "deniedReason",
                 arrayOf(String::class.java, PackagesManager::class.java),
                 "react-native-vector-icons",
                 extension,
             )
         val result2 =
-            invokePrivateMethod<Boolean>(
+            invokePrivateMethod<String?>(
                 plugin,
-                "isPackageNotDenied",
+                "deniedReason",
                 arrayOf(String::class.java, PackagesManager::class.java),
                 "react-native-reanimated",
                 extension,
             )
+        val result3 =
+            invokePrivateMethod<String?>(
+                plugin,
+                "deniedReason",
+                arrayOf(String::class.java, PackagesManager::class.java),
+                "expo-camera",
+                extension,
+            )
 
         // Then
-        assertThat(result1).isFalse()
-        assertThat(result2).isTrue()
+        assertThat(result1).isEqualTo("deny list")
+        assertThat(result2).isNull()
+        assertThat(result3).isEqualTo("built-in Expo exclusion")
     }
 
     @Test
@@ -465,7 +474,7 @@ class PrebuildsPluginHelperMethodsTest {
     }
 
     @Test
-    fun `isSpecificCheckPassed should handle react-native-reanimated with worklets`() {
+    fun `specificCheckFailureReason should handle react-native-reanimated with worklets`() {
         // Given
         val extension = PackagesManager()
         val reanimatedPackage = PackageItem("react-native-reanimated", "4.2.0", "react-native-reanimated")
@@ -476,9 +485,9 @@ class PrebuildsPluginHelperMethodsTest {
 
         // When
         val result =
-            invokePrivateMethod<Boolean>(
+            invokePrivateMethod<String?>(
                 plugin,
-                "isSpecificCheckPassed",
+                "specificCheckFailureReason",
                 arrayOf(PackageItem::class.java, PackagesManager::class.java, Set::class.java, Project::class.java),
                 reanimatedPackage,
                 extension,
@@ -487,12 +496,12 @@ class PrebuildsPluginHelperMethodsTest {
             )
 
         // Then
-        assertThat(result).isTrue()
+        assertThat(result).isNull()
         assertThat(reanimatedPackage.classifier).isEqualTo("-worklets1.0.0")
     }
 
     @Test
-    fun `isSpecificCheckPassed should handle react-native-reanimated without worklets`() {
+    fun `specificCheckFailureReason should handle react-native-reanimated without worklets`() {
         // Given
         val extension = PackagesManager()
         val reanimatedPackage = PackageItem("react-native-reanimated", "4.2.0", "react-native-reanimated")
@@ -502,9 +511,9 @@ class PrebuildsPluginHelperMethodsTest {
 
         // When
         val result =
-            invokePrivateMethod<Boolean>(
+            invokePrivateMethod<String?>(
                 plugin,
-                "isSpecificCheckPassed",
+                "specificCheckFailureReason",
                 arrayOf(PackageItem::class.java, PackagesManager::class.java, Set::class.java, Project::class.java),
                 reanimatedPackage,
                 extension,
@@ -513,11 +522,11 @@ class PrebuildsPluginHelperMethodsTest {
             )
 
         // Then
-        assertThat(result).isFalse()
+        assertThat(result).isEqualTo("requires react-native-worklets in the project")
     }
 
     @Test
-    fun `isSpecificCheckPassed should handle react-native-reanimated4-3-0 without worklets`() {
+    fun `specificCheckFailureReason should handle react-native-reanimated4-3-0 without worklets`() {
         // Given
         val extension = PackagesManager()
         val reanimatedPackage = PackageItem("react-native-reanimated", "4.5.0", "react-native-reanimated")
@@ -527,9 +536,9 @@ class PrebuildsPluginHelperMethodsTest {
 
         // When
         val result =
-            invokePrivateMethod<Boolean>(
+            invokePrivateMethod<String?>(
                 plugin,
-                "isSpecificCheckPassed",
+                "specificCheckFailureReason",
                 arrayOf(PackageItem::class.java, PackagesManager::class.java, Set::class.java, Project::class.java),
                 reanimatedPackage,
                 extension,
@@ -538,11 +547,11 @@ class PrebuildsPluginHelperMethodsTest {
             )
 
         // Then
-        assertThat(result).isTrue()
+        assertThat(result).isNull()
     }
 
     @Test
-    fun `isSpecificCheckPassed should handle react-native-reanimated3 without worklets`() {
+    fun `specificCheckFailureReason should handle react-native-reanimated3 without worklets`() {
         // Given
         val extension = PackagesManager()
         val reanimatedPackage = PackageItem("react-native-reanimated", "3.5.0", "react-native-reanimated")
@@ -552,9 +561,9 @@ class PrebuildsPluginHelperMethodsTest {
 
         // When
         val result =
-            invokePrivateMethod<Boolean>(
+            invokePrivateMethod<String?>(
                 plugin,
-                "isSpecificCheckPassed",
+                "specificCheckFailureReason",
                 arrayOf(PackageItem::class.java, PackagesManager::class.java, Set::class.java, Project::class.java),
                 reanimatedPackage,
                 extension,
@@ -563,11 +572,11 @@ class PrebuildsPluginHelperMethodsTest {
             )
 
         // Then
-        assertThat(result).isTrue()
+        assertThat(result).isNull()
     }
 
     @Test
-    fun `isSpecificCheckPassed should handle react-native-gesture-handler dependencies`() {
+    fun `specificCheckFailureReason should handle react-native-gesture-handler dependencies`() {
         // Given
         val extension = PackagesManager()
         val gestureHandlerPackage = PackageItem("react-native-gesture-handler", "2.8.0", "react-native-gesture-handler")
@@ -579,9 +588,9 @@ class PrebuildsPluginHelperMethodsTest {
 
         // When
         val result =
-            invokePrivateMethod<Boolean>(
+            invokePrivateMethod<String?>(
                 plugin,
-                "isSpecificCheckPassed",
+                "specificCheckFailureReason",
                 arrayOf(PackageItem::class.java, PackagesManager::class.java, Set::class.java, Project::class.java),
                 gestureHandlerPackage,
                 extension,
@@ -590,11 +599,11 @@ class PrebuildsPluginHelperMethodsTest {
             )
 
         // Then
-        assertThat(result).isTrue()
+        assertThat(result).isNull()
     }
 
     @Test
-    fun `isSpecificCheckPassed should allow react-native-worklets with expo55 in release build`() {
+    fun `specificCheckFailureReason should allow react-native-worklets with expo55 in release build`() {
         // Given
         val extension = PackagesManager()
         val workletsPackage = PackageItem("react-native-worklets", "1.0.0", "react-native-worklets")
@@ -606,9 +615,9 @@ class PrebuildsPluginHelperMethodsTest {
 
         // When
         val result =
-            invokePrivateMethod<Boolean>(
+            invokePrivateMethod<String?>(
                 plugin,
-                "isSpecificCheckPassed",
+                "specificCheckFailureReason",
                 arrayOf(PackageItem::class.java, PackagesManager::class.java, Set::class.java, Project::class.java),
                 workletsPackage,
                 extension,
@@ -617,11 +626,11 @@ class PrebuildsPluginHelperMethodsTest {
             )
 
         // Then
-        assertThat(result).isTrue()
+        assertThat(result).isNull()
     }
 
     @Test
-    fun `isSpecificCheckPassed should deny react-native-worklets with expo55 in debug build`() {
+    fun `specificCheckFailureReason should deny react-native-worklets with expo55 in debug build`() {
         // Given
         val extension = PackagesManager()
         val workletsPackage = PackageItem("react-native-worklets", "1.0.0", "react-native-worklets")
@@ -633,9 +642,9 @@ class PrebuildsPluginHelperMethodsTest {
 
         // When
         val result =
-            invokePrivateMethod<Boolean>(
+            invokePrivateMethod<String?>(
                 plugin,
-                "isSpecificCheckPassed",
+                "specificCheckFailureReason",
                 arrayOf(PackageItem::class.java, PackagesManager::class.java, Set::class.java, Project::class.java),
                 workletsPackage,
                 extension,
@@ -644,7 +653,7 @@ class PrebuildsPluginHelperMethodsTest {
             )
 
         // Then
-        assertThat(result).isFalse()
+        assertThat(result).isNotNull()
     }
 
     @Test

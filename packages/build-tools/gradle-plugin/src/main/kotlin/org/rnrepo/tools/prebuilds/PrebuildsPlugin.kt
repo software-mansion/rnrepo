@@ -58,7 +58,7 @@ private class PrefixedLogger(
     fun debug(message: String) = delegate.debug("[📦 RNRepo] $message")
 }
 
-private enum class FallbackReason(
+internal enum class FallbackReason(
     val icon: String,
     val heading: String,
 ) {
@@ -68,7 +68,7 @@ private enum class FallbackReason(
     DEPENDENCY("⛓️", "Packages with a prebuilt available, kept on sources to stay compatible with other packages"),
 }
 
-private class FallbackPackages {
+internal class FallbackPackages {
     private val byReason =
         FallbackReason.values().associateWith {
             java.util.concurrent.ConcurrentHashMap<PackageItem, String>()
@@ -700,27 +700,27 @@ class PrebuildsPlugin : Plugin<Project> {
     private fun toGradleName(packageName: String): String = packageName.replace("@", "").replace("/", "_")
 
     /**
-     * Checks if a specific package is not in the deny list or excluded by other rules.
+     * Checks whether the package is in the deny list or excluded by a built-in rule.
      *
      * @param packageName The name of the package to check.
      * @param extension The PackagesManager instance containing the deny list.
      *
-     * @return True if the package is not denied, false otherwise.
+     * @return A short description of which rule denied the package, or null when it is not denied.
      */
-    private fun isPackageNotDenied(
+    private fun deniedReason(
         packageName: String,
         extension: PackagesManager,
-    ): Boolean {
+    ): String? {
         if (extension.denyList.contains(packageName)) {
             logger.info("Package $packageName is in deny list, skipping in RNRepo.")
-            return false
+            return "deny list"
         }
         if (packageName.startsWith("expo") && packageName != "expo-modules-core") {
             logger.info("Package $packageName is an Expo package, skipping in RNRepo.")
-            return false
+            return "built-in Expo exclusion"
         }
         logger.info("Package $packageName is not denied.")
-        return true
+        return null
     }
 
     private fun resolveRNRepoRepositories(repositories: RepositoryHandler): List<MavenArtifactRepository> {
@@ -1087,12 +1087,20 @@ class PrebuildsPlugin : Plugin<Project> {
         }
     }
 
-    private fun isSpecificCheckPassed(
+    /**
+     * Runs the package-specific compatibility check.
+     *
+     * May mutate [PackageItem.classifier] (e.g. append the worklets classifier), so it must run
+     * before the availability probe that looks the classifier up.
+     *
+     * @return A short description of why the check failed, or null when the package passed.
+     */
+    private fun specificCheckFailureReason(
         packageItem: PackageItem,
         extension: PackagesManager,
         supportedPackages: Set<PackageItem>,
         project: Project,
-    ): Boolean {
+    ): String? {
         when (packageItem.name) {
             "react-native-gesture-handler" -> {
                 val isReanimatedPresent = extension.projectPackages.any { it.name == "react-native-reanimated" }
@@ -1100,7 +1108,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.info(
                         "react-native-gesture-handler: react-native-reanimated not found in project, using react-native-gesture-handler from sources.",
                     )
-                    return false
+                    return "requires react-native-reanimated in the project"
                 }
             }
             "react-native-reanimated" -> {
@@ -1108,13 +1116,13 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.info(
                         "react-native-reanimated: Version ${packageItem.version} is 3.x, no worklets package needed.",
                     )
-                    return true
+                    return null
                 }
                 if (isVersionAtLeast(packageItem.version, "4.3.0")) {
                     logger.info(
                         "react-native-reanimated: Version ${packageItem.version} is 4.3.0 or higher, no worklets classifier needed.",
                     )
-                    return true
+                    return null
                 }
                 val workletsItem = extension.projectPackages.find { it.name == "react-native-worklets" }
                 if (workletsItem != null) {
@@ -1126,7 +1134,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.info(
                         "react-native-reanimated: react-native-worklets not found in project, using react-native-reanimated from sources.",
                     )
-                    return false
+                    return "requires react-native-worklets in the project"
                 }
             }
             "expensify_react-native-live-markdown" -> {
@@ -1140,7 +1148,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.info(
                         "react-native-live-markdown: react-native-worklets not found in project, using react-native-live-markdown from sources.",
                     )
-                    return false
+                    return "requires react-native-worklets in the project"
                 }
             }
             "expo-modules-core" -> {
@@ -1148,7 +1156,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.info(
                         "expo-modules-core: Debug mode is not supported for expo-modules-core, using expo-modules-core from sources.",
                     )
-                    return false
+                    return "prebuilt is not supported in debug builds"
                 }
             }
             "react-native-audio-api" -> {
@@ -1162,7 +1170,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.info(
                         "react-native-audio-api: react-native-worklets not found in project, using react-native-audio-api from sources.",
                     )
-                    return false
+                    return "requires react-native-worklets in the project"
                 }
             }
             "react-native-worklets" -> {
@@ -1175,7 +1183,7 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.info(
                         "react-native-worklets: Release build, prebuilt worklets can be used regardless of expo-modules-core support.",
                     )
-                    return true
+                    return null
                 }
                 val isExpo55OrLaterPresent =
                     extension.projectPackages.any { pkg ->
@@ -1191,11 +1199,11 @@ class PrebuildsPlugin : Plugin<Project> {
                     logger.lifecycle(
                         "react-native-worklets: Expo 55 or later found in project, which has react-native-worklets as a dependency with hardcoded native library path, using react-native-worklets from sources.",
                     )
-                    return false
+                    return "Expo 55+ debug builds need worklets from sources while expo-modules-core is not prebuilt"
                 }
             }
         }
-        return true
+        return null
     }
 
     private fun removeCppDependenciesFromSupportedPackages(
@@ -1316,49 +1324,51 @@ class PrebuildsPlugin : Plugin<Project> {
         elseClosure: () -> Unit,
         project: Project,
     ) {
-        val isDenied = !isPackageNotDenied(packageItem.name, extension)
-        val checkFailed = !isSpecificCheckPassed(packageItem, extension, supportedPackages, project)
-        val isUnavailable = !isPackageAvailable(packageItem, extension.reactNativeVersion, httpRepositories)
-
         // A package can trip more than one check (an Expo package is denied *and* has no artifact
-        // published). Report the one the user has to act on first: a deny rule makes the missing
-        // artifact irrelevant, and a failed compatibility check means the artifact was never wanted.
-        val fallbackReason =
-            when {
-                isDenied -> FallbackReason.DENIED
-                checkFailed -> FallbackReason.INCOMPATIBLE
-                isUnavailable -> FallbackReason.UNAVAILABLE
-                else -> null
-            }
+        // published). Check in the order the user has to act on: a deny rule makes the missing
+        // artifact irrelevant, and a failed compatibility check means the artifact was never
+        // wanted. Short-circuiting also skips the availability probe's HTTP round-trips for
+        // packages that are already rejected. The probe must stay last for another reason too:
+        // specificCheckFailureReason sets the classifier the probe looks up.
+        val fallback: Pair<FallbackReason, String>? =
+            deniedReason(packageItem.name, extension)
+                ?.let { FallbackReason.DENIED to it }
+                ?: specificCheckFailureReason(packageItem, extension, supportedPackages, project)
+                    ?.let { FallbackReason.INCOMPATIBLE to it }
+                ?: if (isPackageAvailable(packageItem, extension.reactNativeVersion, httpRepositories)) {
+                    null
+                } else {
+                    FallbackReason.UNAVAILABLE to ""
+                }
 
-        when (fallbackReason) {
-            null -> elseClosure()
-            else -> {
-                fallbackPackages.add(fallbackReason, packageItem)
-                // Spell out which check rejected the package: a deny rule and a missing artifact look
-                // identical from the build log otherwise, and they need opposite fixes (edit rnrepo
-                // config vs. update the tools/prebuilds version).
-                val reason =
-                    when (fallbackReason) {
-                        FallbackReason.DENIED ->
-                            "${packageItem.npmName} is denied by RNRepo configuration (deny list, allow list or built-in " +
-                                "exclusion), so no prebuilt was requested for it."
-                        FallbackReason.INCOMPATIBLE ->
-                            "${packageItem.npmName} did not pass its package-specific compatibility check " +
-                                "(see the reason logged above, or re-run with --info)."
-                        else ->
-                            "${packageItem.npmName}@${packageItem.version}${packageItem.classifier} is unavailable: no prebuilt " +
-                                "artifact for React Native ${extension.reactNativeVersion} was found in the configured RNRepo " +
-                                "repositories. It may not be published yet for this combination — check for a newer @rnrepo/build-tools."
-                    }
-                removeCppDependenciesFromSupportedPackages(
-                    packageItem,
-                    supportedPackages,
-                    fallbackPackages,
-                    reason,
-                )
-            }
+        if (fallback == null) {
+            elseClosure()
+            return
         }
+        val (fallbackReason, detail) = fallback
+        fallbackPackages.add(fallbackReason, packageItem, detail)
+        // Spell out which check rejected the package: a deny rule and a missing artifact look
+        // identical from the build log otherwise, and they need opposite fixes (edit rnrepo
+        // config vs. update the tools/prebuilds version).
+        val reason =
+            when (fallbackReason) {
+                FallbackReason.DENIED ->
+                    "${packageItem.npmName} is denied by RNRepo configuration ($detail), so no prebuilt was requested for it."
+                FallbackReason.INCOMPATIBLE ->
+                    "${packageItem.npmName} did not pass its package-specific compatibility check: $detail."
+                FallbackReason.UNAVAILABLE ->
+                    "${packageItem.npmName}@${packageItem.version}${packageItem.classifier} is unavailable: no prebuilt " +
+                        "artifact for React Native ${extension.reactNativeVersion} was found in the configured RNRepo " +
+                        "repositories. It may not be published yet for this combination — check for a newer @rnrepo/build-tools."
+                FallbackReason.DEPENDENCY ->
+                    error("DEPENDENCY is only assigned when a package is removed for another package's sake")
+            }
+        removeCppDependenciesFromSupportedPackages(
+            packageItem,
+            supportedPackages,
+            fallbackPackages,
+            reason,
+        )
     }
 
     private fun printList(
@@ -1374,8 +1384,7 @@ class PrebuildsPlugin : Plugin<Project> {
     }
 
     /**
-     * Same as [printList], but appends the per-package detail explaining the fallback, e.g.
-     * `- ⛓️ react-native-reanimated@4.3.1 (depends on react-native-worklets)`.
+     * Same as [printList], but appends the per-package detail explaining the fallback
      */
     private fun printFallbackList(
         packages: Map<PackageItem, String>,
@@ -1440,11 +1449,10 @@ class PrebuildsPlugin : Plugin<Project> {
         extension.supportedPackages = supportedPackages
         logger.lifecycle("Found the following supported prebuilt packages:${printList(extension.supportedPackages, "📦")}")
         if (fallbackPackages.isEmpty()) {
-            logger.lifecycle("Packages that fallback to building from sources:${printList(emptyList())}")
+            logger.lifecycle("Packages that fallback to building from sources: None")
             return
         }
-        // One list per reason, so it is clear whether a package needs a config change, a newer
-        // @rnrepo/build-tools, or nothing at all (it follows a dependency that is not prebuilt).
+        // One list per reason, so it is clear whether a package fallback
         FallbackReason.values().forEach { reason ->
             val packages = fallbackPackages.get(reason)
             if (packages.isNotEmpty()) {
