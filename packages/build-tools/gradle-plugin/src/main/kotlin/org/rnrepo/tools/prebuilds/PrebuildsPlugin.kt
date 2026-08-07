@@ -58,6 +58,43 @@ private class PrefixedLogger(
     fun debug(message: String) = delegate.debug("[📦 RNRepo] $message")
 }
 
+private enum class FallbackReason(
+    val icon: String,
+    val heading: String,
+) {
+    DENIED("🚫", "Packages denied by configuration (deny/allow list or built-in rule)"),
+    UNAVAILABLE("❓", "Packages with no matching prebuilt artifact published"),
+    INCOMPATIBLE("⚠️", "Packages that failed a compatibility check"),
+    DEPENDENCY("⛓️", "Packages with a prebuilt available, kept on sources to stay compatible with other packages"),
+}
+
+private class FallbackPackages {
+    private val byReason =
+        FallbackReason.values().associateWith {
+            java.util.concurrent.ConcurrentHashMap<PackageItem, String>()
+        }
+
+    fun add(
+        reason: FallbackReason,
+        packageItem: PackageItem,
+        detail: String = "",
+    ) {
+        byReason.getValue(reason)[packageItem] = detail
+    }
+
+    fun addAll(
+        reason: FallbackReason,
+        packages: Collection<PackageItem>,
+        detail: String = "",
+    ) {
+        packages.forEach { add(reason, it, detail) }
+    }
+
+    fun get(reason: FallbackReason): Map<PackageItem, String> = byReason.getValue(reason)
+
+    fun isEmpty(): Boolean = byReason.values.all { it.isEmpty() }
+}
+
 open class PackagesManager {
     var projectPackages: Set<PackageItem> = mutableSetOf()
     var supportedPackages: Set<PackageItem> = mutableSetOf()
@@ -1164,13 +1201,10 @@ class PrebuildsPlugin : Plugin<Project> {
     private fun removeCppDependenciesFromSupportedPackages(
         packageItem: PackageItem,
         supportedPackages: MutableSet<PackageItem>,
-        unavailablePackages: MutableSet<PackageItem>,
+        fallbackPackages: FallbackPackages,
         reason: String,
     ) {
-        if (PACKAGES_WITH_CPP[packageItem.name].isNullOrEmpty()) {
-            return
-        }
-        val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name]?.map { it.toRegex() } ?: emptyList()
+        val packagesToCheckRegex = PACKAGES_WITH_CPP[packageItem.name].orEmpty().map { it.toRegex() }
         val packagesToRemove =
             supportedPackages.filter { supportedPackage ->
                 packagesToCheckRegex.any { regex ->
@@ -1178,10 +1212,17 @@ class PrebuildsPlugin : Plugin<Project> {
                 }
             }
         supportedPackages.removeAll(packagesToRemove)
-        unavailablePackages.addAll(packagesToRemove)
+        fallbackPackages.addAll(FallbackReason.DEPENDENCY, packagesToRemove, "depends on ${packageItem.npmName}")
+        // Only worth a lifecycle line when it drags other packages down with it; otherwise the
+        // package just shows up under its reason in the summary printed at the end.
+        if (packagesToRemove.isEmpty()) {
+            logger.info(reason)
+            return
+        }
         logger.lifecycle(
             "$reason\nRemoving packages that depend on ${packageItem.npmName} (fallback to sources) from supported packages: ${printList(
                 packagesToRemove,
+                FallbackReason.DEPENDENCY.icon,
             )}",
         )
     }
@@ -1190,7 +1231,7 @@ class PrebuildsPlugin : Plugin<Project> {
         packageItem: PackageItem,
         project: Project,
         supportedPackages: MutableSet<PackageItem>,
-        unavailablePackages: MutableSet<PackageItem>,
+        fallbackPackages: FallbackPackages,
         projectPackages: Set<PackageItem>,
     ) {
         logger.info("${packageItem.npmName} is supported, checking if all packages depending on it are supported.")
@@ -1212,12 +1253,16 @@ class PrebuildsPlugin : Plugin<Project> {
                     .filter { dependentPackagePatternRegex.matches(it.name) && it.name != packageItem.name }
                     .filterNot { dep -> supportedPackages.any { it.name == dep.name } }
             if (allDependentPackageAreSupported.isNotEmpty()) {
-                unavailablePackages.add(packageItem)
+                fallbackPackages.add(
+                    FallbackReason.DEPENDENCY,
+                    packageItem,
+                    "depended on by ${allDependentPackageAreSupported.joinToString { it.npmName }}",
+                )
                 val patterns = dependentPackagePatterns.joinToString("|")
                 removeCppDependenciesFromSupportedPackages(
                     packageItem,
                     supportedPackages,
-                    unavailablePackages,
+                    fallbackPackages,
                     "Unavailable dependent packages found for ${packageItem.npmName} matching pattern " +
                         "'$patterns': ${printList(allDependentPackageAreSupported)}",
                 )
@@ -1266,7 +1311,7 @@ class PrebuildsPlugin : Plugin<Project> {
         packageItem: PackageItem,
         httpRepositories: List<MavenArtifactRepository>,
         extension: PackagesManager,
-        unavailablePackages: MutableSet<PackageItem>,
+        fallbackPackages: FallbackPackages,
         supportedPackages: MutableSet<PackageItem>,
         elseClosure: () -> Unit,
         project: Project,
@@ -1275,20 +1320,30 @@ class PrebuildsPlugin : Plugin<Project> {
         val checkFailed = !isSpecificCheckPassed(packageItem, extension, supportedPackages, project)
         val isUnavailable = !isPackageAvailable(packageItem, extension.reactNativeVersion, httpRepositories)
 
-        when {
-            isDenied || checkFailed || isUnavailable -> {
-                if (isUnavailable) {
-                    unavailablePackages.add(packageItem)
-                }
-                // Report which of the three checks rejected the package: a deny/allow list rule and a
-                // missing artifact look identical from the build log otherwise, and they need opposite
-                // fixes (edit rnrepo config vs. update the tools/prebuilds version).
+        // A package can trip more than one check (an Expo package is denied *and* has no artifact
+        // published). Report the one the user has to act on first: a deny rule makes the missing
+        // artifact irrelevant, and a failed compatibility check means the artifact was never wanted.
+        val fallbackReason =
+            when {
+                isDenied -> FallbackReason.DENIED
+                checkFailed -> FallbackReason.INCOMPATIBLE
+                isUnavailable -> FallbackReason.UNAVAILABLE
+                else -> null
+            }
+
+        when (fallbackReason) {
+            null -> elseClosure()
+            else -> {
+                fallbackPackages.add(fallbackReason, packageItem)
+                // Spell out which check rejected the package: a deny rule and a missing artifact look
+                // identical from the build log otherwise, and they need opposite fixes (edit rnrepo
+                // config vs. update the tools/prebuilds version).
                 val reason =
-                    when {
-                        isDenied ->
+                    when (fallbackReason) {
+                        FallbackReason.DENIED ->
                             "${packageItem.npmName} is denied by RNRepo configuration (deny list, allow list or built-in " +
                                 "exclusion), so no prebuilt was requested for it."
-                        checkFailed ->
+                        FallbackReason.INCOMPATIBLE ->
                             "${packageItem.npmName} did not pass its package-specific compatibility check " +
                                 "(see the reason logged above, or re-run with --info)."
                         else ->
@@ -1299,11 +1354,10 @@ class PrebuildsPlugin : Plugin<Project> {
                 removeCppDependenciesFromSupportedPackages(
                     packageItem,
                     supportedPackages,
-                    unavailablePackages,
+                    fallbackPackages,
                     reason,
                 )
             }
-            else -> elseClosure()
         }
     }
 
@@ -1318,6 +1372,19 @@ class PrebuildsPlugin : Plugin<Project> {
             "\n  - $icon ${pkg.npmName}@${pkg.version}${pkg.classifier}"
         }
     }
+
+    /**
+     * Same as [printList], but appends the per-package detail explaining the fallback, e.g.
+     * `- ⛓️ react-native-reanimated@4.3.1 (depends on react-native-worklets)`.
+     */
+    private fun printFallbackList(
+        packages: Map<PackageItem, String>,
+        icon: String,
+    ): String =
+        packages.entries.joinToString("") { (pkg, detail) ->
+            val suffix = if (detail.isEmpty()) "" else " ($detail)"
+            "\n  - $icon ${pkg.npmName}@${pkg.version}${pkg.classifier}$suffix"
+        }
 
     /**
      * Determines which packages are available as prebuilt AARs.
@@ -1337,9 +1404,7 @@ class PrebuildsPlugin : Plugin<Project> {
         val supportedPackages =
             java.util.concurrent.ConcurrentHashMap
                 .newKeySet<PackageItem>()
-        val unavailablePackages =
-            java.util.concurrent.ConcurrentHashMap
-                .newKeySet<PackageItem>()
+        val fallbackPackages = FallbackPackages()
         val httpRepositories = resolveRNRepoRepositories(project.repositories)
         val (dependentList, otherPackages) = extension.projectPackages.partition { PACKAGES_WITH_CPP.containsKey(it.name) }
         otherPackages.parallelStream().forEach { packageItem ->
@@ -1347,7 +1412,7 @@ class PrebuildsPlugin : Plugin<Project> {
                 packageItem,
                 httpRepositories,
                 extension,
-                unavailablePackages,
+                fallbackPackages,
                 supportedPackages,
                 { supportedPackages.add(packageItem) },
                 project,
@@ -1359,13 +1424,13 @@ class PrebuildsPlugin : Plugin<Project> {
                 logger.info(
                     "${packageItem.npmName} has dependencies with C++ code, checking availability of dependent packages...",
                 )
-                checkDependenciesLocal(packageItem, project, supportedPackages, unavailablePackages, extension.projectPackages)
+                checkDependenciesLocal(packageItem, project, supportedPackages, fallbackPackages, extension.projectPackages)
             }
             checkIfPackageIsSupported(
                 packageItem,
                 httpRepositories,
                 extension,
-                unavailablePackages,
+                fallbackPackages,
                 supportedPackages,
                 elseClosure,
                 project,
@@ -1374,7 +1439,18 @@ class PrebuildsPlugin : Plugin<Project> {
 
         extension.supportedPackages = supportedPackages
         logger.lifecycle("Found the following supported prebuilt packages:${printList(extension.supportedPackages, "📦")}")
-        logger.lifecycle("Packages that fallback to building from sources:${printList(unavailablePackages, "❓")}")
+        if (fallbackPackages.isEmpty()) {
+            logger.lifecycle("Packages that fallback to building from sources:${printList(emptyList())}")
+            return
+        }
+        // One list per reason, so it is clear whether a package needs a config change, a newer
+        // @rnrepo/build-tools, or nothing at all (it follows a dependency that is not prebuilt).
+        FallbackReason.values().forEach { reason ->
+            val packages = fallbackPackages.get(reason)
+            if (packages.isNotEmpty()) {
+                logger.lifecycle("${reason.heading}:${printFallbackList(packages, reason.icon)}")
+            }
+        }
     }
 
     private fun configureReactNativeAutolinkingTask(
