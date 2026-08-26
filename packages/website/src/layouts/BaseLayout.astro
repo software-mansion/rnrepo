@@ -1,6 +1,9 @@
 ---
 import '../styles/global.css';
 
+const PRODUCT_DESCRIPTION =
+  'Speed up your builds and avoid compiling native libraries from scratch.';
+
 export interface Props {
   title?: string;
   description?: string;
@@ -8,7 +11,7 @@ export interface Props {
 
 const {
   title = 'RNRepo - React Native Pre-Built Artifacts',
-  description = 'Speed up your builds and avoid compiling native libraries from scratch.',
+  description = PRODUCT_DESCRIPTION,
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
@@ -27,8 +30,7 @@ const structuredData = {
       '@id': 'https://rnrepo.org/#software',
       name: 'RNRepo',
       url: 'https://rnrepo.org',
-      description:
-        'Speed up your builds and avoid compiling native libraries from scratch.',
+      description: PRODUCT_DESCRIPTION,
       applicationCategory: 'DeveloperApplication',
       operatingSystem: 'Android, iOS',
       publisher: { '@id': 'https://swmansion.com/#organization' },
