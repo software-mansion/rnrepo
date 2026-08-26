@@ -10,6 +10,31 @@ const {
   title = 'RNRepo - React Native Pre-Built Artifacts',
   description = 'Speed up your builds and avoid compiling native libraries from scratch.',
 } = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://swmansion.com/#organization',
+      name: 'Software Mansion',
+      url: 'https://swmansion.com',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': 'https://rnrepo.org/#software',
+      name: 'RNRepo',
+      url: 'https://rnrepo.org',
+      description:
+        'Speed up your builds and avoid compiling native libraries from scratch.',
+      applicationCategory: 'DeveloperApplication',
+      operatingSystem: 'Android, iOS',
+      publisher: { '@id': 'https://swmansion.com/#organization' },
+    },
+  ],
+};
 ---
 
 <!doctype html>
@@ -25,6 +50,12 @@ const {
 
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <link rel="canonical" href={canonical} />
+    <script
+      is:inline
+      type="application/ld+json"
+      set:html={JSON.stringify(structuredData).replace(/</g, '\\u003c')}
+    />
 
     {/* Open Graph / Facebook */}
     <meta property="og:type" content="website" />
