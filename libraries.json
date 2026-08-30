@@ -943,7 +943,13 @@
     ]
   },
   "react-native-theoplayer": {
+    "postInstallScriptPath": "postInstallScripts/react-native-theoplayer/react-native-theoplayer.ts",
     "android": [
+      {
+        "versionMatcher": ">=10.9"
+      }
+    ],
+    "ios": [
       {
         "versionMatcher": ">=10.9"
       }
