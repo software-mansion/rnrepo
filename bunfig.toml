@@ -2,6 +2,13 @@
 # Bun workspace configuration
 # Workspaces are automatically detected from package.json
 
+# Pin the isolated (pnpm-style) linker so every environment gets the same
+# node_modules layout. With the hoisted linker, react@19 (pulled in via
+# expo-config-plugin / react-native) is hoisted to the root while the website
+# pins react@18, so @swmansion/ui-components resolves a different React than
+# react-dom/server and SSR fails with "Cannot read properties of null
+# (reading 'useState')".
+linker = "isolated"
+
 [install.scopes]
 # Scope-specific configurations can go here
-
