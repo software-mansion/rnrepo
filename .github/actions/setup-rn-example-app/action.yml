@@ -38,6 +38,8 @@ runs:
     - name: 📦 Install monorepo dependencies
       shell: bash
       run: bun install --ignore-scripts
+      env:
+          GL_TOKEN: ${{ secrets.GL_TOKEN }}
 
     - name: 🏗 Create React Native App
       shell: bash
