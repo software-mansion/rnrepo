@@ -17,6 +17,10 @@ inputs:
     description: 'libraries with versions to install, format: libraryName1@version1<space>libraryName2@version2'
     required: false
     default: ''
+  gl_token:
+    description: 'GitLab token used when installing monorepo dependencies'
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -39,7 +43,7 @@ runs:
       shell: bash
       run: bun install --ignore-scripts
       env:
-          GL_TOKEN: ${{ secrets.GL_TOKEN }}
+        GL_TOKEN: ${{ inputs.gl_token }}
 
     - name: 🏗 Create React Native App
       shell: bash

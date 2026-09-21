@@ -13,6 +13,10 @@ inputs:
     description: 'Disable rnrepo config plugin'
     required: false
     default: 'false'
+  gl_token:
+    description: 'GitLab token used when installing monorepo dependencies'
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -35,7 +39,7 @@ runs:
       shell: bash
       run: bun install --ignore-scripts
       env:
-          GL_TOKEN: ${{ secrets.GL_TOKEN }}
+        GL_TOKEN: ${{ inputs.gl_token }}
 
     - name: 🏗 Create Expo App
       shell: bash

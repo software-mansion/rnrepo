@@ -129,6 +129,7 @@ jobs:
           rn_version: ${{ env.RN_VERSION }}
           disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
           libraries: ${{ env.LIBRARIES }}
+          gl_token: ${{ secrets.GL_TOKEN }}
 
       - name: 🏗 Build Gradle Plugin JAR
         run: ./gradlew build
@@ -175,6 +176,7 @@ jobs:
           rn_version: ${{ env.RN_VERSION }}
           disable_rnrepo: ${{ github.event.inputs.disable_rnrepo }}
           libraries: ${{ env.LIBRARIES }}
+          gl_token: ${{ secrets.GL_TOKEN }}
 
       - name: 📦 Install CocoaPods dependencies
         run: pod install
