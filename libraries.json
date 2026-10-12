@@ -24,11 +24,15 @@
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ">=3.0.0",
-        "reactNativeVersion": ">=0.82"
+        "versionMatcher": ">=3.0.0 <3.1.0",
+        "reactNativeVersion": ">=0.82 <0.87"
       },
       {
-        "versionMatcher": ">=3.1.0",
+        "versionMatcher": ">=3.1.0 <3.2.0",
+        "reactNativeVersion": ">=0.83 <0.87"
+      },
+      {
+        "versionMatcher": ">=3.2.0",
         "reactNativeVersion": ">=0.83"
       }
     ],
@@ -38,11 +42,15 @@
         "publishedAfterDate": "2025-01-01"
       },
       {
-        "versionMatcher": ">=3.0.0",
-        "reactNativeVersion": ">=0.82"
+        "versionMatcher": ">=3.0.0 <3.1.0",
+        "reactNativeVersion": ">=0.82 <0.87"
       },
       {
-        "versionMatcher": ">=3.1.0",
+        "versionMatcher": ">=3.1.0 <3.2.0",
+        "reactNativeVersion": ">=0.83 <0.87"
+      },
+      {
+        "versionMatcher": ">=3.2.0",
         "reactNativeVersion": ">=0.83"
       }
     ]
@@ -116,8 +124,11 @@
       },
       {
         "versionMatcher": "4.6",
-        "reactNativeVersion": ">=0.83",
-        "publishedAfterDate": "2025-01-01"
+        "reactNativeVersion": ">=0.83 <0.88"
+      },
+      {
+        "versionMatcher": ">=4.7",
+        "reactNativeVersion": ">=0.86"
       }
     ],
     "ios": [
@@ -187,8 +198,11 @@
       },
       {
         "versionMatcher": "4.6",
-        "reactNativeVersion": ">=0.83",
-        "publishedAfterDate": "2025-01-01"
+        "reactNativeVersion": ">=0.83 <0.88"
+      },
+      {
+        "versionMatcher": ">=4.7",
+        "reactNativeVersion": ">=0.86"
       }
     ]
   },
@@ -349,7 +363,11 @@
       },
       {
         "versionMatcher": "0.12",
-        "reactNativeVersion": ">=0.87"
+        "reactNativeVersion": ">=0.83 <0.88"
+      },
+      {
+        "versionMatcher": ["0.13", "0.14"],
+        "reactNativeVersion": ">=0.86"
       }
     ],
     "ios": [
@@ -380,7 +398,11 @@
       },
       {
         "versionMatcher": "0.12",
-        "reactNativeVersion": ">=0.87"
+        "reactNativeVersion": ">=0.83 <0.88"
+      },
+      {
+        "versionMatcher": ["0.13", "0.14"],
+        "reactNativeVersion": ">=0.86"
       }
     ]
   },
