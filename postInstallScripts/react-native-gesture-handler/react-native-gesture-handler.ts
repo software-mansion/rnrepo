@@ -74,7 +74,9 @@ function getReanimatedAndWorkletsVersion(rnVersion: string): { reanimatedVersion
 }
 
 function getPatchFile(gestureHandlerVersion: string): string {
-    if (semver.gte(gestureHandlerVersion, '3.0.0')) {
+    if (semver.gte(gestureHandlerVersion, '3.2.0')) {
+        return __dirname + '/react-native-gesture-handler_3.2.0.patch';
+    } else if (semver.gte(gestureHandlerVersion, '3.0.0')) {
         return __dirname + '/react-native-gesture-handler_3.0.0.patch';
     } else if (gestureHandlerVersion == '2.25.0') {
         return __dirname + '/react-native-gesture-handler_2.25.0.patch';
