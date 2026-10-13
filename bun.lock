@@ -66,11 +66,10 @@
       "name": "@rnrepo/expo-config-plugin",
       "version": "0.3.6",
       "dependencies": {
-        "@expo/config-plugins": "*",
-        "@expo/config-types": "*",
         "@rnrepo/build-tools": "0.2.2",
       },
       "devDependencies": {
+        "expo": "^54.0.25",
         "expo-module-scripts": "^5.0.7",
       },
       "peerDependencies": {

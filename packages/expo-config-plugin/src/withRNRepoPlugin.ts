@@ -1,5 +1,5 @@
-import { withProjectBuildGradle, withAppBuildGradle, withDangerousMod } from '@expo/config-plugins'; 
-import type { ExpoConfig } from '@expo/config-types';
+import { withProjectBuildGradle, withAppBuildGradle, withDangerousMod } from 'expo/config-plugins';
+import type { ExpoConfig } from 'expo/config';
 import * as fs from 'fs';
 import * as path from 'path';
 

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import withRNRepoPlugin from '../src/withRNRepoPlugin';
 
 // Mock the config plugins
-jest.mock('@expo/config-plugins', () => ({
+jest.mock('expo/config-plugins', () => ({
   withProjectBuildGradle: jest.fn((config, cb) => cb(config)),
   withAppBuildGradle: jest.fn((config, cb) => cb(config)),
   withDangerousMod: jest.fn((config, [platform, cb]) => {
