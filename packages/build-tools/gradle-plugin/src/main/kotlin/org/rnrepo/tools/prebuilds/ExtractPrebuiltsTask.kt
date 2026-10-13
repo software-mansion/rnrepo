@@ -143,9 +143,12 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
             val libraryName = android["libraryName"] as? String ?: return@forEach
             val cmakeLists = cmakeListsByCodegenName[libraryName] ?: return@forEach
 
-            android["cmakeListsPath"] = cmakeLists.absolutePath
+            // React Native pastes this path verbatim into Android-autolinking.cmake, where a
+            // backslash starts an escape sequence. Always hand it a forward-slash path (see #444).
+            val cmakeListsPath = toCmakePath(cmakeLists.absolutePath)
+            android["cmakeListsPath"] = cmakeListsPath
             rewrittenLibraries.add(libraryName)
-            project.logger.lifecycle("RNRepo: Redirected cmake for $libraryName → prebuilt at ${cmakeLists.absolutePath}")
+            project.logger.lifecycle("RNRepo: Redirected cmake for $libraryName → prebuilt at $cmakeListsPath")
         }
 
         val missingLibraries = cmakeListsByCodegenName.keys - rewrittenLibraries
@@ -159,5 +162,25 @@ abstract class ExtractPrebuiltsTask : DefaultTask() {
         outputFile.parentFile.mkdirs()
         outputFile.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(json)))
         project.logger.lifecycle("RNRepo: Wrote transformed autolinking.json (${rewrittenLibraries.size} cmake paths redirected)")
+    }
+
+    companion object {
+        /**
+         * Converts a native absolute path into the form CMake expects in a quoted argument.
+         *
+         * CMake only accepts forward slashes as path separators, and `File.absolutePath` uses the
+         * platform separator, which on Windows is a backslash. React Native's autolinking writes the
+         * `cmakeListsPath` we provide straight into an `add_subdirectory("...")` call, so a Windows
+         * path such as `C:\app\assets\cmake\CMakeLists.txt` fails to parse there with
+         * "Invalid character escape". The React Native CLI emits its own autolinking paths with
+         * forward slashes for the same reason.
+         *
+         * @param separator The separator used by [absolutePath]; defaults to the platform's, and is
+         *   only overridable so the Windows case can be exercised on any host.
+         */
+        internal fun toCmakePath(
+            absolutePath: String,
+            separator: Char = File.separatorChar,
+        ): String = absolutePath.replace(separator, '/')
     }
 }

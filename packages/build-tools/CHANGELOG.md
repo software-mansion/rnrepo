@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Log distinction between denied and unavailable in Android (#436)
 
+### Fixed
+- Write the prebuilt codegen cmake path into autolinking.json with forward slashes, so Android builds on Windows no longer fail with `Invalid character escape` in `Android-autolinking.cmake` (#444)
+
 ## [0.2.2] - 2026-08-03
 
 ### Changed
