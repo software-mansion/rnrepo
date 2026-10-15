@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [UNRELEASED]
+
+### Fixed
+- Import `expo/config-plugins` and `expo/config` instead of depending on `@expo/config-plugins` and `@expo/config-types` with wildcard ranges, so the plugin always runs on the app's own Expo version and Yarn Berry no longer installs a second, newer copy of `@expo/config-plugins` next to it (#453)
+
 ## [0.3.6] - 2026-08-03
 
 ### Changed
