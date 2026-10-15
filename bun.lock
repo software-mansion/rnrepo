@@ -22,7 +22,7 @@
     },
     "packages/build-tools": {
       "name": "@rnrepo/build-tools",
-      "version": "0.2.2",
+      "version": "0.2.3",
     },
     "packages/builder": {
       "name": "@rnrepo/builder",
@@ -64,9 +64,9 @@
     },
     "packages/expo-config-plugin": {
       "name": "@rnrepo/expo-config-plugin",
-      "version": "0.3.6",
+      "version": "0.3.7",
       "dependencies": {
-        "@rnrepo/build-tools": "0.2.2",
+        "@rnrepo/build-tools": "0.2.3",
       },
       "devDependencies": {
         "expo": "^54.0.25",
