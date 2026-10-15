@@ -485,6 +485,16 @@ def build_safe_uuid_generator(pods_project)
   end
 end
 
+# Makes `target` build after `dependency_target` (both native targets of the same project) by
+# adding an explicit target dependency, unless one is already there. Build settings such as an
+# injected module map do not order Xcode's scheduling; only a target dependency does.
+def ensure_target_dependency(target, dependency_target)
+  return false if target.dependencies.any? { |dependency| dependency.target == dependency_target }
+
+  target.add_dependency(dependency_target)
+  true
+end
+
 def rnrepo_post_install(installer_context)
   # Check if plugin is disabled via environment variable
   if ENV['DISABLE_RNREPO']
@@ -578,6 +588,22 @@ def rnrepo_post_install(installer_context)
       end
       worklets_framework_name = find_prebuilt_framework_name(worklets_pod)
       module_map = "-fmodule-map-file=\"$(PODS_XCFRAMEWORKS_BUILD_DIR)/RNWorklets/#{worklets_framework_name}/Modules/module.modulemap\""
+
+      # The module map above only exists once RNWorklets' '[CP] Copy XCFrameworks' phase has run.
+      # ExpoModulesCore's podspec does not depend on RNWorklets, so without an explicit target
+      # dependency Xcode may compile ExpoModulesCore first and fail on a clean build with
+      # "module map file ... not found" (https://github.com/software-mansion/rnrepo/issues/458).
+      worklets_targets = installer_context.pods_project.targets.select do |t|
+        t.name == 'RNWorklets' || t.name.downcase.start_with?('rnworklets')
+      end
+      if worklets_targets.empty?
+        CocoapodsRnrepo::Logger.log "  ⚠️  RNWorklets target not found in Pods project; ExpoModulesCore may compile before the prebuilt worklets module map exists"
+      end
+      worklets_targets.each do |worklets_target|
+        if ensure_target_dependency(target, worklets_target)
+          CocoapodsRnrepo::Logger.log "  Added target dependency #{target.name} -> #{worklets_target.name} (prebuilt worklets module map)"
+        end
+      end
 
       target.build_configurations.each do |config|
         build_settings = config.build_settings
