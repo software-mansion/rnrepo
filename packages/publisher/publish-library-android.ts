@@ -5,6 +5,10 @@ import { $ } from 'bun';
 import { updateBuildStatus, type Platform } from '@rnrepo/database';
 import { sanitizePackageName } from '@rnrepo/config';
 
+// Maven runs through the wrapper pinned in ./.mvn/wrapper/maven-wrapper.properties, so publishing
+// does not depend on whichever Maven version the CI runner image happens to ship.
+const MVN = join(import.meta.dir, 'mvnw');
+
 /**
  * Publish Library Android Script
  *
@@ -286,7 +290,7 @@ async function main() {
 
     // Deploy POM separately (may return 409 if already published, which is acceptable)
     try {
-      await $`mvn org.apache.maven.plugins:maven-deploy-plugin:3.1.4:deploy-file \
+      await $`${MVN} org.apache.maven.plugins:maven-deploy-plugin:3.1.4:deploy-file \
           -Dfile=${pomFileToDeploy} \
           -DgroupId=org.rnrepo.public \
           -DartifactId=${mavenLibraryName} \
@@ -296,12 +300,12 @@ async function main() {
           -Durl=${MAVEN_REPOSITORY_URL}`;
       console.log('✓ POM deployed successfully');
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      // 409 Conflict is acceptable - POM may already exist (shared across versions)
-      if (
-        error?.stdout?.includes(
-          'status code: 409, reason phrase: Conflict (409)'
-        )
-      ) {
+      // 409 Conflict is acceptable - POM may already exist (shared across classifiers).
+      // The message format depends on the resolver transport Maven ships with:
+      //   Maven 3.9 (Apache HttpClient): "status code: 409, reason phrase: Conflict (409)"
+      //   Maven 3.10+ / Resolver 2.x (JDK HttpClient): "HTTP Status: 409"
+      const output = `${error?.stdout ?? ''}\n${error?.stderr ?? ''}`;
+      if (/status code: 409|HTTP Status: 409/.test(output)) {
         console.log('⚠ POM already exists (409 conflict) - continuing...');
       } else {
         throw error;
@@ -311,7 +315,7 @@ async function main() {
     // Sign and deploy AAR using gpg:sign-and-deploy-file (signs and deploys in one step)
     // The task uses MAVEN_GPG_KEY and MAVEN_GPG_PASSPHRASE environment variables to sign the artifact
     let publishStatus = 'failed' as 'failed' | 'completed';
-    const result = await $`mvn org.apache.maven.plugins:maven-gpg-plugin:3.2.8:sign-and-deploy-file \
+    const result = await $`${MVN} org.apache.maven.plugins:maven-gpg-plugin:3.2.8:sign-and-deploy-file \
         -Dfile=${aarFile} \
         -DgroupId=org.rnrepo.public \
         -DartifactId=${mavenLibraryName} \

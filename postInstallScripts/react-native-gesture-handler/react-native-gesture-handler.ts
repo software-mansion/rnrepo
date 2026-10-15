@@ -3,7 +3,12 @@ import semver from 'semver';
 
 const COMPATIBILITY_MATRIX = [
   {
-    rn: '>=0.86.0',
+    rn: '>=0.87.0',
+    reanimated: '4.7.0',
+    worklets: '0.13.0',
+  },
+  {
+    rn: '>=0.86.0 <0.87.0',
     reanimated: '4.4.1',
     worklets: '0.9.1'
   },
@@ -69,7 +74,9 @@ function getReanimatedAndWorkletsVersion(rnVersion: string): { reanimatedVersion
 }
 
 function getPatchFile(gestureHandlerVersion: string): string {
-    if (semver.gte(gestureHandlerVersion, '3.0.0')) {
+    if (semver.gte(gestureHandlerVersion, '3.2.0')) {
+        return __dirname + '/react-native-gesture-handler_3.2.0.patch';
+    } else if (semver.gte(gestureHandlerVersion, '3.0.0')) {
         return __dirname + '/react-native-gesture-handler_3.0.0.patch';
     } else if (gestureHandlerVersion == '2.25.0') {
         return __dirname + '/react-native-gesture-handler_2.25.0.patch';

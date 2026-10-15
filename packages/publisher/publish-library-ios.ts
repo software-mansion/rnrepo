@@ -5,6 +5,10 @@ import { $ } from 'bun';
 import { updateBuildStatus, type Platform } from '@rnrepo/database';
 import { sanitizePackageName } from '@rnrepo/config';
 
+// Maven runs through the wrapper pinned in ./.mvn/wrapper/maven-wrapper.properties, so publishing
+// does not depend on whichever Maven version the CI runner image happens to ship.
+const MVN = join(import.meta.dir, 'mvnw');
+
 /**
  * Publish Library iOS Script
  *
@@ -131,7 +135,7 @@ async function main() {
       // Deploy the XCFramework zip to Maven repository
       // Using the same Maven infrastructure as Android for cross-platform compatibility
       console.log('\n🚀 Deploying to Maven repository...');
-      await $`mvn org.apache.maven.plugins:maven-deploy-plugin:3.1.4:deploy-file \
+      await $`${MVN} org.apache.maven.plugins:maven-deploy-plugin:3.1.4:deploy-file \
           -Dfile=${xcframeworkPath} \
           -DgroupId=org.rnrepo.public \
           -DartifactId=${sanitizedLibraryName} \
