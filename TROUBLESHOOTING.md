@@ -130,11 +130,11 @@ Caused by: com.android.builder.merge.DuplicateRelativeFileException: 2 files fou
 ```
 
 This error occurs when:
-1. A library built from sources includes native code from a provider library
+1. A provider library and one of its consumers come from different places: either a consumer built from sources copies the native library of a prebuilt provider, or a prebuilt consumer AAR bundles the native library of a provider that is built from sources.
 2. The Gradle build system encounters duplicate `.so` files in different locations during the merge phase
 
 #### Automatic Solution
-The RNRepo plugin automatically detects when a provider library (e.g., `react-native-worklets`) is present. When this happens, it adds `pickFirsts` configuration for all native library files of the provider to resolve the conflict gracefully.
+The RNRepo plugin automatically detects when a provider library (e.g., `react-native-worklets`) is present in the project and at least one package is prebuilt, regardless of whether the provider itself is prebuilt or built from sources. When this happens, it adds `pickFirsts` configuration for all native library files of the provider to resolve the conflict gracefully.
 
 **Supported providers that are automatically handled:**
 - `react-native-worklets` (provider) → pickFirsts for `libworklets.so`

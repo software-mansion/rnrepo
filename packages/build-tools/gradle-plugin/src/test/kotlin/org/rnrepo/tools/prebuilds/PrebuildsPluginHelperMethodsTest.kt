@@ -1,5 +1,8 @@
 package org.rnrepo.tools.prebuilds
 
+import com.android.build.api.dsl.JniLibsPackaging
+import com.android.build.gradle.BaseExtension
+import com.android.build.gradle.internal.dsl.PackagingOptions
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -11,6 +14,7 @@ import org.gradle.api.artifacts.component.ComponentSelector
 import org.gradle.api.artifacts.component.ModuleComponentSelector
 import org.gradle.api.artifacts.component.ProjectComponentSelector
 import org.gradle.api.logging.Logger
+import org.gradle.api.plugins.ExtensionContainer
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -852,6 +856,99 @@ class PrebuildsPluginHelperMethodsTest {
 
         // Then
         assertThat(result).isEqualTo("15")
+    }
+
+    private fun setupAndroidPackaging(): MutableSet<String> {
+        val pickFirsts = mutableSetOf<String>()
+        val jniLibs = mockk<JniLibsPackaging>()
+        every { jniLibs.pickFirsts } returns pickFirsts
+        val packagingOptions = mockk<PackagingOptions>()
+        every { packagingOptions.jniLibs } returns jniLibs
+        val androidExtension = mockk<BaseExtension>()
+        every { androidExtension.packagingOptions } returns packagingOptions
+        val extensions = mockk<ExtensionContainer>()
+        every { extensions.getByName("android") } returns androidExtension
+        every { mockProject.extensions } returns extensions
+        return pickFirsts
+    }
+
+    private fun configurePickFirsts(extension: PackagesManager) {
+        invokePrivateMethod<Unit>(
+            plugin,
+            "configurePickFirsts",
+            arrayOf(Project::class.java, PackagesManager::class.java),
+            mockProject,
+            extension,
+        )
+    }
+
+    private fun workletsPickFirsts(): List<String> = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64").map { "lib/$it/libworklets.so" }
+
+    @Test
+    fun `configurePickFirsts should add the provider library when the provider is from sources and a consumer is prebuilt`() {
+        // Given react-native-worklets falls back to sources while the prebuilt gesture-handler AAR bundles libworklets.so
+        val pickFirsts = setupAndroidPackaging()
+        val worklets = PackageItem("react-native-worklets", "0.12.1", "react-native-worklets")
+        val gestureHandler = PackageItem("react-native-gesture-handler", "3.3.0", "react-native-gesture-handler")
+        val reanimated = PackageItem("react-native-reanimated", "4.6.0", "react-native-reanimated")
+        val extension = PackagesManager()
+        extension.projectPackages = setOf(worklets, gestureHandler, reanimated)
+        extension.supportedPackages = setOf(gestureHandler)
+
+        // When
+        configurePickFirsts(extension)
+
+        // Then
+        assertThat(pickFirsts).containsExactlyInAnyOrderElementsOf(workletsPickFirsts())
+    }
+
+    @Test
+    fun `configurePickFirsts should add the provider library when the provider is prebuilt`() {
+        // Given
+        val pickFirsts = setupAndroidPackaging()
+        val worklets = PackageItem("react-native-worklets", "0.13.0", "react-native-worklets")
+        val reanimated = PackageItem("react-native-reanimated", "4.7.0", "react-native-reanimated")
+        val extension = PackagesManager()
+        extension.projectPackages = setOf(worklets, reanimated)
+        extension.supportedPackages = setOf(worklets)
+
+        // When
+        configurePickFirsts(extension)
+
+        // Then
+        assertThat(pickFirsts).containsExactlyInAnyOrderElementsOf(workletsPickFirsts())
+    }
+
+    @Test
+    fun `configurePickFirsts should not touch packaging when no provider is in the project`() {
+        // Given
+        val pickFirsts = setupAndroidPackaging()
+        val screens = PackageItem("react-native-screens", "4.0.0", "react-native-screens")
+        val extension = PackagesManager()
+        extension.projectPackages = setOf(screens)
+        extension.supportedPackages = setOf(screens)
+
+        // When
+        configurePickFirsts(extension)
+
+        // Then
+        assertThat(pickFirsts).isEmpty()
+    }
+
+    @Test
+    fun `configurePickFirsts should not touch packaging when nothing is prebuilt`() {
+        // Given everything builds from sources, so there is a single copy of each library
+        val pickFirsts = setupAndroidPackaging()
+        val worklets = PackageItem("react-native-worklets", "0.12.1", "react-native-worklets")
+        val extension = PackagesManager()
+        extension.projectPackages = setOf(worklets)
+        extension.supportedPackages = emptySet()
+
+        // When
+        configurePickFirsts(extension)
+
+        // Then
+        assertThat(pickFirsts).isEmpty()
     }
 
     @Suppress("UNCHECKED_CAST")
