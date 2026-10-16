@@ -262,6 +262,11 @@ class PrebuildsPlugin : Plugin<Project> {
                 substitutionAction.execute(subproject)
             }
 
+            // The substitution above only redirects JVM/classpath resolution to the prebuilt AAR.
+            // It does not stop the substituted package's own source subproject from still running
+            // its native build, so do that separately.
+            disableSourceNativeBuildTasksForSubstitutedPackages(project, extension.supportedPackages)
+
             if (getBuildType(project) == "debug") {
                 project.gradle.projectsEvaluated {
                     logger.info("Checking if all dependencies with c++ code have their consumers supported...")
@@ -287,6 +292,52 @@ class PrebuildsPlugin : Plugin<Project> {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Disables the CMake/prefab native-build tasks of every substituted package's source Gradle
+     * subproject (e.g. `:react-native-reanimated`, `:react-native-worklets`).
+     *
+     * When a package is in [supportedPackages], RNRepo has already substituted it with a prebuilt
+     * AAR that ships its own complete prefab package (headers, `.so` for every ABI). The app's
+     * native build correctly configures against that AAR-supplied prefab. But React Native
+     * autolinking still wires the app's `configureCMake*`/`buildCMake*` tasks to depend on the
+     * source subproject's `externalNativeBuildRelease`/`prefab*Package` tasks — a task-graph edge
+     * that substituting the dependency never removes. Left alone, that forces a full, unused C++
+     * rebuild of every substituted package that publishes prefab on every clean build.
+     *
+     * `tasks.matching { }.configureEach { }` is used instead of `tasks.named(...)` so this is safe
+     * to call regardless of whether the target subproject's build script has registered its native
+     * tasks yet: the match is re-evaluated lazily against tasks added later, and is a no-op for
+     * packages that never register any of these tasks (i.e. that have no native build at all).
+     *
+     * See https://github.com/software-mansion/rnrepo/issues/451
+     */
+    private fun disableSourceNativeBuildTasksForSubstitutedPackages(
+        project: Project,
+        supportedPackages: Set<PackageItem>,
+    ) {
+        supportedPackages.forEach { packageItem ->
+            val libraryProject = project.rootProject.findProject(":${packageItem.name}") ?: return@forEach
+            var announced = false
+            libraryProject.tasks
+                .matching { task ->
+                    task.name.startsWith("configureCMake") ||
+                        task.name.startsWith("buildCMake") ||
+                        task.name.startsWith("externalNativeBuild") ||
+                        task.name.startsWith("prefab")
+                }.configureEach { task ->
+                    task.enabled = false
+                    logger.info("Disabled ${task.path}: it is superseded by ${packageItem.npmName}'s prebuilt AAR.")
+                    if (!announced) {
+                        announced = true
+                        logger.lifecycle(
+                            "📦 ${packageItem.npmName} is substituted with a prebuilt AAR that already supplies " +
+                                "prefab, disabling its source native build tasks",
+                        )
+                    }
+                }
         }
     }
 
