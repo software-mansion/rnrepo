@@ -19,9 +19,27 @@ module CocoapodsRnrepo
       FileUtils.mkdir_p(cache_dir)
       Logger.log "Cache directory: #{cache_dir}"
 
+      npm_package_name = pod_info[:npm_package_name] || pod_name
+      rn_version = pod_info[:rn_version]
+      worklets_version = pod_info[:worklets_version]
+
+      # Sanitize package name for filename (remove @ and replace / with _)
+      # Matches sanitizePackageName() in @rnrepo/config
+      sanitized_name = npm_package_name.gsub(/^@/, '').gsub('/', '_')
+
       # Check if both Debug and Release frameworks are already cached
       debug_cache_dir = File.join(cache_dir, 'Debug')
       release_cache_dir = File.join(cache_dir, 'Release')
+
+      # The extracted frameworks are only valid for the artifact they came from. Upgrading
+      # React Native or worklets keeps the package directory (and this cache) in place, so
+      # drop frameworks extracted for a different artifact instead of linking them.
+      artifact_id = artifact_id_for(sanitized_name, version, rn_version, worklets_version)
+      artifact_id_path = File.join(cache_dir, ARTIFACT_ID_FILE)
+      cached_artifact_id = File.exist?(artifact_id_path) ? File.read(artifact_id_path).strip : nil
+      if cached_artifact_id != artifact_id
+        FileUtils.rm_rf([debug_cache_dir, release_cache_dir, File.join(cache_dir, 'Current')])
+      end
 
       debug_exists = Dir.exist?(debug_cache_dir) && !Dir.glob(File.join(debug_cache_dir, "*.xcframework")).empty?
       release_exists = Dir.exist?(release_cache_dir) && !Dir.glob(File.join(release_cache_dir, "*.xcframework")).empty?
@@ -30,14 +48,6 @@ module CocoapodsRnrepo
         Logger.log "Pre-built frameworks already exist (Debug & Release)"
         return { status: :cached, message: "Already cached locally" }
       end
-
-      npm_package_name = pod_info[:npm_package_name] || pod_name
-      rn_version = pod_info[:rn_version]
-      worklets_version = pod_info[:worklets_version]
-
-      # Sanitize package name for filename (remove @ and replace / with _)
-      # Matches sanitizePackageName() in @rnrepo/config
-      sanitized_name = npm_package_name.gsub(/^@/, '').gsub('/', '_')
 
       # Track which configurations were successfully obtained
       configs_available = []
@@ -95,11 +105,21 @@ module CocoapodsRnrepo
         return { status: :unavailable, message: "Missing configuration(s), found: #{print_list}" }
       end
 
+      File.write(artifact_id_path, artifact_id)
+
       Logger.log "Successfully downloaded pre-built XCFrameworks (Debug & Release)!"
       return { status: :downloaded, message: "Downloaded and extracted successfully" }
     end
 
     private
+
+    # Records which artifact the Debug and Release frameworks in the cache were extracted from
+    ARTIFACT_ID_FILE = 'artifact-id.txt'
+
+    def self.artifact_id_for(sanitized_name, version, rn_version, worklets_version)
+      worklets_suffix = worklets_version ? "-worklets#{worklets_version}" : ''
+      "#{sanitized_name}-#{version}-rn#{rn_version}#{worklets_suffix}"
+    end
 
     # Download and extract a specific configuration (debug or release)
     def self.download_and_extract_config(cache_dir, config_cache_dir, sanitized_name, version, rn_version, config, pod_name, worklets_version = nil, cache_path = nil)
