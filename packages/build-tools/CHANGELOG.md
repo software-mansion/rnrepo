@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Write the prebuilt codegen cmake path into autolinking.json with forward slashes, so Android builds on Windows no longer fail with `Invalid character escape` in `Android-autolinking.cmake` (#444)
 - Add `pickFirsts` for a provider's native library also when the provider is built from sources while a prebuilt consumer AAR bundles it (#460)
 - Make the `ExpoModulesCore` target depend on `RNWorklets` whenever the prebuilt worklets module map is injected into it, so a clean iOS build can no longer compile ExpoModulesCore before the worklets xcframework is copied (`module map file ... not found`) (#458)
+- Re-extract the iOS xcframeworks cached in `node_modules/<package>/.rnrepo-cache` when the React Native or worklets version changes, so `pod install` no longer links frameworks built for the previous React Native version after an upgrade
 
 ## [0.2.2] - 2026-08-03
 
